@@ -1,0 +1,2 @@
+Entradas i18n hash switch totales en Tlalpowa.cpp: 586
+Nombres de atmosfera_contaminantes.tsv sin traduccion embebida: 0

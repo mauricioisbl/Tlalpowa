@@ -218,6 +218,1761 @@ constexpr const char* kElementTimelineTrack = "el.hist.pista";
 
 constexpr const char* kElementMapCanvas = "el.map.lienzo";
 constexpr const char* kElementTopTab = "el.sup.pestana";
+/* I18N TLALPOWA: traducciones embebidas, sin diccionarios externos ni E/S en ejecución.
+   Las equivalencias nahuas priorizan el diccionario Español-Náhuatl Central incluido
+   por el proyecto; los tecnicismos sin entrada directa conservan préstamos estables. */
+static int g_tlalpowa_i18n_language = 0;
+
+uint64_t tlalpowa_i18n_hash_utf8(const char* s) {
+    uint64_t h = 1469598103934665603ull;
+    if (!s) return h;
+    while (*s) {
+        h ^= static_cast<unsigned char>(*s++);
+        h *= 1099511628211ull;
+    }
+    return h;
+}
+
+void tlalpowa_i18n_set_language(int language) {
+    g_tlalpowa_i18n_language = std::clamp(language, 0, 2);
+}
+
+
+const char* tlalpowa_tr_deep(const char* es) {
+    if (!es || g_tlalpowa_i18n_language == 0) return es ? es : "";
+    switch (tlalpowa_i18n_hash_utf8(es)) {
+        case 0x02A0660400D6CEF8ull:
+            if (std::strcmp(es, "NetCDF, HDF y GeoTIFF") == 0) return g_tlalpowa_i18n_language == 1 ? "NetCDF, HDF wan GeoTIFF" : "NetCDF, HDF and GeoTIFF";
+            break;
+        case 0x0356A6642CFA1582ull:
+            if (std::strcmp(es, "Comprueba GitHub al arrancar y aplica solo los archivos publicados que hayan cambiado.") == 0) return g_tlalpowa_i18n_language == 1 ? "Kitlachīlia GitHub ihkuāk pewāki wan kitekiwia san āmatlakuilōltin tlanextiltin tlen mopatlak." : "Checks GitHub at start-up and applies only published files that have changed.";
+            break;
+        case 0x03C54920026EB50Eull:
+            if (std::strcmp(es, "Dosis UV") == 0) return g_tlalpowa_i18n_language == 1 ? "UV dosis" : "UV dose";
+            break;
+        case 0x0454D687B0ABD6B4ull:
+            if (std::strcmp(es, "ERA5-Land · superficie terrestre horaria") == 0) return g_tlalpowa_i18n_language == 1 ? "ERA5-Land · tlalli ixpan ipan hora" : "ERA5-Land · hourly land surface";
+            break;
+        case 0x051AC2C0063DB44Full:
+            if (std::strcmp(es, "Focos De Calor Y Energía Radiativa") == 0) return g_tlalpowa_i18n_language == 1 ? "Totonik focos wan radiativa chikāwalistli" : "Heat sources and radiative energy";
+            break;
+        case 0x06CDB8F865397EE1ull:
+            if (std::strcmp(es, "Arsenico particulado") == 0) return g_tlalpowa_i18n_language == 1 ? "Arsénico tlapilli" : "Particulate arsenic";
+            break;
+        case 0x0906EBD866AA34B8ull:
+            if (std::strcmp(es, "Datos Demográficos") == 0) return g_tlalpowa_i18n_language == 1 ? "Chantlakah tlamachiyotl" : "Demographic data";
+            break;
+        case 0x0A02D1668EA20403ull:
+            if (std::strcmp(es, "Datos De Contaminantes Atmosféricos") == 0) return g_tlalpowa_i18n_language == 1 ? "Ehekatl tlapololistli tlamachiyotl" : "Atmospheric pollutant data";
+            break;
+        case 0x0A8126A613D42A99ull:
+            if (std::strcmp(es, "Razon HCHO/NOx") == 0) return g_tlalpowa_i18n_language == 1 ? "HCHO/NOx razón" : "HCHO/NOx ratio";
+            break;
+        case 0x0A816CA613D4A18Bull:
+            if (std::strcmp(es, "Razon HCHO/NO2") == 0) return g_tlalpowa_i18n_language == 1 ? "HCHO/NO2 razón" : "HCHO/NO2 ratio";
+            break;
+        case 0x0C9B1A84DDCB4E46ull:
+            if (std::strcmp(es, "Temperatura ambiente") == 0) return g_tlalpowa_i18n_language == 1 ? "Ehekatl temperatura" : "Air temperature";
+            break;
+        case 0x0D7766CB0691B106ull:
+            if (std::strcmp(es, "Abre la pagina oficial de descargas PEMBU en el navegador. El login interno de Tlalpowa usa solo correo y contrasena al iniciar la importacion.") == 0) return g_tlalpowa_i18n_language == 1 ? "Kitlapoa PEMBU temowalistli zāzanilli ipan navegador. Tlalpowa kalakilistli kitekiwi san correo wan ichtakatlahtolli ihkuāk pehua tlaquixtia." : "Opens the official PEMBU downloads page in the browser. Tlalpowa's internal login uses only email and password when import starts.";
+            break;
+        case 0x0DD01C72DB1AE7B4ull:
+            if (std::strcmp(es, "Salud") == 0) return g_tlalpowa_i18n_language == 1 ? "Pāktli" : "Health";
+            break;
+        case 0x0E43449CA0EF0942ull:
+            if (std::strcmp(es, "Procesando en Blender...") == 0) return g_tlalpowa_i18n_language == 1 ? "Mochīwatika ipan Blender..." : "Processing in Blender...";
+            break;
+        case 0x0E9001195BA4961Cull:
+            if (std::strcmp(es, "Datos se sustituira por el contenido de GitHub al aplicar actualizaciones.") == 0) return g_tlalpowa_i18n_language == 1 ? "Datos mopatlas ika GitHub itlahtol ihkuāk motekiwia yankuikchīwaltin." : "Data will be replaced by the GitHub contents when updates are applied.";
+            break;
+        case 0x0FE97FA24928F7F0ull:
+            if (std::strcmp(es, "Razon xilenos/benceno") == 0) return g_tlalpowa_i18n_language == 1 ? "Xilenos/benceno razón" : "Xylenes/benzene ratio";
+            break;
+        case 0x11AC8D73B229FDFCull:
+            if (std::strcmp(es, "Metal Particulado") == 0) return g_tlalpowa_i18n_language == 1 ? "Metal tlapilli" : "Particulate metal";
+            break;
+        case 0x12720B5AA2D9DC22ull:
+            if (std::strcmp(es, "Dominio") == 0) return g_tlalpowa_i18n_language == 1 ? "Dominio" : "Domain";
+            break;
+        case 0x14DDFC92485BC27Full:
+            if (std::strcmp(es, "Proveedor") == 0) return g_tlalpowa_i18n_language == 1 ? "Proveedor" : "Provider";
+            break;
+        case 0x158CAAA4176D37DEull:
+            if (std::strcmp(es, "correo RUOA") == 0) return g_tlalpowa_i18n_language == 1 ? "RUOA correo" : "RUOA email";
+            break;
+        case 0x17D4C404213C6308ull:
+            if (std::strcmp(es, "Temperatura subpixel de fuego") == 0) return g_tlalpowa_i18n_language == 1 ? "Tletl subpixel temperatura" : "Subpixel fire temperature";
+            break;
+        case 0x18935AB47228146Full:
+            if (std::strcmp(es, "Programa de Estaciones Meteorologicas del Bachillerato Universitario (PEMBU_RUOA_UNAM)") == 0) return g_tlalpowa_i18n_language == 1 ? "PEMBU_RUOA_UNAM universidad bachillerato meteorológicas estación programa" : "University Baccalaureate Meteorological Station Programme (PEMBU_RUOA_UNAM)";
+            break;
+        case 0x18A612E2B2A7FD5Full:
+            if (std::strcmp(es, "MODIS · LST, NDVI/EVI y cobertura") == 0) return g_tlalpowa_i18n_language == 1 ? "MODIS · LST, NDVI/EVI wan cobertura" : "MODIS · LST, NDVI/EVI and cover";
+            break;
+        case 0x1A5C1EC7A27907E8ull:
+            if (std::strcmp(es, "Satélite atmosférico") == 0) return g_tlalpowa_i18n_language == 1 ? "Ehekatl satélite" : "Atmospheric satellite";
+            break;
+        case 0x1AEEBE13FA0FB391ull:
+            if (std::strcmp(es, "Mapas Históricos") == 0) return g_tlalpowa_i18n_language == 1 ? "Wehkawitl mapas" : "Historical maps";
+            break;
+        case 0x1C15468CB8F6F8C5ull:
+            if (std::strcmp(es, "Datos Epidemiológicos") == 0) return g_tlalpowa_i18n_language == 1 ? "Kokolistli tlamachiyotl" : "Epidemiological data";
+            break;
+        case 0x1E1F95EFE2FBD8C1ull:
+            if (std::strcmp(es, "Razon sulfato/nitrato") == 0) return g_tlalpowa_i18n_language == 1 ? "Sulfato/nitrato razón" : "Sulphate/nitrate ratio";
+            break;
+        case 0x1ED3F0B72EB8F212ull:
+            if (std::strcmp(es, "Focos De Calor Satelitales") == 0) return g_tlalpowa_i18n_language == 1 ? "Satelital totonik focos" : "Satellite heat sources";
+            break;
+        case 0x1F0A011EC2E8ECCAull:
+            if (std::strcmp(es, "INEGI · defunciones registradas") == 0) return g_tlalpowa_i18n_language == 1 ? "INEGI · miquiliztli tlahcuilolli" : "INEGI · registered deaths";
+            break;
+        case 0x22070E8D4EA6BA1Bull:
+            if (std::strcmp(es, "Sin Categoría Técnica") == 0) return g_tlalpowa_i18n_language == 1 ? "Amo técnico categoría" : "No technical category";
+            break;
+        case 0x227A30D401C3D4F2ull:
+            if (std::strcmp(es, "Fuentes oficiales") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlanāwatilli ameyaltin" : "Official sources";
+            break;
+        case 0x23867D13842D8351ull:
+            if (std::strcmp(es, "CONEVAL · pobreza municipal y rezago social") == 0) return g_tlalpowa_i18n_language == 1 ? "CONEVAL · municipio pobreza wan social rezago" : "CONEVAL · municipal poverty and social deprivation";
+            break;
+        case 0x23FEF14CDB5653B1ull:
+            if (std::strcmp(es, "Temperatura de tope de nube") == 0) return g_tlalpowa_i18n_language == 1 ? "Mixtli tzontli temperatura" : "Cloud-top temperature";
+            break;
+        case 0x2455C1E91CA91931ull:
+            if (std::strcmp(es, "Componente meridional del viento") == 0) return g_tlalpowa_i18n_language == 1 ? "Ehekatl meridional componente" : "Meridional wind component";
+            break;
+        case 0x24D3BE249AB011ADull:
+            if (std::strcmp(es, "Fraccion EC/Carbono total") == 0) return g_tlalpowa_i18n_language == 1 ? "EC/nochi carbono fracción" : "EC/total carbon fraction";
+            break;
+        case 0x26834F430F4FB0DEull:
+            if (std::strcmp(es, "Oxido nitrico") == 0) return g_tlalpowa_i18n_language == 1 ? "Nítrico óxido" : "Nitric oxide";
+            break;
+        case 0x2903CADA94D898B1ull:
+            if (std::strcmp(es, "DGIS · mortalidad, egresos y recursos en salud") == 0) return g_tlalpowa_i18n_language == 1 ? "DGIS · miquiliztli, egresos wan pāktli recursos" : "DGIS · mortality, discharges and health resources";
+            break;
+        case 0x2917D7829D3624E8ull:
+            if (std::strcmp(es, "Gases Traza Atmosféricos") == 0) return g_tlalpowa_i18n_language == 1 ? "Ehekatl gas tepiton" : "Atmospheric trace gases";
+            break;
+        case 0x291D1FA3D261531Cull:
+            if (std::strcmp(es, "Radiacion global") == 0) return g_tlalpowa_i18n_language == 1 ? "Nochi radiación" : "Global radiation";
+            break;
+        case 0x293E498588153E79ull:
+            if (std::strcmp(es, "Local usa una carpeta elegida; Web descarga primero desde fuentes oficiales.") == 0) return g_tlalpowa_i18n_language == 1 ? "Nikan kitekiwi se āmatlakuilōlyan tlapejpenilli; Web achto kitemowa itech tlanāwatilli ameyalli." : "Local uses a chosen folder; Web downloads first from official sources.";
+            break;
+        case 0x2D6E3162D0FCF85Eull:
+            if (std::strcmp(es, "Biodiversidad") == 0) return g_tlalpowa_i18n_language == 1 ? "Yōllōmeh miakayotl" : "Biodiversity";
+            break;
+        case 0x2E36F34F4B9EF9B0ull:
+            if (std::strcmp(es, "TOTP si aplica") == 0) return g_tlalpowa_i18n_language == 1 ? "TOTP tla moneki" : "TOTP if applicable";
+            break;
+        case 0x2EA39BE4D9FC23BFull:
+            if (std::strcmp(es, "Meteorología Derivada") == 0) return g_tlalpowa_i18n_language == 1 ? "Derivada meteorología" : "Derived meteorology";
+            break;
+        case 0x2EF70B59842914D3ull:
+            if (std::strcmp(es, "CENAPRED · Atlas Nacional de Riesgos") == 0) return g_tlalpowa_i18n_language == 1 ? "CENAPRED · altepetlapan mahmawiliztin atlas" : "CENAPRED · National Risk Atlas";
+            break;
+        case 0x31ADEAEDC1A0EB4Full:
+            if (std::strcmp(es, "Niquel particulado") == 0) return g_tlalpowa_i18n_language == 1 ? "Níquel tlapilli" : "Particulate nickel";
+            break;
+        case 0x3247DE97B84EEBCEull:
+            if (std::strcmp(es, "Gases De Efecto Invernadero") == 0) return g_tlalpowa_i18n_language == 1 ? "Invernadero efecto gases" : "Greenhouse gases";
+            break;
+        case 0x32575EFF97F5C6E3ull:
+            if (std::strcmp(es, "Indice de vegetacion EVI") == 0) return g_tlalpowa_i18n_language == 1 ? "Xiuhyōtl EVI índice" : "EVI vegetation index";
+            break;
+        case 0x337BDA4D9AC512B7ull:
+            if (std::strcmp(es, "Incendios y humo") == 0) return g_tlalpowa_i18n_language == 1 ? "Tletl wan pōctli" : "Fires and smoke";
+            break;
+        case 0x34875420DE575860ull:
+            if (std::strcmp(es, "INEGI descarga masiva · censo, INV, microdatos, banco de indicadores") == 0) return g_tlalpowa_i18n_language == 1 ? "INEGI miak temowalistli · censo, INV, microdatos, indicadores banco" : "INEGI bulk download · census, INV, microdata, indicator bank";
+            break;
+        case 0x35C41F2C2FAF1F46ull:
+            if (std::strcmp(es, "Rotacion") == 0) return g_tlalpowa_i18n_language == 1 ? "Malakachōlistli" : "Rotation";
+            break;
+        case 0x367461075AB4CEB6ull:
+            if (std::strcmp(es, "Radiación Solar Y Ultravioleta") == 0) return g_tlalpowa_i18n_language == 1 ? "Tonalradiación wan ultravioleta" : "Solar and ultraviolet radiation";
+            break;
+        case 0x3760D382A4F9566Dull:
+            if (std::strcmp(es, "Metano") == 0) return g_tlalpowa_i18n_language == 1 ? "Metano" : "Methane";
+            break;
+        case 0x397944C68CA62ED4ull:
+            if (std::strcmp(es, "Ozono") == 0) return g_tlalpowa_i18n_language == 1 ? "Ozono" : "Ozone";
+            break;
+        case 0x3A13DA8F6049D93Full:
+            if (std::strcmp(es, "Particulas PM10") == 0) return g_tlalpowa_i18n_language == 1 ? "PM10 tlapilli" : "PM10 particles";
+            break;
+        case 0x3AE46CB1B29AA1D4ull:
+            if (std::strcmp(es, "Razon NO/NO2") == 0) return g_tlalpowa_i18n_language == 1 ? "NO/NO2 razón" : "NO/NO2 ratio";
+            break;
+        case 0x3B4A5E106ABF7532ull:
+            if (std::strcmp(es, "Local") == 0) return g_tlalpowa_i18n_language == 1 ? "Nikan" : "Local";
+            break;
+        case 0x3EB049B038D6EB2Dull:
+            if (std::strcmp(es, "Sentinel-5P TROPOMI · columnas NO2/SO2/CO/HCHO/O3/aerosoles") == 0) return g_tlalpowa_i18n_language == 1 ? "Sentinel-5P TROPOMI · NO2/SO2/CO/HCHO/O3/aerosol columnas" : "Sentinel-5P TROPOMI · NO2/SO2/CO/HCHO/O3/aerosol columns";
+            break;
+        case 0x3F747C387E001982ull:
+            if (std::strcmp(es, "Temperatura de bulbo humedo") == 0) return g_tlalpowa_i18n_language == 1 ? "Ātl bulbo temperatura" : "Wet-bulb temperature";
+            break;
+        case 0x418D2C6BCE84DEADull:
+            if (std::strcmp(es, "verificando") == 0) return g_tlalpowa_i18n_language == 1 ? "motlachīlia" : "verifying";
+            break;
+        case 0x4212924A9FDA0EC1ull:
+            if (std::strcmp(es, "Razon O3/NO2") == 0) return g_tlalpowa_i18n_language == 1 ? "O3/NO2 razón" : "O3/NO2 ratio";
+            break;
+        case 0x43301DBC0F461849ull:
+            if (std::strcmp(es, "RENAMECA · calidad del agua") == 0) return g_tlalpowa_i18n_language == 1 ? "RENAMECA · ātl yekyotl" : "RENAMECA · water quality";
+            break;
+        case 0x43911913763C1BC5ull:
+            if (std::strcmp(es, "Meteorología Superficial Y Capa Límite") == 0) return g_tlalpowa_i18n_language == 1 ? "Ixpan meteorología wan capa límite" : "Surface meteorology and boundary layer";
+            break;
+        case 0x44797FFC8A3AD9DBull:
+            if (std::strcmp(es, "Humedad especifica") == 0) return g_tlalpowa_i18n_language == 1 ? "Específica humedad" : "Specific humidity";
+            break;
+        case 0x44B6D5A170F4CBC5ull:
+            if (std::strcmp(es, "Radiación y depósito") == 0) return g_tlalpowa_i18n_language == 1 ? "Radiación wan tēmōlli" : "Radiation and deposition";
+            break;
+        case 0x44BBA2FF51CB953Eull:
+            if (std::strcmp(es, "Datos locales se preservara al aplicar actualizaciones.") == 0) return g_tlalpowa_i18n_language == 1 ? "Datos nikan mopialos ihkuāk motekiwia yankuikchīwaltin." : "Local Data will be preserved when updates are applied.";
+            break;
+        case 0x47C98222EF1F6A6Cull:
+            if (std::strcmp(es, "Fraccion nubosa") == 0) return g_tlalpowa_i18n_language == 1 ? "Mixtli fracción" : "Cloud fraction";
+            break;
+        case 0x47F7E2A8BA8EEE2Eull:
+            if (std::strcmp(es, "Temperatura potencial") == 0) return g_tlalpowa_i18n_language == 1 ? "Potencial temperatura" : "Potential temperature";
+            break;
+        case 0x4876BCF7D378742Dull:
+            if (std::strcmp(es, "Repositorio: mauricioisbl/Tlalpowa. La comprobacion compara el manifiesto SHA-256 y descarga solo los archivos modificados.") == 0) return g_tlalpowa_i18n_language == 1 ? "Repositorio: mauricioisbl/Tlalpowa. Itlachīalis kiixnamiki manifiesto SHA-256 wan kitemowa san āmatlakuilōlpatlatzin." : "Repository: mauricioisbl/Tlalpowa. The check compares the SHA-256 manifest and downloads only changed files.";
+            break;
+        case 0x4AC2FE4E286F44CCull:
+            if (std::strcmp(es, "Abrir documentacion") == 0) return g_tlalpowa_i18n_language == 1 ? "Xiktlapoa documentación" : "Open documentation";
+            break;
+        case 0x4C25D8DEE649DB79ull:
+            if (std::strcmp(es, "Fuentes CSV y TSV") == 0) return g_tlalpowa_i18n_language == 1 ? "CSV wan TSV ameyaltin" : "CSV and TSV sources";
+            break;
+        case 0x4CC878578A896074ull:
+            if (std::strcmp(es, "CONAFOR · incendios forestales") == 0) return g_tlalpowa_i18n_language == 1 ? "CONAFOR · kwawtla tletl" : "CONAFOR · forest fires";
+            break;
+        case 0x4DF2741E4AC8D089ull:
+            if (std::strcmp(es, "Xilenos") == 0) return g_tlalpowa_i18n_language == 1 ? "Xilenos" : "Xylenes";
+            break;
+        case 0x4E01E1BACA0190F0ull:
+            if (std::strcmp(es, "Nitrato en aerosol") == 0) return g_tlalpowa_i18n_language == 1 ? "Aerosol nitrato" : "Aerosol nitrate";
+            break;
+        case 0x4E8347BA0F4E2E1Eull:
+            if (std::strcmp(es, "COV Derivados") == 0) return g_tlalpowa_i18n_language == 1 ? "Derivados COV" : "Derived VOCs";
+            break;
+        case 0x4EFF7CEE5E48A1D6ull:
+            if (std::strcmp(es, "Actualizacion automatica") == 0) return g_tlalpowa_i18n_language == 1 ? "Yankuikchīwalistli iselti" : "Automatic update";
+            break;
+        case 0x5165D72D67A6B1CFull:
+            if (std::strcmp(es, "Temperatura de brillo satelital") == 0) return g_tlalpowa_i18n_language == 1 ? "Satelital petlanilistli temperatura" : "Satellite brightness temperature";
+            break;
+        case 0x517560DBEE2D74F6ull:
+            if (std::strcmp(es, "Escala vertical") == 0) return g_tlalpowa_i18n_language == 1 ? "Ihkatik escala" : "Vertical scale";
+            break;
+        case 0x51ED67B97A653421ull:
+            if (std::strcmp(es, "Tipo de archivo: %s · dominio: %s · proveedor: %s · formatos esperados: %s") == 0) return g_tlalpowa_i18n_language == 1 ? "Āmatlakuilōl nemilistli: %s · dominio: %s · proveedor: %s · formatos chiyalistli: %s" : "File type: %s · domain: %s · provider: %s · expected formats: %s";
+            break;
+        case 0x5391464B23E2E24Cull:
+            if (std::strcmp(es, "RETC · emisiones y transferencias de contaminantes") == 0) return g_tlalpowa_i18n_language == 1 ? "RETC · tlapololistli kisaltin wan panōltin" : "RETC · pollutant emissions and transfers";
+            break;
+        case 0x547922CDED4FDA1Bull:
+            if (std::strcmp(es, "Red Meteorologica y Radiacion Solar REDMET") == 0) return g_tlalpowa_i18n_language == 1 ? "REDMET meteorológica wan tonalradiación red" : "REDMET meteorological and solar-radiation network";
+            break;
+        case 0x549800A86C091EB7ull:
+            if (std::strcmp(es, "Actualizaciones GitHub") == 0) return g_tlalpowa_i18n_language == 1 ? "GitHub yankuikchīwaltin" : "GitHub updates";
+            break;
+        case 0x55F2950A2BB0D163ull:
+            if (std::strcmp(es, "Sulfuro de hidrogeno") == 0) return g_tlalpowa_i18n_language == 1 ? "Hidrógeno sulfuro" : "Hydrogen sulphide";
+            break;
+        case 0x56A98C3D3709BFF5ull:
+            if (std::strcmp(es, "Riesgos") == 0) return g_tlalpowa_i18n_language == 1 ? "Mahmawiliztin" : "Risks";
+            break;
+        case 0x5722984557BFD23Full:
+            if (std::strcmp(es, "CDMX GTFS estático y operación de transporte") == 0) return g_tlalpowa_i18n_language == 1 ? "CDMX GTFS moketstok wan transporte tequitl" : "CDMX static GTFS and transport operation";
+            break;
+        case 0x58599DDCFCC1954Dull:
+            if (std::strcmp(es, "Dioxido de nitrogeno") == 0) return g_tlalpowa_i18n_language == 1 ? "Nitrógeno dióxido" : "Nitrogen dioxide";
+            break;
+        case 0x5B41DC0CB93E1F5Full:
+            if (std::strcmp(es, "SIMAT · REDMA/REDDA radiación, UV y depósito húmedo") == 0) return g_tlalpowa_i18n_language == 1 ? "SIMAT · REDMA/REDDA radiación, UV wan āpal tēmōlli" : "SIMAT · REDMA/REDDA radiation, UV and wet deposition";
+            break;
+        case 0x5C3185BD1E5EEC62ull:
+            if (std::strcmp(es, "Grupo: %s") == 0) return g_tlalpowa_i18n_language == 1 ? "Olōlli: %s" : "Group: %s";
+            break;
+        case 0x5C45BEE2D35D589Bull:
+            if (std::strcmp(es, "Sistemas De Transporte") == 0) return g_tlalpowa_i18n_language == 1 ? "Transporte sistemas" : "Transport systems";
+            break;
+        case 0x5DC457876A63DC3Bull:
+            if (std::strcmp(es, "Superficie Satelital") == 0) return g_tlalpowa_i18n_language == 1 ? "Satelital tlalli ixpan" : "Satellite surface";
+            break;
+        case 0x5F628BFAC521C206ull:
+            if (std::strcmp(es, "Si esta activo, la carpeta Datos del repositorio sustituye la carpeta Datos local al aplicar actualizaciones.") == 0) return g_tlalpowa_i18n_language == 1 ? "Tla yolītik, āmatlakuilōlyan Datos itech repositorio kipatlas Datos nikan ihkuāk motekiwia yankuikchīwaltin." : "When enabled, the repository Data folder replaces the local Data folder when updates are applied.";
+            break;
+        case 0x6151AD1C595AB140ull:
+            if (std::strcmp(es, "Altura de capa limite") == 0) return g_tlalpowa_i18n_language == 1 ? "Capa límite wejkapan" : "Boundary-layer height";
+            break;
+        case 0x61C27C2E4B9BB106ull:
+            if (std::strcmp(es, "contraseña RUOA") == 0) return g_tlalpowa_i18n_language == 1 ? "RUOA ichtakatlahtolli" : "RUOA password";
+            break;
+        case 0x627879AD2EC3A462ull:
+            if (std::strcmp(es, "Razon de mezcla") == 0) return g_tlalpowa_i18n_language == 1 ? "Nelōlli razón" : "Mixing ratio";
+            break;
+        case 0x62E9EEDAB1FBEDF1ull:
+            if (std::strcmp(es, "Superficie urbana") == 0) return g_tlalpowa_i18n_language == 1 ? "Āltepetl ixpan" : "Urban surface";
+            break;
+        case 0x6465B7C505A3AFF6ull:
+            if (std::strcmp(es, "Presion de vapor") == 0) return g_tlalpowa_i18n_language == 1 ? "Vapor presión" : "Vapour pressure";
+            break;
+        case 0x6662F2BA0CD3E4B9ull:
+            if (std::strcmp(es, "Carbono total") == 0) return g_tlalpowa_i18n_language == 1 ? "Nochi carbono" : "Total carbon";
+            break;
+        case 0x66C6C93872111181ull:
+            if (std::strcmp(es, "Albedo superficial") == 0) return g_tlalpowa_i18n_language == 1 ? "Ixpan albedo" : "Surface albedo";
+            break;
+        case 0x66CB725C3CC0079Full:
+            if (std::strcmp(es, "Gases De Efecto Invernadero Satelitales") == 0) return g_tlalpowa_i18n_language == 1 ? "Satelital invernadero efecto gases" : "Satellite greenhouse gases";
+            break;
+        case 0x66FA14076EECA6D4ull:
+            if (std::strcmp(es, "Usar .netrc de Earthdata en esta sesion") == 0) return g_tlalpowa_i18n_language == 1 ? "Xiktekiwi Earthdata .netrc ipan inin sesion" : "Use Earthdata .netrc in this session";
+            break;
+        case 0x670FA0095C28D3E0ull:
+            if (std::strcmp(es, "Humedad absoluta") == 0) return g_tlalpowa_i18n_language == 1 ? "Absoluta humedad" : "Absolute humidity";
+            break;
+        case 0x6746DC50C84DD53Bull:
+            if (std::strcmp(es, "Web") == 0) return g_tlalpowa_i18n_language == 1 ? "Web" : "Web";
+            break;
+        case 0x69101884F2D0A30Bull:
+            if (std::strcmp(es, "Transporte Y Movilidad") == 0) return g_tlalpowa_i18n_language == 1 ? "Transporte wan olinilistli" : "Transport and mobility";
+            break;
+        case 0x6911DA68C9BA3552ull:
+            if (std::strcmp(es, "Activada. Tlalpowa comprobara GitHub al arrancar y aplicara solo archivos modificados.") == 0) return g_tlalpowa_i18n_language == 1 ? "Yolītik. Tlalpowa kitlachīliz GitHub ihkuāk pewāki wan kitekiwiz san āmatlakuilōlpatlatzin." : "Enabled. Tlalpowa will check GitHub at start-up and apply only modified files.";
+            break;
+        case 0x698D6B2AA52A9F87ull:
+            if (std::strcmp(es, "Fraccion OC/Carbono total") == 0) return g_tlalpowa_i18n_language == 1 ? "OC/nochi carbono fracción" : "OC/total carbon fraction";
+            break;
+        case 0x69A476BA208F50F3ull:
+            if (std::strcmp(es, "Urbanización") == 0) return g_tlalpowa_i18n_language == 1 ? "Āltepēchīwalistli" : "Urbanisation";
+            break;
+        case 0x6A2EC26DD6D1D763ull:
+            if (std::strcmp(es, "Tolueno") == 0) return g_tlalpowa_i18n_language == 1 ? "Tolueno" : "Toluene";
+            break;
+        case 0x6A3A8C8B2D91E26Dull:
+            if (std::strcmp(es, "Inventario de emisiones ZMVM") == 0) return g_tlalpowa_i18n_language == 1 ? "ZMVM kisaltin inventario" : "ZMVM emissions inventory";
+            break;
+        case 0x6A5B0A467FEC0071ull:
+            if (std::strcmp(es, "Precipitacion") == 0) return g_tlalpowa_i18n_language == 1 ? "Kiawitl" : "Precipitation";
+            break;
+        case 0x6CFDB93BAE365D83ull:
+            if (std::strcmp(es, "Fraccion NO/NOx") == 0) return g_tlalpowa_i18n_language == 1 ? "NO/NOx fracción" : "NO/NOx fraction";
+            break;
+        case 0x6D3993704B3C4F34ull:
+            if (std::strcmp(es, "Seleccionar .blend") == 0) return g_tlalpowa_i18n_language == 1 ? "Xikpejpena .blend" : "Select .blend";
+            break;
+        case 0x6D67D0DC74532092ull:
+            if (std::strcmp(es, "CAMS EAC4 · composición atmosférica") == 0) return g_tlalpowa_i18n_language == 1 ? "CAMS EAC4 · ehekatl composition" : "CAMS EAC4 · atmospheric composition";
+            break;
+        case 0x6D734FD3D8654CBEull:
+            if (std::strcmp(es, "CONAGUA SIH · estaciones hidrométricas y climatológicas") == 0) return g_tlalpowa_i18n_language == 1 ? "CONAGUA SIH · ātl tlamachiwalli wan clima estaciones" : "CONAGUA SIH · hydrometric and climatological stations";
+            break;
+        case 0x6E0DAB776797BAB6ull:
+            if (std::strcmp(es, "DGE · COVID, influenza y vigilancia respiratoria abierta") == 0) return g_tlalpowa_i18n_language == 1 ? "DGE · COVID, influenza wan respiratoria tlachialistli tēixpan" : "DGE · COVID, influenza and open respiratory surveillance";
+            break;
+        case 0x6E2A4F12EA9B15D9ull:
+            if (std::strcmp(es, "Emisiones") == 0) return g_tlalpowa_i18n_language == 1 ? "Kisaltin" : "Emissions";
+            break;
+        case 0x6E55C49A56D9F4C2ull:
+            if (std::strcmp(es, "Contaminantes Atmosféricos Criterio") == 0) return g_tlalpowa_i18n_language == 1 ? "Criterio ehekatl tlapololistli" : "Criteria atmospheric pollutants";
+            break;
+        case 0x6E7396023B9F3030ull:
+            if (std::strcmp(es, "Indice de vegetacion NDVI") == 0) return g_tlalpowa_i18n_language == 1 ? "Xiuhyōtl NDVI índice" : "NDVI vegetation index";
+            break;
+        case 0x6FB6F1F911E42D9Cull:
+            if (std::strcmp(es, "Potencia radiativa del fuego") == 0) return g_tlalpowa_i18n_language == 1 ? "Tletl radiativa chikāwalistli" : "Fire radiative power";
+            break;
+        case 0x72638259C94ACB80ull:
+            if (std::strcmp(es, "OpenStreetMap México · vialidades, usos y POI") == 0) return g_tlalpowa_i18n_language == 1 ? "OpenStreetMap México · ojtli, tekitl wan POI" : "OpenStreetMap Mexico · roads, land uses and POI";
+            break;
+        case 0x728EF831F6E22A32ull:
+            if (std::strcmp(es, "No se guardan en IXIPTLAH, auditorias, catalogos ni archivos de configuracion.") == 0) return g_tlalpowa_i18n_language == 1 ? "Amo mopialo ipan IXIPTLAH, auditorías, catálogos noso tlatlalilistli āmatlakuilōltin." : "They are not saved in IXIPTLAH, audits, catalogues or configuration files.";
+            break;
+        case 0x72CC91FD63583874ull:
+            if (std::strcmp(es, "Red Automatica de Monitoreo Atmosferico RAMA") == 0) return g_tlalpowa_i18n_language == 1 ? "RAMA iselti ehekatl tlachialistli red" : "RAMA automatic atmospheric monitoring network";
+            break;
+        case 0x73226752255EABBDull:
+            if (std::strcmp(es, "Razon BTEX/benceno") == 0) return g_tlalpowa_i18n_language == 1 ? "BTEX/benceno razón" : "BTEX/benzene ratio";
+            break;
+        case 0x732A6FCCA54A9E74ull:
+            if (std::strcmp(es, "Territorio") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlalli" : "Territory";
+            break;
+        case 0x748E21B796DC058Cull:
+            if (std::strcmp(es, "Velocidad del viento") == 0) return g_tlalpowa_i18n_language == 1 ? "Ehekatl ijsiwayotl" : "Wind speed";
+            break;
+        case 0x74B6BDA36AF7C1A5ull:
+            if (std::strcmp(es, "formatos compatibles") == 0) return g_tlalpowa_i18n_language == 1 ? "formatos weltekiwiltin" : "compatible formats";
+            break;
+        case 0x753C50F56F0BC551ull:
+            if (std::strcmp(es, "Importar desde GitHub") == 0) return g_tlalpowa_i18n_language == 1 ? "Xikualika itech GitHub" : "Import from GitHub";
+            break;
+        case 0x75E0BC15B19AD0C6ull:
+            if (std::strcmp(es, "Carbono elemental") == 0) return g_tlalpowa_i18n_language == 1 ? "Elemental carbono" : "Elemental carbon";
+            break;
+        case 0x7612548384DD13AFull:
+            if (std::strcmp(es, "Fraccion EC/PM2.5") == 0) return g_tlalpowa_i18n_language == 1 ? "EC/PM2.5 fracción" : "EC/PM2.5 fraction";
+            break;
+        case 0x787248AE4118F489ull:
+            if (std::strcmp(es, "Agua") == 0) return g_tlalpowa_i18n_language == 1 ? "Ātl" : "Water";
+            break;
+        case 0x78725DB010E97D13ull:
+            if (std::strcmp(es, "Aerosoles Derivados") == 0) return g_tlalpowa_i18n_language == 1 ? "Derivados aerosoles" : "Derived aerosols";
+            break;
+        case 0x79636883C6AC6FF3ull:
+            if (std::strcmp(es, "ERA5 · variables meteorológicas horarias") == 0) return g_tlalpowa_i18n_language == 1 ? "ERA5 · meteorológicas variables ipan hora" : "ERA5 · hourly meteorological variables";
+            break;
+        case 0x79F9DDBDFB965AE0ull:
+            if (std::strcmp(es, "Indice UV de aerosoles") == 0) return g_tlalpowa_i18n_language == 1 ? "Aerosol UV índice" : "UV aerosol index";
+            break;
+        case 0x7AA94755271241E1ull:
+            if (std::strcmp(es, "Ctrl + dos clics derechos: area. Esquinas: escala. Mantén Alt y arrastra sobre la imagen para rotar. Enter: confirmar.") == 0) return g_tlalpowa_i18n_language == 1 ? "Ctrl + ome yekmaitl clic: tlāli. Nakastlan: escala. Xikpia Alt wan xikwīka ixkopinkayotl para malakachōa. Enter: xikyektlāli." : "Ctrl + two right-clicks: area. Corners: scale. Hold Alt and drag over the image to rotate. Enter: confirm.";
+            break;
+        case 0x7B13CBD6077D565Bull:
+            if (std::strcmp(es, "TLALPOWA_CDSE_ACCESS_TOKEN opcional") == 0) return g_tlalpowa_i18n_language == 1 ? "TLALPOWA_CDSE_ACCESS_TOKEN amo moneki" : "Optional TLALPOWA_CDSE_ACCESS_TOKEN";
+            break;
+        case 0x7C604AC437CA8637ull:
+            if (std::strcmp(es, "Deficit de presion de vapor") == 0) return g_tlalpowa_i18n_language == 1 ? "Vapor presión déficit" : "Vapour-pressure deficit";
+            break;
+        case 0x7D0F48B1EE9D0BCFull:
+            if (std::strcmp(es, "Profundidad optica de aerosoles") == 0) return g_tlalpowa_i18n_language == 1 ? "Aerosoles óptica wejkatlan" : "Aerosol optical depth";
+            break;
+        case 0x7DBB7EA405C43018ull:
+            if (std::strcmp(es, "Presion de vapor de saturacion") == 0) return g_tlalpowa_i18n_language == 1 ? "Saturación vapor presión" : "Saturation vapour pressure";
+            break;
+        case 0x7E8287C0CB151DABull:
+            if (std::strcmp(es, "Presion atmosferica") == 0) return g_tlalpowa_i18n_language == 1 ? "Ehekatl presión" : "Atmospheric pressure";
+            break;
+        case 0x80B484E1D43ED00Aull:
+            if (std::strcmp(es, "Volver al ajuste") == 0) return g_tlalpowa_i18n_language == 1 ? "Mokuepa yektlālilistli" : "Back to alignment";
+            break;
+        case 0x80FF2A2FEB70EC9Eull:
+            if (std::strcmp(es, "solo CDMX") == 0) return g_tlalpowa_i18n_language == 1 ? "san CDMX" : "CDMX only";
+            break;
+        case 0x83E1AFB5499E0EA4ull:
+            if (std::strcmp(es, "XLSX, XLS, JSON y CSV") == 0) return g_tlalpowa_i18n_language == 1 ? "XLSX, XLS, JSON wan CSV" : "XLSX, XLS, JSON and CSV";
+            break;
+        case 0x83E58181138977BCull:
+            if (std::strcmp(es, "Radiacion UV-C") == 0) return g_tlalpowa_i18n_language == 1 ? "UV-C radiación" : "UV-C radiation";
+            break;
+        case 0x83E582811389796Full:
+            if (std::strcmp(es, "Radiacion UV-B") == 0) return g_tlalpowa_i18n_language == 1 ? "UV-B radiación" : "UV-B radiation";
+            break;
+        case 0x83E5838113897B22ull:
+            if (std::strcmp(es, "Radiacion UV-A") == 0) return g_tlalpowa_i18n_language == 1 ? "UV-A radiación" : "UV-A radiation";
+            break;
+        case 0x85A70956F0292D8Bull:
+            if (std::strcmp(es, "TLALPOWA_LAADS_TOKEN si aplica") == 0) return g_tlalpowa_i18n_language == 1 ? "TLALPOWA_LAADS_TOKEN tla moneki" : "TLALPOWA_LAADS_TOKEN if applicable";
+            break;
+        case 0x87961CA536239DCCull:
+            if (std::strcmp(es, "Reprocesar local desde cero") == 0) return g_tlalpowa_i18n_language == 1 ? "Oksepa xikchīwa nikan desde cero" : "Reprocess local from scratch";
+            break;
+        case 0x8831B980776E6706ull:
+            if (std::strcmp(es, "Landsat Collection 2 · reflectancia y temperatura superficial") == 0) return g_tlalpowa_i18n_language == 1 ? "Landsat Collection 2 · reflectancia wan ixpan temperatura" : "Landsat Collection 2 · reflectance and surface temperature";
+            break;
+        case 0x8A1D04EB0A91F74Cull:
+            if (std::strcmp(es, "Amoniaco") == 0) return g_tlalpowa_i18n_language == 1 ? "Amoniaco" : "Ammonia";
+            break;
+        case 0x8AA3BCCB1C6914A2ull:
+            if (std::strcmp(es, "BTEX total") == 0) return g_tlalpowa_i18n_language == 1 ? "Nochi BTEX" : "Total BTEX";
+            break;
+        case 0x8B6CDA8D1B247FE9ull:
+            if (std::strcmp(es, "SINAICA · redes nacionales de calidad del aire") == 0) return g_tlalpowa_i18n_language == 1 ? "SINAICA · altepetlapan ehekatl yekyotl redes" : "SINAICA · national air-quality networks";
+            break;
+        case 0x8E118DF1BCC32675ull:
+            if (std::strcmp(es, "PDF/ZIP documental") == 0) return g_tlalpowa_i18n_language == 1 ? "PDF/ZIP documental" : "Document PDF/ZIP";
+            break;
+        case 0x8EBE38E854C0EA83ull:
+            if (std::strcmp(es, "Dioxido de azufre") == 0) return g_tlalpowa_i18n_language == 1 ? "Azufre dióxido" : "Sulphur dioxide";
+            break;
+        case 0x8F145A663906BE65ull:
+            if (std::strcmp(es, "Oxidos de nitrogeno") == 0) return g_tlalpowa_i18n_language == 1 ? "Nitrógeno óxidos" : "Nitrogen oxides";
+            break;
+        case 0x900832AC671ED6B4ull:
+            if (std::strcmp(es, "SEMOVI · afluencia Metro/Metrobús/RTP/STE") == 0) return g_tlalpowa_i18n_language == 1 ? "SEMOVI · Metro/Metrobús/RTP/STE tlakah panōlli" : "SEMOVI · Metro/Metrobús/RTP/STE ridership";
+            break;
+        case 0x90516EF89A4B723Cull:
+            if (std::strcmp(es, "Aire instrumental") == 0) return g_tlalpowa_i18n_language == 1 ? "Ehekatl instrumento" : "Instrumental air";
+            break;
+        case 0x911DCBE711E6FD69ull:
+            if (std::strcmp(es, "Mercurio") == 0) return g_tlalpowa_i18n_language == 1 ? "Mercurio" : "Mercury";
+            break;
+        case 0x92E2C00BA996219Dull:
+            if (std::strcmp(es, "Comprobando...") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlatlachīliztika..." : "Checking...";
+            break;
+        case 0x936DE9B735BD977Full:
+            if (std::strcmp(es, "Detectados: %d · indexados: %d") == 0) return g_tlalpowa_i18n_language == 1 ? "Monextijkeh: %d · indexados: %d" : "Detected: %d · indexed: %d";
+            break;
+        case 0x947797EB00A58674ull:
+            if (std::strcmp(es, "Presion de nube") == 0) return g_tlalpowa_i18n_language == 1 ? "Mixtli presión" : "Cloud pressure";
+            break;
+        case 0x97CBA3FC67C2AB2Bull:
+            if (std::strcmp(es, "Fraccion NO2/NOx") == 0) return g_tlalpowa_i18n_language == 1 ? "NO2/NOx fracción" : "NO2/NOx fraction";
+            break;
+        case 0x9973E6E82036A828ull:
+            if (std::strcmp(es, "MERRA-2 · aerosoles y meteorología") == 0) return g_tlalpowa_i18n_language == 1 ? "MERRA-2 · aerosoles wan meteorología" : "MERRA-2 · aerosols and meteorology";
+            break;
+        case 0x9A70821AEFD76D8Bull:
+            if (std::strcmp(es, "Borra y reconstruye solo el nucleo epidemiologico local, preservando RAMA/REDMET/RUOA/PEMBU.") == 0) return g_tlalpowa_i18n_language == 1 ? "Kipopolowa wan oksepa kichīwa san epidemiologico yōllotl nikan, kipialia RAMA/REDMET/RUOA/PEMBU." : "Deletes and rebuilds only the local epidemiological core, preserving RAMA/REDMET/RUOA/PEMBU.";
+            break;
+        case 0x9B0D94883B0DC90Aull:
+            if (std::strcmp(es, "Superficie terrestre") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlalli ixpan" : "Land surface";
+            break;
+        case 0x9C48658BFCDFC775ull:
+            if (std::strcmp(es, "CONANP · áreas naturales protegidas") == 0) return g_tlalpowa_i18n_language == 1 ? "CONANP · naturales tlaltin pialli" : "CONANP · protected natural areas";
+            break;
+        case 0x9CD916DB83F1136Cull:
+            if (std::strcmp(es, "solo Edomex") == 0) return g_tlalpowa_i18n_language == 1 ? "san Edomex" : "Edomex only";
+            break;
+        case 0x9DDBAE13187D8A13ull:
+            if (std::strcmp(es, "Superficie Terrestre Y Vegetación") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlalli ixpan wan xiuhyōtl" : "Land surface and vegetation";
+            break;
+        case 0x9E9A6BD94DF3ADF9ull:
+            if (std::strcmp(es, "Periodo web") == 0) return g_tlalpowa_i18n_language == 1 ? "Web kawitl" : "Web period";
+            break;
+        case 0x9E9E7B2C3BB8EAA5ull:
+            if (std::strcmp(es, "Demografía") == 0) return g_tlalpowa_i18n_language == 1 ? "Chantlakah" : "Demography";
+            break;
+        case 0x9EC1A372B8CBC7F7ull:
+            if (std::strcmp(es, "Reanálisis") == 0) return g_tlalpowa_i18n_language == 1 ? "Oksepa análisis" : "Reanalysis";
+            break;
+        case 0x9F270CCB7CA1F346ull:
+            if (std::strcmp(es, "Generar vista 4K y ajustar en mapa") == 0) return g_tlalpowa_i18n_language == 1 ? "Xikchīwa 4K tlachiyalistli wan xikyektlāli ipan mapa" : "Generate 4K view and align on map";
+            break;
+        case 0xA1DB9FC99EF7C9CDull:
+            if (std::strcmp(es, "Direccion del viento") == 0) return g_tlalpowa_i18n_language == 1 ? "Ehekatl ompa yaw" : "Wind direction";
+            break;
+        case 0xA300578F67BB0DD9ull:
+            if (std::strcmp(es, "Componente zonal del viento") == 0) return g_tlalpowa_i18n_language == 1 ? "Ehekatl zonal componente" : "Zonal wind component";
+            break;
+        case 0xA435824569BC56BBull:
+            if (std::strcmp(es, "Monoxido de carbono") == 0) return g_tlalpowa_i18n_language == 1 ? "Carbono monóxido" : "Carbon monoxide";
+            break;
+        case 0xA49FA2113FF2DD49ull:
+            if (std::strcmp(es, "Importar") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlaquixtia" : "Import";
+            break;
+        case 0xA6364487A17B7F77ull:
+            if (std::strcmp(es, "Comprobar ahora") == 0) return g_tlalpowa_i18n_language == 1 ? "Xiktlachīlia axkan" : "Check now";
+            break;
+        case 0xA83FE90169B2C057ull:
+            if (std::strcmp(es, "CONAPO · marginación por municipio, localidad, AGEB y colonia") == 0) return g_tlalpowa_i18n_language == 1 ? "CONAPO · marginación ipan municipio, localidad, AGEB wan colonia" : "CONAPO · marginalisation by municipality, locality, AGEB and neighbourhood";
+            break;
+        case 0xA99AE631E908EB3Dull:
+            if (std::strcmp(es, "Formaldehido") == 0) return g_tlalpowa_i18n_language == 1 ? "Formaldehido" : "Formaldehyde";
+            break;
+        case 0xABBF969E1426BDFFull:
+            if (std::strcmp(es, "Benceno") == 0) return g_tlalpowa_i18n_language == 1 ? "Benceno" : "Benzene";
+            break;
+        case 0xB003D9220C8B9163ull:
+            if (std::strcmp(es, "La contrasena permanece solo en el entorno del proceso actual; no se guarda en IXIPTLAH ni en el perfil.") == 0) return g_tlalpowa_i18n_language == 1 ? "Ichtakatlahtolli mokawa san ipan axkan proceso; amo mopiya ipan IXIPTLAH noso perfil." : "The password remains only in the current process environment; it is not saved in IXIPTLAH or in the profile.";
+            break;
+        case 0xB0D23D31687918B1ull:
+            if (std::strcmp(es, "Seleccionar carpeta") == 0) return g_tlalpowa_i18n_language == 1 ? "Xikpejpena āmatlakuilōlyan" : "Select folder";
+            break;
+        case 0xB15A410E607C5235ull:
+            if (std::strcmp(es, "Productos derivables registrados: %d") == 0) return g_tlalpowa_i18n_language == 1 ? "Derivables tlahcuiloltin: %d" : "Registered derivable products: %d";
+            break;
+        case 0xB1B7AEDD28EE23B5ull:
+            if (std::strcmp(es, "Cromo particulado") == 0) return g_tlalpowa_i18n_language == 1 ? "Cromo tlapilli" : "Particulate chromium";
+            break;
+        case 0xB1C19707BC7811C6ull:
+            if (std::strcmp(es, "Longitud centro") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlahko longitud" : "Centre longitude";
+            break;
+        case 0xB2A81AAD699C57E3ull:
+            if (std::strcmp(es, "Carbono Derivado") == 0) return g_tlalpowa_i18n_language == 1 ? "Derivado carbono" : "Derived carbon";
+            break;
+        case 0xB3C615860340FC94ull:
+            if (std::strcmp(es, "Fuentes XLSX y XLS") == 0) return g_tlalpowa_i18n_language == 1 ? "XLSX wan XLS ameyaltin" : "XLSX and XLS sources";
+            break;
+        case 0xB3C89BFEECC7EEC8ull:
+            if (std::strcmp(es, "Humedad de suelo") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlalli humedad" : "Soil moisture";
+            break;
+        case 0xB483C9387FE02D3Dull:
+            if (std::strcmp(es, "Fraccion OC/PM2.5") == 0) return g_tlalpowa_i18n_language == 1 ? "OC/PM2.5 fracción" : "OC/PM2.5 fraction";
+            break;
+        case 0xB4962E0D932F6485ull:
+            if (std::strcmp(es, "Aerosol Satelital") == 0) return g_tlalpowa_i18n_language == 1 ? "Satelital aerosol" : "Satellite aerosol";
+            break;
+        case 0xB55C0FE814C4CBA8ull:
+            if (std::strcmp(es, "Temperatura minima") == 0) return g_tlalpowa_i18n_language == 1 ? "Temperatura okachi tepiton" : "Minimum temperature";
+            break;
+        case 0xB6F5D8BB456EBD12ull:
+            if (std::strcmp(es, "sin verificar") == 0) return g_tlalpowa_i18n_language == 1 ? "ayamo tlachīlilli" : "unverified";
+            break;
+        case 0xB70281A432EAB3A6ull:
+            if (std::strcmp(es, "Clasificación Heredada Del Registro") == 0) return g_tlalpowa_i18n_language == 1 ? "Registro kicāwki tlapepenchīwalistli" : "Inherited record classification";
+            break;
+        case 0xB75E1DF19B75092Eull:
+            if (std::strcmp(es, "Datos Meteorológicos") == 0) return g_tlalpowa_i18n_language == 1 ? "Ehekatl wan kawitl tlamachiyotl" : "Meteorological data";
+            break;
+        case 0xB900A397AA22B2FAull:
+            if (std::strcmp(es, "Razon OC/EC") == 0) return g_tlalpowa_i18n_language == 1 ? "OC/EC razón" : "OC/EC ratio";
+            break;
+        case 0xBA7CF228869068F1ull:
+            if (std::strcmp(es, "Radiación Satelital") == 0) return g_tlalpowa_i18n_language == 1 ? "Satelital radiación" : "Satellite radiation";
+            break;
+        case 0xBA9DC128D5E06D32ull:
+            if (std::strcmp(es, "Razon tolueno/benceno") == 0) return g_tlalpowa_i18n_language == 1 ? "Tolueno/benceno razón" : "Toluene/benzene ratio";
+            break;
+        case 0xBAF6F7E1F7F2A1F6ull:
+            if (std::strcmp(es, "Direccion de rachas de viento") == 0) return g_tlalpowa_i18n_language == 1 ? "Ehekatl racha ompa yaw" : "Wind-gust direction";
+            break;
+        case 0xBDDB84EF0AD002EEull:
+            if (std::strcmp(es, "MODIS/MAIAC MCD19A2 · AOD 1 km") == 0) return g_tlalpowa_i18n_language == 1 ? "MODIS/MAIAC MCD19A2 · AOD 1 km" : "MODIS/MAIAC MCD19A2 · AOD 1 km";
+            break;
+        case 0xBFF1CD1AD0E34AA9ull:
+            if (std::strcmp(es, "Rapidez de rachas de viento") == 0) return g_tlalpowa_i18n_language == 1 ? "Ehekatl racha ijsiwayotl" : "Wind-gust speed";
+            break;
+        case 0xC01EA23C5DA353A0ull:
+            if (std::strcmp(es, "Atmósfera") == 0) return g_tlalpowa_i18n_language == 1 ? "Ehekatl" : "Atmosphere";
+            break;
+        case 0xC08A3C8952E62067ull:
+            if (std::strcmp(es, "GitHub sin comprobar") == 0) return g_tlalpowa_i18n_language == 1 ? "GitHub ayamo tlachīlilli" : "GitHub not checked";
+            break;
+        case 0xC3929D517DA9959Dull:
+            if (std::strcmp(es, "Detener RUOA al cerrar CSV actual") == 0) return g_tlalpowa_i18n_language == 1 ? "Xikketsa RUOA ihkuāk motsakwa CSV axkan" : "Stop RUOA after closing the current CSV";
+            break;
+        case 0xC41B5F698040C1E6ull:
+            if (std::strcmp(es, "Indice UV") == 0) return g_tlalpowa_i18n_language == 1 ? "UV índice" : "UV index";
+            break;
+        case 0xC45705D2AD259BB7ull:
+            if (std::strcmp(es, "Fraccion PM2.5/PM10") == 0) return g_tlalpowa_i18n_language == 1 ? "PM2.5/PM10 fracción" : "PM2.5/PM10 fraction";
+            break;
+        case 0xC8178E5AA620F83Dull:
+            if (std::strcmp(es, "Vulnerabilidad") == 0) return g_tlalpowa_i18n_language == 1 ? "Mahmawiliztli" : "Vulnerability";
+            break;
+        case 0xC9BC7901F256A581ull:
+            if (std::strcmp(es, "Gases Traza Satelitales") == 0) return g_tlalpowa_i18n_language == 1 ? "Satelital gas tepiton" : "Satellite trace gases";
+            break;
+        case 0xCABE40A2E71E9DA9ull:
+            if (std::strcmp(es, "Particulas gruesas PM10-2.5") == 0) return g_tlalpowa_i18n_language == 1 ? "PM10-2.5 tlapilli tomāwak" : "Coarse PM10-2.5 particles";
+            break;
+        case 0xCB1B441D534662D3ull:
+            if (std::strcmp(es, "Esta fuente puede requerir sesion del portal. Si no hay endpoint publico directo, descarga el archivo primario y usa modo Local.") == 0) return g_tlalpowa_i18n_language == 1 ? "Inin ameyalli welis kinekis portal sesion. Tla amo onka endpoint tēixpan melāwak, xikktemowi āmatlakuilōl achto wan xiktekiwi Nikan." : "This source may require a portal session. If there is no direct public endpoint, download the primary file and use Local mode.";
+            break;
+        case 0xCBA4F006855DB87Eull:
+            if (std::strcmp(es, "Formatos") == 0) return g_tlalpowa_i18n_language == 1 ? "Formatos" : "Formats";
+            break;
+        case 0xCBB4C07BB247943Cull:
+            if (std::strcmp(es, "Dioxido de carbono") == 0) return g_tlalpowa_i18n_language == 1 ? "Carbono dióxido" : "Carbon dioxide";
+            break;
+        case 0xCBC357469CA05908ull:
+            if (std::strcmp(es, "Grupo") == 0) return g_tlalpowa_i18n_language == 1 ? "Olōlli" : "Group";
+            break;
+        case 0xCE2F80669BD8E5D6ull:
+            if (std::strcmp(es, "Temperatura maxima") == 0) return g_tlalpowa_i18n_language == 1 ? "Temperatura okachi weyi" : "Maximum temperature";
+            break;
+        case 0xCF6BEF9EC83C689Cull:
+            if (std::strcmp(es, "Descarga en curso") == 0) return g_tlalpowa_i18n_language == 1 ? "Motemowatoc" : "Download in progress";
+            break;
+        case 0xD036E8759E2D760Aull:
+            if (std::strcmp(es, "Razon EC/OC") == 0) return g_tlalpowa_i18n_language == 1 ? "EC/OC razón" : "EC/OC ratio";
+            break;
+        case 0xD258B3D4C7598B00ull:
+            if (std::strcmp(es, "CDMX/SSN · catálogo sísmico y capas de peligro") == 0) return g_tlalpowa_i18n_language == 1 ? "CDMX/SSN · tlalolin catálogo wan peligro capas" : "CDMX/SSN · seismic catalogue and hazard layers";
+            break;
+        case 0xD26A6C8D7E82D17Full:
+            if (std::strcmp(es, "Reanálisis químico") == 0) return g_tlalpowa_i18n_language == 1 ? "Químico oksepa análisis" : "Chemical reanalysis";
+            break;
+        case 0xD2EA7693B666A421ull:
+            if (std::strcmp(es, "Densidad del aire") == 0) return g_tlalpowa_i18n_language == 1 ? "Ehekatl densidad" : "Air density";
+            break;
+        case 0xD2EFE945B0B9A42Cull:
+            if (std::strcmp(es, "Visitar página") == 0) return g_tlalpowa_i18n_language == 1 ? "Xikitta zāzanilli" : "Visit page";
+            break;
+        case 0xD62845C0018D4C9Dull:
+            if (std::strcmp(es, "Latitud centro") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlahko latitud" : "Centre latitude";
+            break;
+        case 0xD65AC3F2591AAD81ull:
+            if (std::strcmp(es, "Abrir portal CDMX") == 0) return g_tlalpowa_i18n_language == 1 ? "Xiktlapoa CDMX portal" : "Open CDMX portal";
+            break;
+        case 0xD6CBF618F811E773ull:
+            if (std::strcmp(es, "Carpeta") == 0) return g_tlalpowa_i18n_language == 1 ? "Āmatlakuilōlyan" : "Folder";
+            break;
+        case 0xD778EEC6A7A902C4ull:
+            if (std::strcmp(es, "SHP, GeoJSON y PBF") == 0) return g_tlalpowa_i18n_language == 1 ? "SHP, GeoJSON wan PBF" : "SHP, GeoJSON and PBF";
+            break;
+        case 0xD7EDC05FD6A49006ull:
+            if (std::strcmp(es, "Movilidad") == 0) return g_tlalpowa_i18n_language == 1 ? "Olinilistli" : "Mobility";
+            break;
+        case 0xD832322D3AD7B9EEull:
+            if (std::strcmp(es, "CDMX · inventario de áreas verdes") == 0) return g_tlalpowa_i18n_language == 1 ? "CDMX · xoxōktik tlaltin inventario" : "CDMX · green-area inventory";
+            break;
+        case 0xD9611ABCE2645261ull:
+            if (std::strcmp(es, "Humedad relativa") == 0) return g_tlalpowa_i18n_language == 1 ? "Relativa humedad" : "Relative humidity";
+            break;
+        case 0xDA8E1482F2D7FA96ull:
+            if (std::strcmp(es, "Metal") == 0) return g_tlalpowa_i18n_language == 1 ? "Metal" : "Metal";
+            break;
+        case 0xDC33E6A8D6BAE1E0ull:
+            if (std::strcmp(es, "Aerosol") == 0) return g_tlalpowa_i18n_language == 1 ? "Aerosol" : "Aerosol";
+            break;
+        case 0xDCF1564A7B21B9F0ull:
+            if (std::strcmp(es, "ERROR, intenta de nuevo") == 0) return g_tlalpowa_i18n_language == 1 ? "ERROR, xikyehyeko oksepa" : "ERROR, try again";
+            break;
+        case 0xDD9633507A92248Cull:
+            if (std::strcmp(es, "Gas") == 0) return g_tlalpowa_i18n_language == 1 ? "Gas" : "Gas";
+            break;
+        case 0xDE4A568A1D6E8965ull:
+            if (std::strcmp(es, "Area subpixel de fuego") == 0) return g_tlalpowa_i18n_language == 1 ? "Tletl subpixel tlāli" : "Subpixel fire area";
+            break;
+        case 0xDE5EADF3D8E3E299ull:
+            if (std::strcmp(es, "password CDSE") == 0) return g_tlalpowa_i18n_language == 1 ? "CDSE ichtakatlahtolli" : "CDSE password";
+            break;
+        case 0xDED98F058FA486C1ull:
+            if (std::strcmp(es, "NASA FIRMS · MODIS/VIIRS puntos de calor") == 0) return g_tlalpowa_i18n_language == 1 ? "NASA FIRMS · MODIS/VIIRS totonik puntos" : "NASA FIRMS · MODIS/VIIRS heat points";
+            break;
+        case 0xDEF3E5E8AFCFA0B9ull:
+            if (std::strcmp(es, "CDMX · inventario/generación de residuos sólidos") == 0) return g_tlalpowa_i18n_language == 1 ? "CDMX · tlasolli inventario/chīwalistli" : "CDMX · solid-waste inventory/generation";
+            break;
+        case 0xDFC1A231E770883Eull:
+            if (std::strcmp(es, "Carbono negro") == 0) return g_tlalpowa_i18n_language == 1 ? "Yayāwik carbono" : "Black carbon";
+            break;
+        case 0xDFE10F074A4A5B3Bull:
+            if (std::strcmp(es, "Compuestos Orgánicos Volátiles") == 0) return g_tlalpowa_i18n_language == 1 ? "COV yolik yōlloh patlanih" : "Volatile organic compounds";
+            break;
+        case 0xE013E0BA94F96E1Cull:
+            if (std::strcmp(es, "usuario CDSE si no hay token") == 0) return g_tlalpowa_i18n_language == 1 ? "CDSE tlatequitiani tla amo onka token" : "CDSE user if there is no token";
+            break;
+        case 0xE086E0A08F8DF099ull:
+            if (std::strcmp(es, "Particulas PM2.5") == 0) return g_tlalpowa_i18n_language == 1 ? "PM2.5 tlapilli" : "PM2.5 particles";
+            break;
+        case 0xE12054CA9445D64Full:
+            if (std::strcmp(es, "Gases Derivados") == 0) return g_tlalpowa_i18n_language == 1 ? "Derivados gases" : "Derived gases";
+            break;
+        case 0xE17B7FE3631A6A0Bull:
+            if (std::strcmp(es, "Residuos") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlasolli" : "Waste";
+            break;
+        case 0xE217208BC3A30716ull:
+            if (std::strcmp(es, "Cadmio particulado") == 0) return g_tlalpowa_i18n_language == 1 ? "Cadmio tlapilli" : "Particulate cadmium";
+            break;
+        case 0xE2524A303A26B936ull:
+            if (std::strcmp(es, "BANDAS · aguas superficiales y presas") == 0) return g_tlalpowa_i18n_language == 1 ? "BANDAS · ixpan ātl wan presas" : "BANDAS · surface waters and reservoirs";
+            break;
+        case 0xE29BCC83F2FEDA11ull:
+            if (std::strcmp(es, "Oxidante fotoquimico Ox") == 0) return g_tlalpowa_i18n_language == 1 ? "Fotoquímico oxidante Ox" : "Photochemical oxidant Ox";
+            break;
+        case 0xE460F4D18FAEAE06ull:
+            if (std::strcmp(es, "INEGI DENUE · unidades económicas") == 0) return g_tlalpowa_i18n_language == 1 ? "INEGI DENUE · economía senkayōmeh" : "INEGI DENUE · economic units";
+            break;
+        case 0xE4E2117FF1AB815Full:
+            if (std::strcmp(es, "CONABIO · capas geográficas SNIB/GIS") == 0) return g_tlalpowa_i18n_language == 1 ? "CONABIO · geográficas capas SNIB/GIS" : "CONABIO · SNIB/GIS geographic layers";
+            break;
+        case 0xE5BD53A127F5435Full:
+            if (std::strcmp(es, "Carbono organico") == 0) return g_tlalpowa_i18n_language == 1 ? "Orgánico carbono" : "Organic carbon";
+            break;
+        case 0xE5E073A60F42E741ull:
+            if (std::strcmp(es, "Nubes Satelitales") == 0) return g_tlalpowa_i18n_language == 1 ? "Satelital mixtli" : "Satellite clouds";
+            break;
+        case 0xE830E4071FCA5C62ull:
+            if (std::strcmp(es, "Descargar/actualizar web") == 0) return g_tlalpowa_i18n_language == 1 ? "Xiktemowi/yankuikchīwa web" : "Download/update web";
+            break;
+        case 0xEA360F87475D063Full:
+            if (std::strcmp(es, "Escala m/unidad") == 0) return g_tlalpowa_i18n_language == 1 ? "Escala m/senkayotl" : "Scale m/unit";
+            break;
+        case 0xED3315E2033AF6BCull:
+            if (std::strcmp(es, "Detener despues del archivo actual") == 0) return g_tlalpowa_i18n_language == 1 ? "Xikketsa satepan in āmatlakuilōl axkan" : "Stop after the current file";
+            break;
+        case 0xEEA71852C5D27CB2ull:
+            if (std::strcmp(es, "Puede requerir cuenta, token, licencia o descarga externa; Tlalpowa no aceptará HTML/JSON de login como dato.") == 0) return g_tlalpowa_i18n_language == 1 ? "Welis kinekis cuenta, token, licencia noso temowalistli kalnepantla; Tlalpowa amo kiselis login HTML/JSON kemi dato." : "May require an account, token, licence or external download; Tlalpowa will not accept login HTML/JSON as data.";
+            break;
+        case 0xEF166468AEDD14CEull:
+            if (std::strcmp(es, "Modelo Blender georreferenciado, vista cenital 4K y salida nativa .tlalpowa3d") == 0) return g_tlalpowa_i18n_language == 1 ? "Blender modelo georreferenciado, tlachiyalistli 4K ajkopan wan .tlalpowa3d kisa" : "Georeferenced Blender model, 4K top view and native .tlalpowa3d output";
+            break;
+        case 0xF076AA4BFE163B8Full:
+            if (std::strcmp(es, "SNIB/GBIF · ocurrencias de especies") == 0) return g_tlalpowa_i18n_language == 1 ? "SNIB/GBIF · especie monextiliztin" : "SNIB/GBIF · species occurrences";
+            break;
+        case 0xF081D2B3654CDDAFull:
+            if (std::strcmp(es, "INEGI Marco Geoestadístico") == 0) return g_tlalpowa_i18n_language == 1 ? "INEGI marco geoestadístico" : "INEGI geostatistical framework";
+            break;
+        case 0xF216C8DEFA8F8D58ull:
+            if (std::strcmp(es, "CDS/ADS usa cdsapi y aceptacion de terminos del dataset. Tlalpowa indexa aqui el NetCDF/GRIB resultante cuando lo pongas en la carpeta de la fuente.") == 0) return g_tlalpowa_i18n_language == 1 ? "CDS/ADS kitekiwi cdsapi wan dataset tlanāwatiliselistli. Tlalpowa nikan kiindexoa NetCDF/GRIB ihkuāk tiktlālia ipan ameyalli āmatlakuilōlyan." : "CDS/ADS uses cdsapi and dataset-term acceptance. Tlalpowa indexes the resulting NetCDF/GRIB here when you place it in the source folder.";
+            break;
+        case 0xF25A8FCC95187F65ull:
+            if (std::strcmp(es, "Desactivada. La comprobacion manual sigue disponible.") == 0) return g_tlalpowa_i18n_language == 1 ? "Amo yolītik. Tlaxelolchīwali tlachīalistli ok yetok." : "Disabled. Manual checking remains available.";
+            break;
+        case 0xF3383E27EE774C61ull:
+            if (std::strcmp(es, "Credenciales de descarga en esta sesion") == 0) return g_tlalpowa_i18n_language == 1 ? "Temowalistli credenciales ipan inin sesion" : "Download credentials in this session";
+            break;
+        case 0xF358EBB060B900B8ull:
+            if (std::strcmp(es, "Economía urbana") == 0) return g_tlalpowa_i18n_language == 1 ? "Āltepetl economía" : "Urban economy";
+            break;
+        case 0xF37E0E8F054AD343ull:
+            if (std::strcmp(es, "Carbono") == 0) return g_tlalpowa_i18n_language == 1 ? "Carbono" : "Carbon";
+            break;
+        case 0xF4CCD976CDAF0D21ull:
+            if (std::strcmp(es, "Sulfato en aerosol") == 0) return g_tlalpowa_i18n_language == 1 ? "Aerosol sulfato" : "Aerosol sulphate";
+            break;
+        case 0xF59202ACB315F93Aull:
+            if (std::strcmp(es, "Desactivada para este perfil. Puedes activarla explicitamente.") == 0) return g_tlalpowa_i18n_language == 1 ? "Amo yolītik ipan inin perfil. Welis tikyolītis ika motlanāwatil." : "Disabled for this profile. You can enable it explicitly.";
+            break;
+        case 0xF670DB67728D36F2ull:
+            if (std::strcmp(es, "Plomo particulado") == 0) return g_tlalpowa_i18n_language == 1 ? "Plomo tlapilli" : "Particulate lead";
+            break;
+        case 0xF8BC2D9050F94B99ull:
+            if (std::strcmp(es, "Razon CO/NO2") == 0) return g_tlalpowa_i18n_language == 1 ? "CO/NO2 razón" : "CO/NO2 ratio";
+            break;
+        case 0xF9068A83E1D3A2C8ull:
+            if (std::strcmp(es, "Temperatura virtual") == 0) return g_tlalpowa_i18n_language == 1 ? "Virtual temperatura" : "Virtual temperature";
+            break;
+        case 0xF950B9EF4C02E8C2ull:
+            if (std::strcmp(es, "GHSL · población y superficie construida") == 0) return g_tlalpowa_i18n_language == 1 ? "GHSL · chantlakah wan chīwalli ixpan" : "GHSL · population and built-up surface";
+            break;
+        case 0xF9712B26D4879602ull:
+            if (std::strcmp(es, "Punto de rocio") == 0) return g_tlalpowa_i18n_language == 1 ? "Ahwiyaliztli punto" : "Dew point";
+            break;
+        case 0xF9C2BBDC7CE5BCFCull:
+            if (std::strcmp(es, "Fraccion gruesa/PM10") == 0) return g_tlalpowa_i18n_language == 1 ? "Tomāwak/PM10 fracción" : "Coarse/PM10 fraction";
+            break;
+        case 0xFB8CBF9C7C99805Aull:
+            if (std::strcmp(es, "Aerosol inorganico secundario") == 0) return g_tlalpowa_i18n_language == 1 ? "Secundario inorgánico aerosol" : "Secondary inorganic aerosol";
+            break;
+        case 0xFCA0267E46600036ull:
+            if (std::strcmp(es, "Red Universitaria de Observatorios Atmosfericos (RUOA_UNAM)") == 0) return g_tlalpowa_i18n_language == 1 ? "RUOA_UNAM universidad ehekatl observatorio red" : "University Network of Atmospheric Observatories (RUOA_UNAM)";
+            break;
+        case 0xFD34BB688A8AC3E1ull:
+            if (std::strcmp(es, "Credenciales de esta sesion: solo correo y contrasena; no se escriben en IXIPTLAH ni configuracion persistente.") == 0) return g_tlalpowa_i18n_language == 1 ? "Inin sesion credenciales: san correo wan ichtakatlahtolli; amo moihcuiloa ipan IXIPTLAH noso tlatlalilistli mokawani." : "Credentials for this session: only email and password; they are not written to IXIPTLAH or persistent settings.";
+            break;
+        case 0xFF756061DCE0EDB0ull:
+            if (std::strcmp(es, "Fraccion BC/PM2.5") == 0) return g_tlalpowa_i18n_language == 1 ? "BC/PM2.5 fracción" : "BC/PM2.5 fraction";
+            break;
+        case 0xFFDCCB8BC54E3D78ull:
+            if (std::strcmp(es, "Temperatura superficial") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlalli ixpan temperatura" : "Surface temperature";
+            break;
+        case 0x29DCC125E0FA1796ull:
+            if (std::strcmp(es, "Autorización: TLALPOWA_CDSE_ACCESS_TOKEN, o TLALPOWA_CDSE_USERNAME + TLALPOWA_CDSE_PASSWORD (+ TLALPOWA_CDSE_TOTP si usa 2FA).") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlanāwatilli: TLALPOWA_CDSE_ACCESS_TOKEN, noso TLALPOWA_CDSE_USERNAME + TLALPOWA_CDSE_PASSWORD (+ TLALPOWA_CDSE_TOTP tla kitekiwi 2FA)." : "Authorisation: TLALPOWA_CDSE_ACCESS_TOKEN, or TLALPOWA_CDSE_USERNAME + TLALPOWA_CDSE_PASSWORD (+ TLALPOWA_CDSE_TOTP if using 2FA).";
+            break;
+        case 0x5A7469D211EA602Aull:
+            if (std::strcmp(es, "Autorización: TLALPOWA_FIRMS_MAP_KEY. Sin llave sólo se descarga disponibilidad, no puntos de calor.") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlanāwatilli: TLALPOWA_FIRMS_MAP_KEY. Tla amo llave, motemowia san tlapowalistli, amo totonik puntos." : "Authorisation: TLALPOWA_FIRMS_MAP_KEY. Without a key, only availability is downloaded, not heat points.";
+            break;
+        case 0x5E7AA4644155FFCEull:
+            if (std::strcmp(es, "Autorización: TLALPOWA_NASA_EARTHDATA_TOKEN, TLALPOWA_LAADS_TOKEN o TLALPOWA_EARTHDATA_USE_NETRC=1 con .netrc válido.") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlanāwatilli: TLALPOWA_NASA_EARTHDATA_TOKEN, TLALPOWA_LAADS_TOKEN noso TLALPOWA_EARTHDATA_USE_NETRC=1 ika .netrc yektli." : "Authorisation: TLALPOWA_NASA_EARTHDATA_TOKEN, TLALPOWA_LAADS_TOKEN or TLALPOWA_EARTHDATA_USE_NETRC=1 with a valid .netrc.";
+            break;
+        case 0x36F018B06B63DF1Bull:
+            if (std::strcmp(es, "Autorización: CDS/ADS con ~/.cdsapirc o cliente cdsapi; Tlalpowa guarda receta y luego indexa NetCDF/GRIB descargado.") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlanāwatilli: CDS/ADS ika ~/.cdsapirc noso cdsapi cliente; Tlalpowa kipia receta wan satepan ki-indexāroa NetCDF/GRIB temowalli." : "Authorisation: CDS/ADS with ~/.cdsapirc or the cdsapi client; Tlalpowa stores the recipe and then indexes the downloaded NetCDF/GRIB.";
+            break;
+        case 0xA734852442C06C57ull:
+            if (std::strcmp(es, "Autorización: puede requerir cuenta EOG; use carpeta local si el portal exige sesión interactiva.") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlanāwatilli: welis moneki EOG cuenta; xiktekīwi local carpeta tla portal kitlahtlania interactiva sesión." : "Authorisation: may require an EOG account; use a local folder if the portal requires an interactive session.";
+            break;
+        case 0x29DD72A6F8C34FB2ull:
+            if (std::strcmp(es, "Autorización: si el portal exige cuenta, use la carpeta local tras descargar el archivo primario.") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlanāwatilli: tla portal kitlahtlania cuenta, xiktekīwi local carpeta satepan temowalistli āmatlakuilōlli achto." : "Authorisation: if the portal requires an account, use the local folder after downloading the primary file.";
+            break;
+        case 0x9A1B85DA99DE6B0Full:
+            if (std::strcmp(es, "Ingresada") == 0) return g_tlalpowa_i18n_language == 1 ? "Kalaktok" : "Signed in";
+            break;
+        case 0x9A1B8BDA99DE7541ull:
+            if (std::strcmp(es, "Ingresado") == 0) return g_tlalpowa_i18n_language == 1 ? "Kalaktok" : "Signed in";
+            break;
+        case 0x9A1B81DA99DE6443ull:
+            if (std::strcmp(es, "Ingresade") == 0) return g_tlalpowa_i18n_language == 1 ? "Kalaktok" : "Signed in";
+            break;
+        case 0x5F218750C3D5C7E3ull:
+            if (std::strcmp(es, "PDF") == 0) return g_tlalpowa_i18n_language == 1 ? "PDF" : "PDF";
+            break;
+        case 0x9B024500C5CB1ABCull:
+            if (std::strcmp(es, "3D") == 0) return g_tlalpowa_i18n_language == 1 ? "3D" : "3D";
+            break;
+        case 0xDFCCF4A680EDCD2Aull:
+            if (std::strcmp(es, "Sentinel-5P TROPOMI · O3/NO2/SO2/CO") == 0) return g_tlalpowa_i18n_language == 1 ? "Sentinel-5P TROPOMI · O3/NO2/SO2/CO" : "Sentinel-5P TROPOMI · O3/NO2/SO2/CO";
+            break;
+        case 0x0FCEC8FE0028D83Eull:
+            if (std::strcmp(es, "NASA Aura OMI · ozono/aerosoles/NO2") == 0) return g_tlalpowa_i18n_language == 1 ? "NASA Aura OMI · ozono/aerosoles/NO2" : "NASA Aura OMI · ozone/aerosols/NO2";
+            break;
+        case 0x73981532118288F0ull:
+            if (std::strcmp(es, "MODIS/MAIAC · AOD para particulas") == 0) return g_tlalpowa_i18n_language == 1 ? "MODIS/MAIAC · AOD para tlapiltin" : "MODIS/MAIAC · AOD for particulates";
+            break;
+        case 0xBDB74C902E8F2A2Dull:
+            if (std::strcmp(es, "GOES-R ABI · aerosoles/nubes auxiliares") == 0) return g_tlalpowa_i18n_language == 1 ? "GOES-R ABI · aerosoles/mixtli palehuia" : "GOES-R ABI · auxiliary aerosols/clouds";
+            break;
+        case 0xEC106DA0215182C4ull:
+            if (std::strcmp(es, "Fuentes descargables NetCDF/HDF/GeoTIFF/GRIB") == 0) return g_tlalpowa_i18n_language == 1 ? "NetCDF/HDF/GeoTIFF/GRIB temowalli ameyaltin" : "Downloadable NetCDF/HDF/GeoTIFF/GRIB sources";
+            break;
+        case 0x674290EBCCB37802ull:
+            if (std::strcmp(es, "Boletines epidemiologicos CDMX") == 0) return g_tlalpowa_i18n_language == 1 ? "CDMX kokolistli boletines" : "CDMX epidemiological bulletins";
+            break;
+        case 0xE61B772DF0E85612ull:
+            if (std::strcmp(es, "Infecciones respiratorias agudas CDMX") == 0) return g_tlalpowa_i18n_language == 1 ? "CDMX tlaijyōwik kokolistli chichik" : "CDMX acute respiratory infections";
+            break;
+        case 0xAD978DD8C3A1807Bull:
+            if (std::strcmp(es, "Influenza CDMX") == 0) return g_tlalpowa_i18n_language == 1 ? "CDMX influenza" : "CDMX influenza";
+            break;
+        case 0x56D623AEDDE37585ull:
+            if (std::strcmp(es, "Todos los boletines de salud CDMX") == 0) return g_tlalpowa_i18n_language == 1 ? "Mochi CDMX pāktli boletines" : "All CDMX health bulletins";
+            break;
+        case 0xEE7149619B240040ull:
+            if (std::strcmp(es, "Boletines epidemiologicos Estado de Mexico") == 0) return g_tlalpowa_i18n_language == 1 ? "Mexico Tlahtohcayotl kokolistli boletines" : "State of Mexico epidemiological bulletins";
+            break;
+        case 0xF5A1ADA7EE1432E6ull:
+            if (std::strcmp(es, "Documentos externos PDF/ZIP") == 0) return g_tlalpowa_i18n_language == 1 ? "PDF/ZIP oksekan āmatlakuilōltin" : "External PDF/ZIP documents";
+            break;
+        case 0x4675B75C1DF37FC7ull:
+            if (std::strcmp(es, "atmosfera") == 0) return g_tlalpowa_i18n_language == 1 ? "ehekatl" : "atmosphere";
+            break;
+        case 0xD396C620556F0B39ull:
+            if (std::strcmp(es, "emisiones") == 0) return g_tlalpowa_i18n_language == 1 ? "kiquixtilistli" : "emissions";
+            break;
+        case 0x3DA438CAFA5BB33Eull:
+            if (std::strcmp(es, "economia_urbana") == 0) return g_tlalpowa_i18n_language == 1 ? "altepetl economía" : "urban economy";
+            break;
+        case 0xDE39C54CEE1B7524ull:
+            if (std::strcmp(es, "demografia") == 0) return g_tlalpowa_i18n_language == 1 ? "chantlakah" : "demography";
+            break;
+        case 0x09DD1FA047817A54ull:
+            if (std::strcmp(es, "territorio") == 0) return g_tlalpowa_i18n_language == 1 ? "tlalli" : "territory";
+            break;
+        case 0x043B43969897461Dull:
+            if (std::strcmp(es, "vulnerabilidad") == 0) return g_tlalpowa_i18n_language == 1 ? "kokolistli welilistli" : "vulnerability";
+            break;
+        case 0xCD8F03D94D2E8714ull:
+            if (std::strcmp(es, "salud") == 0) return g_tlalpowa_i18n_language == 1 ? "pāktli" : "health";
+            break;
+        case 0xD999D6F9853E3B66ull:
+            if (std::strcmp(es, "movilidad") == 0) return g_tlalpowa_i18n_language == 1 ? "olinilistli" : "mobility";
+            break;
+        case 0xA30049BA42896869ull:
+            if (std::strcmp(es, "agua") == 0) return g_tlalpowa_i18n_language == 1 ? "ātl" : "water";
+            break;
+        case 0xBF44469A8A3715A8ull:
+            if (std::strcmp(es, "calidad_agua") == 0) return g_tlalpowa_i18n_language == 1 ? "ātl yekyotl" : "water quality";
+            break;
+        case 0xECA56DFF2F49733Cull:
+            if (std::strcmp(es, "satelital") == 0) return g_tlalpowa_i18n_language == 1 ? "satelital" : "satellite";
+            break;
+        case 0x9424968635180CCCull:
+            if (std::strcmp(es, "riesgo_incendio") == 0) return g_tlalpowa_i18n_language == 1 ? "tletl riesgo" : "fire risk";
+            break;
+        case 0xF1B7C22DDF050597ull:
+            if (std::strcmp(es, "reanálisis") == 0) return g_tlalpowa_i18n_language == 1 ? "oksepa análisis" : "reanalysis";
+            break;
+        case 0x1F64604FBC51C286ull:
+            if (std::strcmp(es, "reanálisis_químico") == 0) return g_tlalpowa_i18n_language == 1 ? "químico oksepa análisis" : "chemical reanalysis";
+            break;
+        case 0xC664211553CABA6Aull:
+            if (std::strcmp(es, "superficie") == 0) return g_tlalpowa_i18n_language == 1 ? "ixpan" : "surface";
+            break;
+        case 0xB107F6CF541CBC93ull:
+            if (std::strcmp(es, "urbanización") == 0) return g_tlalpowa_i18n_language == 1 ? "altepetlchīwalistli" : "urbanisation";
+            break;
+        case 0x90A89D0ACE6C91EBull:
+            if (std::strcmp(es, "residuos") == 0) return g_tlalpowa_i18n_language == 1 ? "tlazolli" : "waste";
+            break;
+        case 0x7C70ECED1568E7BEull:
+            if (std::strcmp(es, "biodiversidad") == 0) return g_tlalpowa_i18n_language == 1 ? "yolkatl nepapan" : "biodiversity";
+            break;
+        case 0x7C2E56F909F84855ull:
+            if (std::strcmp(es, "riesgos") == 0) return g_tlalpowa_i18n_language == 1 ? "riesgos" : "risks";
+            break;
+        default: break;
+    }
+    return es;
+}
+
+const char* tlalpowa_tr(const char* es) {
+    if (!es || g_tlalpowa_i18n_language == 0) return es ? es : "";
+    switch (tlalpowa_i18n_hash_utf8(es)) {
+        case 0x568B13DB3DAD29D8ull:
+            if (std::strcmp(es, "Configuracion") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlatlalilistli" : "Settings";
+            break;
+        case 0xE18001882F19E06Full:
+            if (std::strcmp(es, "Configuración") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlatlalilistli" : "Settings";
+            break;
+        case 0xE10C69A97675B6E5ull:
+            if (std::strcmp(es, "Usuario") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlatequitiani" : "User";
+            break;
+        case 0x7FAE59A76EF41389ull:
+            if (std::strcmp(es, "Nombre de usuario") == 0) return g_tlalpowa_i18n_language == 1 ? "Tokaitl" : "User name";
+            break;
+        case 0x29539DC2C44E8531ull:
+            if (std::strcmp(es, "Género gramatical") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlahtolli tlacatiliztli" : "Grammatical gender";
+            break;
+        case 0xFF8C15062791CC16ull:
+            if (std::strcmp(es, "Mujer") == 0) return g_tlalpowa_i18n_language == 1 ? "Siwatl" : "Woman";
+            break;
+        case 0xF5EE419A5A30D350ull:
+            if (std::strcmp(es, "Prefiero no decirlo") == 0) return g_tlalpowa_i18n_language == 1 ? "Amo nikneki nikitos" : "Prefer not to say";
+            break;
+        case 0x6D9B009701D97B76ull:
+            if (std::strcmp(es, "No binario") == 0) return g_tlalpowa_i18n_language == 1 ? "Amo ome" : "Non-binary";
+            break;
+        case 0xC25A63B0997C1440ull:
+            if (std::strcmp(es, "Hombre") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlakatl" : "Man";
+            break;
+        case 0x7EE4F5C507722778ull:
+            if (std::strcmp(es, "Idioma") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlahtolli" : "Language";
+            break;
+        case 0x7087FF5C1BF655B2ull:
+            if (std::strcmp(es, "Tema") == 0) return g_tlalpowa_i18n_language == 1 ? "Ixtlachialistli" : "Appearance";
+            break;
+        case 0x526F59BEBCFE1947ull:
+            if (std::strcmp(es, "Igual que el sistema") == 0) return g_tlalpowa_i18n_language == 1 ? "Iuh ken tepostlatlalilli" : "Same as system";
+            break;
+        case 0xED4BB63D4CAA61C8ull:
+            if (std::strcmp(es, "Claro") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlawilli" : "Light";
+            break;
+        case 0x0F348D55ED0BD4FEull:
+            if (std::strcmp(es, "Oscuro") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlayowalli" : "Dark";
+            break;
+        case 0x549800A86C091EB7ull:
+            if (std::strcmp(es, "Actualizaciones GitHub") == 0) return g_tlalpowa_i18n_language == 1 ? "GitHub yankwikalistli" : "GitHub updates";
+            break;
+        case 0x4876BCF7D378742Dull:
+            if (std::strcmp(es, "Repositorio: mauricioisbl/Tlalpowa. La comprobacion compara el manifiesto SHA-256 y descarga solo los archivos modificados.") == 0) return g_tlalpowa_i18n_language == 1 ? "Repositorio: mauricioisbl/Tlalpowa. SHA-256 tlanextilli kiixnamiki wan san tlen mopatlak kimotemolia." : "Repository: mauricioisbl/Tlalpowa. The check compares the SHA-256 manifest and downloads only modified files.";
+            break;
+        case 0x4EFF7CEE5E48A1D6ull:
+            if (std::strcmp(es, "Actualizacion automatica") == 0) return g_tlalpowa_i18n_language == 1 ? "Iselti yankwikalistli" : "Automatic update";
+            break;
+        case 0x0356A6642CFA1582ull:
+            if (std::strcmp(es, "Comprueba GitHub al arrancar y aplica solo los archivos publicados que hayan cambiado.") == 0) return g_tlalpowa_i18n_language == 1 ? "Kitta GitHub ihkuak pewi wan san tlen mopatlak kichiwa." : "Checks GitHub on start-up and applies only published files that changed.";
+            break;
+        case 0xF59202ACB315F93Aull:
+            if (std::strcmp(es, "Desactivada para este perfil. Puedes activarla explicitamente.") == 0) return g_tlalpowa_i18n_language == 1 ? "Amo yolitok ipan nin perfil. Wel tikyolitiz san ika motlanawatil." : "Disabled for this profile. You can enable it explicitly.";
+            break;
+        case 0x6911DA68C9BA3552ull:
+            if (std::strcmp(es, "Activada. Tlalpowa comprobara GitHub al arrancar y aplicara solo archivos modificados.") == 0) return g_tlalpowa_i18n_language == 1 ? "Yolitok. Tlalpowa kittaz GitHub ihkuak pewi wan kichiwaz san tlen mopatlak." : "Enabled. Tlalpowa will check GitHub on start-up and apply only modified files.";
+            break;
+        case 0xF25A8FCC95187F65ull:
+            if (std::strcmp(es, "Desactivada. La comprobacion manual sigue disponible.") == 0) return g_tlalpowa_i18n_language == 1 ? "Amo yolitok. In matlanawatil tlachialistli ok onka." : "Disabled. Manual checking is still available.";
+            break;
+        case 0x753C50F56F0BC551ull:
+            if (std::strcmp(es, "Importar desde GitHub") == 0) return g_tlalpowa_i18n_language == 1 ? "Kalaki tlen GitHub" : "Import from GitHub";
+            break;
+        case 0x5F628BFAC521C206ull:
+            if (std::strcmp(es, "Si esta activo, la carpeta Datos del repositorio sustituye la carpeta Datos local al aplicar actualizaciones.") == 0) return g_tlalpowa_i18n_language == 1 ? "Tla yolitok, Datos itech repositorio kipatlaz Datos local ihkuak kichiwa yankwikalistli." : "If active, the repository Data folder replaces the local Data folder when applying updates.";
+            break;
+        case 0xA0602361752DF3AFull:
+            if (std::strcmp(es, "Perfil mauri detectado: por omision no se sustituyen Datos locales hasta que lo actives explicitamente.") == 0) return g_tlalpowa_i18n_language == 1 ? "Mauri perfil monexti: ipan omisión amo mopatla Datos local hasta tikyolitiz san ika motlanawatil." : "mauri profile detected: by default, local Data is not replaced until you enable it explicitly.";
+            break;
+        case 0x0E9001195BA4961Cull:
+            if (std::strcmp(es, "Datos se sustituira por el contenido de GitHub al aplicar actualizaciones.") == 0) return g_tlalpowa_i18n_language == 1 ? "Datos mopatlaz ika tlen kipiya GitHub ihkuak kichiwa yankwikalistli." : "Data will be replaced by GitHub content when applying updates.";
+            break;
+        case 0x44BBA2FF51CB953Eull:
+            if (std::strcmp(es, "Datos locales se preservara al aplicar actualizaciones.") == 0) return g_tlalpowa_i18n_language == 1 ? "Datos local momokuitlawiz ihkuak kichiwa yankwikalistli." : "Local Data will be preserved when applying updates.";
+            break;
+        case 0x92E2C00BA996219Dull:
+            if (std::strcmp(es, "Comprobando...") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlachialistok..." : "Checking...";
+            break;
+        case 0xA6364487A17B7F77ull:
+            if (std::strcmp(es, "Comprobar ahora") == 0) return g_tlalpowa_i18n_language == 1 ? "Axkan tlachia" : "Check now";
+            break;
+        case 0xC08A3C8952E62067ull:
+            if (std::strcmp(es, "GitHub sin comprobar") == 0) return g_tlalpowa_i18n_language == 1 ? "GitHub ayamo motlachili" : "GitHub not checked";
+            break;
+        case 0xA49FA2113FF2DD49ull:
+            if (std::strcmp(es, "Importar") == 0) return g_tlalpowa_i18n_language == 1 ? "Kalaki" : "Import";
+            break;
+        case 0xCE819AF47BEFA3EDull:
+            if (std::strcmp(es, "Nueva grafica") == 0) return g_tlalpowa_i18n_language == 1 ? "Yankwik ixnextilistli" : "New graph";
+            break;
+        case 0x88F8A8688C2EC4D7ull:
+            if (std::strcmp(es, "Principal") == 0) return g_tlalpowa_i18n_language == 1 ? "Achtopa" : "Main";
+            break;
+        case 0x2D30E2289795A86Cull:
+            if (std::strcmp(es, "Grafica") == 0) return g_tlalpowa_i18n_language == 1 ? "Ixnextilistli" : "Graph";
+            break;
+        case 0x8BC9E981A0CCB0B3ull:
+            if (std::strcmp(es, "Gráfica") == 0) return g_tlalpowa_i18n_language == 1 ? "Ixnextilistli" : "Graph";
+            break;
+        case 0x9F8A3EB28B7EEF97ull:
+            if (std::strcmp(es, "Crear otra pestaña de gráfica") == 0) return g_tlalpowa_i18n_language == 1 ? "Chiwa okse ixnextilistli ixtsontli" : "Create another graph tab";
+            break;
+        case 0xFB3EACFB118410FCull:
+            if (std::strcmp(es, "Buscar Datos") == 0) return g_tlalpowa_i18n_language == 1 ? "Temoa tlamachiyotl" : "Search data";
+            break;
+        case 0x671835F5D55EC7CCull:
+            if (std::strcmp(es, "Vista") == 0) return g_tlalpowa_i18n_language == 1 ? "Ixtlachialistli" : "View";
+            break;
+        case 0xCA9BDC78B2612DDFull:
+            if (std::strcmp(es, "Ver todas") == 0) return g_tlalpowa_i18n_language == 1 ? "Ma nesi nochi" : "Show all";
+            break;
+        case 0x018557C5C1D5B3CAull:
+            if (std::strcmp(es, "Neblina") == 0) return g_tlalpowa_i18n_language == 1 ? "Mixtli" : "Fog";
+            break;
+        case 0x175914AE9BF1AA18ull:
+            if (std::strcmp(es, "Auto") == 0) return g_tlalpowa_i18n_language == 1 ? "Iselti" : "Auto";
+            break;
+        case 0x1C15468CB8F6F8C5ull:
+            if (std::strcmp(es, "Datos Epidemiológicos") == 0) return g_tlalpowa_i18n_language == 1 ? "Kokolistli tlamachiyotl" : "Epidemiological data";
+            break;
+        case 0xB75E1DF19B75092Eull:
+            if (std::strcmp(es, "Datos Meteorológicos") == 0) return g_tlalpowa_i18n_language == 1 ? "Ilwikak tlamachiyotl" : "Meteorological data";
+            break;
+        case 0x0A02D1668EA20403ull:
+            if (std::strcmp(es, "Datos De Contaminantes Atmosféricos") == 0) return g_tlalpowa_i18n_language == 1 ? "Ehekatl tlapololistli tlamachiyotl" : "Atmospheric pollutant data";
+            break;
+        case 0x0906EBD866AA34B8ull:
+            if (std::strcmp(es, "Datos Demográficos") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlacameh tlamachiyotl" : "Demographic data";
+            break;
+        case 0xED57CFCA946E75E0ull:
+            if (std::strcmp(es, "Datos Históricos") == 0) return g_tlalpowa_i18n_language == 1 ? "Wehkawitl tlamachiyotl" : "Historical data";
+            break;
+        case 0xDE12CB0B49320B22ull:
+            if (std::strcmp(es, "Datos Atmosféricos") == 0) return g_tlalpowa_i18n_language == 1 ? "Ehekatl tlamachiyotl" : "Atmospheric data";
+            break;
+        case 0x1AEEBE13FA0FB391ull:
+            if (std::strcmp(es, "Mapas Históricos") == 0) return g_tlalpowa_i18n_language == 1 ? "Wehkawitl tlalixkopinkayotl" : "Historical maps";
+            break;
+        case 0x69101884F2D0A30Bull:
+            if (std::strcmp(es, "Transporte Y Movilidad") == 0) return g_tlalpowa_i18n_language == 1 ? "Nehnemilistli wan transporte" : "Transport and mobility";
+            break;
+        case 0xBCAB831E69DCD0C3ull:
+            if (std::strcmp(es, "Datos De Transporte Y Movilidad") == 0) return g_tlalpowa_i18n_language == 1 ? "Transporte wan nehnemilistli tlamachiyotl" : "Transport and mobility data";
+            break;
+        case 0x5C45BEE2D35D589Bull:
+            if (std::strcmp(es, "Sistemas De Transporte") == 0) return g_tlalpowa_i18n_language == 1 ? "Transporte tlatlalilli" : "Transport systems";
+            break;
+        case 0x22070E8D4EA6BA1Bull:
+            if (std::strcmp(es, "Sin Categoría Técnica") == 0) return g_tlalpowa_i18n_language == 1 ? "Amo kipiya técnica categoría" : "No technical category";
+            break;
+        case 0xB70281A432EAB3A6ull:
+            if (std::strcmp(es, "Clasificación Heredada Del Registro") == 0) return g_tlalpowa_i18n_language == 1 ? "Registro tlatlajtolpantli" : "Inherited record classification";
+            break;
+        case 0xD890649CAA9E1449ull:
+            if (std::strcmp(es, "Población") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlacameh" : "Population";
+            break;
+        case 0x50CD824522A48D1Cull:
+            if (std::strcmp(es, "Densidad De Población") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlacameh miyekyotl" : "Population density";
+            break;
+        case 0xEF686DCE1E50622Aull:
+            if (std::strcmp(es, "Sexo · Gráfica De Círculo") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlacatiliztli · Yahualtic ixnextilistli" : "Sex · pie chart";
+            break;
+        case 0xCD0CE0A74EA0F029ull:
+            if (std::strcmp(es, "Edad · Gráfica De Barra") == 0) return g_tlalpowa_i18n_language == 1 ? "Xiwitl · Tlapamitl ixnextilistli" : "Age · bar chart";
+            break;
+        case 0xB6BB47798A29E2A2ull:
+            if (std::strcmp(es, "Año Sincronizado Con Línea Temporal") == 0) return g_tlalpowa_i18n_language == 1 ? "Xiwitl monamiki ika kawitl pamitl" : "Year synced to timeline";
+            break;
+        case 0x478E8FD3F8C574D8ull:
+            if (std::strcmp(es, "Año Histórico") == 0) return g_tlalpowa_i18n_language == 1 ? "Wehkawitl xiwitl" : "Historical year";
+            break;
+        case 0xC220C494F7199415ull:
+            if (std::strcmp(es, "Año De Red") == 0) return g_tlalpowa_i18n_language == 1 ? "Matlatl xiwitl" : "Network year";
+            break;
+        case 0x8EDCE4E33CFA58E9ull:
+            if (std::strcmp(es, "Año visible") == 0) return g_tlalpowa_i18n_language == 1 ? "Nesi xiwitl" : "Visible year";
+            break;
+        case 0x93BA3860C70C86F5ull:
+            if (std::strcmp(es, "Fecha reciente: no se sobrepintan restos lacustres históricos; el satélite queda como presente.") == 0) return g_tlalpowa_i18n_language == 1 ? "Yankwik tonalli: amo mopan tlapaloa wehkawitl atlacalli; satelite mokawa axkayotl." : "Recent date: historical lake remains are not overpainted; the satellite remains current.";
+            break;
+        case 0xCBF4A1CC368D1B4Aull:
+            if (std::strcmp(es, "Cargar 3D") == 0) return g_tlalpowa_i18n_language == 1 ? "Kalaki 3D" : "Load 3D";
+            break;
+        case 0xE41C3FAAB5B9E1E0ull:
+            if (std::strcmp(es, "Sin modelos Blender convertidos") == 0) return g_tlalpowa_i18n_language == 1 ? "Amo onka Blender machiyotl mopatlatok" : "No converted Blender models";
+            break;
+        case 0xDD8D299617F32958ull:
+            if (std::strcmp(es, "Editar") == 0) return g_tlalpowa_i18n_language == 1 ? "Patla" : "Edit";
+            break;
+        case 0x9875EB8FEE73080Eull:
+            if (std::strcmp(es, "Cargar Calendarios Históricos") == 0) return g_tlalpowa_i18n_language == 1 ? "Kalaki wehkawitl tonalamatl" : "Load historical calendars";
+            break;
+        case 0x14B937399DD28279ull:
+            if (std::strcmp(es, "Tonalpohualli") == 0) return g_tlalpowa_i18n_language == 1 ? "Tonalpohualli" : "Tonalpohualli";
+            break;
+        case 0x2EEEECE166C8FDC3ull:
+            if (std::strcmp(es, "Calendario Juliano") == 0) return g_tlalpowa_i18n_language == 1 ? "Juliano tonalamatl" : "Julian calendar";
+            break;
+        case 0x4F749E49AB4C3D6Eull:
+            if (std::strcmp(es, "Siluetas Oficiales CDMX/REPSA") == 0) return g_tlalpowa_i18n_language == 1 ? "CDMX/REPSA tlanawatilli siluetas" : "Official CDMX/REPSA silhouettes";
+            break;
+        case 0x6D34A2D93F080CBDull:
+            if (std::strcmp(es, "Etiquetas De Cuerpos De Agua") == 0) return g_tlalpowa_i18n_language == 1 ? "Atlacalli tokaitlajkuilolli" : "Water-body labels";
+            break;
+        case 0xDAC11382F303527Cull:
+            if (std::strcmp(es, "Metro") == 0) return g_tlalpowa_i18n_language == 1 ? "Metro" : "Metro";
+            break;
+        case 0xD69DD3D4751DF3E0ull:
+            if (std::strcmp(es, "Metrobús") == 0) return g_tlalpowa_i18n_language == 1 ? "Metrobús" : "Metrobús";
+            break;
+        case 0x3D6125892B81E39Eull:
+            if (std::strcmp(es, "Mexibús") == 0) return g_tlalpowa_i18n_language == 1 ? "Mexibús" : "Mexibús";
+            break;
+        case 0xAAF5F7489B8874B6ull:
+            if (std::strcmp(es, "Red De Transportes Eléctricos") == 0) return g_tlalpowa_i18n_language == 1 ? "Teposnehnemiliztli matlatl" : "Electric transport network";
+            break;
+        case 0xC71922B9A01AB4B2ull:
+            if (std::strcmp(es, "Tren Ligero") == 0) return g_tlalpowa_i18n_language == 1 ? "Tren Ligero" : "Light rail";
+            break;
+        case 0x2CF9B46BBBC36375ull:
+            if (std::strcmp(es, "Redes Ferroviarias") == 0) return g_tlalpowa_i18n_language == 1 ? "Tepostli ohtli matlatl" : "Rail networks";
+            break;
+        case 0x5CC4BC9C50D2EDA6ull:
+            if (std::strcmp(es, "Suburbano") == 0) return g_tlalpowa_i18n_language == 1 ? "Suburbano" : "Suburban rail";
+            break;
+        case 0xF37B1FB133EEEBD9ull:
+            if (std::strcmp(es, "Tren El Insurgente") == 0) return g_tlalpowa_i18n_language == 1 ? "Tren El Insurgente" : "El Insurgente train";
+            break;
+        case 0x013B7BC60198DA5Cull:
+            if (std::strcmp(es, "Cablebús") == 0) return g_tlalpowa_i18n_language == 1 ? "Cablebús" : "Cablebus";
+            break;
+        case 0x620A7C38F160F9AFull:
+            if (std::strcmp(es, "Concesionados") == 0) return g_tlalpowa_i18n_language == 1 ? "Concesionados" : "Concessioned routes";
+            break;
+        case 0xCF19F420B59426F7ull:
+            if (std::strcmp(es, "Línea") == 0) return g_tlalpowa_i18n_language == 1 ? "Pamitl" : "Line";
+            break;
+        case 0x92E13E67C0D8F6ECull:
+            if (std::strcmp(es, "Línea 1") == 0) return g_tlalpowa_i18n_language == 1 ? "Pamitl 1" : "Line 1";
+            break;
+        case 0x92E14167C0D8FC05ull:
+            if (std::strcmp(es, "Línea 2") == 0) return g_tlalpowa_i18n_language == 1 ? "Pamitl 2" : "Line 2";
+            break;
+        case 0x92E14067C0D8FA52ull:
+            if (std::strcmp(es, "Línea 3") == 0) return g_tlalpowa_i18n_language == 1 ? "Pamitl 3" : "Line 3";
+            break;
+        case 0x92E13B67C0D8F1D3ull:
+            if (std::strcmp(es, "Línea 4") == 0) return g_tlalpowa_i18n_language == 1 ? "Pamitl 4" : "Line 4";
+            break;
+        case 0x92E13A67C0D8F020ull:
+            if (std::strcmp(es, "Línea 5") == 0) return g_tlalpowa_i18n_language == 1 ? "Pamitl 5" : "Line 5";
+            break;
+        case 0x92E13D67C0D8F539ull:
+            if (std::strcmp(es, "Línea 6") == 0) return g_tlalpowa_i18n_language == 1 ? "Pamitl 6" : "Line 6";
+            break;
+        case 0x92E13C67C0D8F386ull:
+            if (std::strcmp(es, "Línea 7") == 0) return g_tlalpowa_i18n_language == 1 ? "Pamitl 7" : "Line 7";
+            break;
+        case 0x92E14767C0D90637ull:
+            if (std::strcmp(es, "Línea 8") == 0) return g_tlalpowa_i18n_language == 1 ? "Pamitl 8" : "Line 8";
+            break;
+        case 0x92E14667C0D90484ull:
+            if (std::strcmp(es, "Línea 9") == 0) return g_tlalpowa_i18n_language == 1 ? "Pamitl 9" : "Line 9";
+            break;
+        case 0x6DB3E64CB0AB77D4ull:
+            if (std::strcmp(es, "Línea 10") == 0) return g_tlalpowa_i18n_language == 1 ? "Pamitl 10" : "Line 10";
+            break;
+        case 0x6DB3E74CB0AB7987ull:
+            if (std::strcmp(es, "Línea 11") == 0) return g_tlalpowa_i18n_language == 1 ? "Pamitl 11" : "Line 11";
+            break;
+        case 0x6DB3E84CB0AB7B3Aull:
+            if (std::strcmp(es, "Línea 12") == 0) return g_tlalpowa_i18n_language == 1 ? "Pamitl 12" : "Line 12";
+            break;
+        case 0x92E0EE67C0D86EFCull:
+            if (std::strcmp(es, "Línea A") == 0) return g_tlalpowa_i18n_language == 1 ? "Pamitl A" : "Line A";
+            break;
+        case 0x92E0F167C0D87415ull:
+            if (std::strcmp(es, "Línea B") == 0) return g_tlalpowa_i18n_language == 1 ? "Pamitl B" : "Line B";
+            break;
+        case 0xE1C48B1A36D182D8ull:
+            if (std::strcmp(es, "Trolebús Línea 1") == 0) return g_tlalpowa_i18n_language == 1 ? "Trolebús Pamitl 1" : "Trolleybus Line 1";
+            break;
+        case 0xE1C48E1A36D187F1ull:
+            if (std::strcmp(es, "Trolebús Línea 2") == 0) return g_tlalpowa_i18n_language == 1 ? "Trolebús Pamitl 2" : "Trolleybus Line 2";
+            break;
+        case 0xE1C48D1A36D1863Eull:
+            if (std::strcmp(es, "Trolebús Línea 3") == 0) return g_tlalpowa_i18n_language == 1 ? "Trolebús Pamitl 3" : "Trolleybus Line 3";
+            break;
+        case 0xE1C4901A36D18B57ull:
+            if (std::strcmp(es, "Trolebús Línea 4") == 0) return g_tlalpowa_i18n_language == 1 ? "Trolebús Pamitl 4" : "Trolleybus Line 4";
+            break;
+        case 0xE1C48F1A36D189A4ull:
+            if (std::strcmp(es, "Trolebús Línea 5") == 0) return g_tlalpowa_i18n_language == 1 ? "Trolebús Pamitl 5" : "Trolleybus Line 5";
+            break;
+        case 0xE1C4921A36D18EBDull:
+            if (std::strcmp(es, "Trolebús Línea 6") == 0) return g_tlalpowa_i18n_language == 1 ? "Trolebús Pamitl 6" : "Trolleybus Line 6";
+            break;
+        case 0xE1C4911A36D18D0Aull:
+            if (std::strcmp(es, "Trolebús Línea 7") == 0) return g_tlalpowa_i18n_language == 1 ? "Trolebús Pamitl 7" : "Trolleybus Line 7";
+            break;
+        case 0xE1C4841A36D176F3ull:
+            if (std::strcmp(es, "Trolebús Línea 8") == 0) return g_tlalpowa_i18n_language == 1 ? "Trolebús Pamitl 8" : "Trolleybus Line 8";
+            break;
+        case 0xE1C4831A36D17540ull:
+            if (std::strcmp(es, "Trolebús Línea 9") == 0) return g_tlalpowa_i18n_language == 1 ? "Trolebús Pamitl 9" : "Trolleybus Line 9";
+            break;
+        case 0x727B458B26017038ull:
+            if (std::strcmp(es, "Trolebús Línea 10") == 0) return g_tlalpowa_i18n_language == 1 ? "Trolebús Pamitl 10" : "Trolleybus Line 10";
+            break;
+        case 0x727B468B260171EBull:
+            if (std::strcmp(es, "Trolebús Línea 11") == 0) return g_tlalpowa_i18n_language == 1 ? "Trolebús Pamitl 11" : "Trolleybus Line 11";
+            break;
+        case 0x727B478B2601739Eull:
+            if (std::strcmp(es, "Trolebús Línea 12") == 0) return g_tlalpowa_i18n_language == 1 ? "Trolebús Pamitl 12" : "Trolleybus Line 12";
+            break;
+        case 0x5836E1EA7237007Bull:
+            if (std::strcmp(es, "Luz solar") == 0) return g_tlalpowa_i18n_language == 1 ? "Tonatiw tlawilli" : "Sunlight";
+            break;
+        case 0xA6FEB7DCBAA637A0ull:
+            if (std::strcmp(es, "Angulo solar del centro visible del mapa.") == 0) return g_tlalpowa_i18n_language == 1 ? "Tonatiw ixtlachialistli itech tlalixkopinkayotl tlajko." : "Solar angle at the visible centre of the map.";
+            break;
+        case 0xA925D2F7ADEBF519ull:
+            if (std::strcmp(es, "Elevacion") == 0) return g_tlalpowa_i18n_language == 1 ? "Ajkawalistli" : "Elevation";
+            break;
+        case 0x0FB58B2F88846ADFull:
+            if (std::strcmp(es, "azimut") == 0) return g_tlalpowa_i18n_language == 1 ? "azimut" : "azimuth";
+            break;
+        case 0x8B5C0F73565BF655ull:
+            if (std::strcmp(es, "Alternar capa") == 0) return g_tlalpowa_i18n_language == 1 ? "Patla tilmatli" : "Toggle layer";
+            break;
+        case 0x050D2F0E8FC57E10ull:
+            if (std::strcmp(es, "Filtrar red") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlatzejtzeloa matlatl" : "Filter network";
+            break;
+        case 0x7F3F796038550C98ull:
+            if (std::strcmp(es, "Cerrar") == 0) return g_tlalpowa_i18n_language == 1 ? "Tsakwa" : "Close";
+            break;
+        case 0x1299195DFB2794DAull:
+            if (std::strcmp(es, "Reubicar") == 0) return g_tlalpowa_i18n_language == 1 ? "Oksepa tlali" : "Reposition";
+            break;
+        case 0xEF314DF18B014CB0ull:
+            if (std::strcmp(es, "Desglose epidemiologico") == 0) return g_tlalpowa_i18n_language == 1 ? "Kokolistli xexelolistli" : "Epidemiological breakdown";
+            break;
+        case 0x21D601CA0AB14421ull:
+            if (std::strcmp(es, "Estación atmosférica") == 0) return g_tlalpowa_i18n_language == 1 ? "Ehekatl estación" : "Atmospheric station";
+            break;
+        case 0xC406DCE0B564A6A7ull:
+            if (std::strcmp(es, "Crear grafica") == 0) return g_tlalpowa_i18n_language == 1 ? "Chiwa ixnextilistli" : "Create graph";
+            break;
+        case 0x7A91E5FDE2FB87D0ull:
+            if (std::strcmp(es, "Elige un tipo.") == 0) return g_tlalpowa_i18n_language == 1 ? "Xikpejpena se tlamantli." : "Choose a type.";
+            break;
+        case 0x12720B5AA2D9DC22ull:
+            if (std::strcmp(es, "Dominio") == 0) return g_tlalpowa_i18n_language == 1 ? "Ipan" : "Domain";
+            break;
+        case 0xBBEF7A65D4780A8Full:
+            if (std::strcmp(es, "Variable") == 0) return g_tlalpowa_i18n_language == 1 ? "Mopatlakayotl" : "Variable";
+            break;
+        case 0xB3C5889340BED58Eull:
+            if (std::strcmp(es, "Resultados estadisticos") == 0) return g_tlalpowa_i18n_language == 1 ? "Estadística tlanki" : "Statistical results";
+            break;
+        case 0xF9EB42BB76AA4416ull:
+            if (std::strcmp(es, "Relacion lineal global") == 0) return g_tlalpowa_i18n_language == 1 ? "Nochipa lineal tlanamikilistli" : "Global linear relation";
+            break;
+        case 0x11DC38E0A75B8FA6ull:
+            if (std::strcmp(es, "Cobertura analitica") == 0) return g_tlalpowa_i18n_language == 1 ? "Analítica tlatzakuilli" : "Analytical coverage";
+            break;
+        case 0x6EA0844013533807ull:
+            if (std::strcmp(es, "Agregacion temporal de exposicion") == 0) return g_tlalpowa_i18n_language == 1 ? "Exposición kawitl mosentilistli" : "Temporal aggregation of exposure";
+            break;
+        case 0x4A82975B1C14C3D2ull:
+            if (std::strcmp(es, "Descriptivos") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlapowalli tlajtolmeh" : "Descriptives";
+            break;
+        case 0x8707A1DDD38C072Full:
+            if (std::strcmp(es, "Rango observado") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlachialli nepantla" : "Observed range";
+            break;
+        case 0x21E683D919CD7518ull:
+            if (std::strcmp(es, "No hay filas para el filtro actual.") == 0) return g_tlalpowa_i18n_language == 1 ? "Amo onka pamitl ika axkan tlatzejtzeloalli." : "No rows for the current filter.";
+            break;
+        case 0xA2A72D1FE777A160ull:
+            if (std::strcmp(es, "Desfase") == 0) return g_tlalpowa_i18n_language == 1 ? "Kawitl ixtlapal" : "Lag";
+            break;
+        case 0x44F1B9AE800659BCull:
+            if (std::strcmp(es, "0 dias") == 0) return g_tlalpowa_i18n_language == 1 ? "0 tonalli" : "0 days";
+            break;
+        case 0xE8E9191FA873991Dull:
+            if (std::strcmp(es, "recalcular") == 0) return g_tlalpowa_i18n_language == 1 ? "Oksepa tlapowa" : "recalculate";
+            break;
+        case 0x5CDABE5B01B3E685ull:
+            if (std::strcmp(es, "La grafica seleccionada ya no existe.") == 0) return g_tlalpowa_i18n_language == 1 ? "In ixnextilistli tlapejpenilli ayok onka." : "The selected graph no longer exists.";
+            break;
+        case 0xCE02E3D135A65024ull:
+            if (std::strcmp(es, "Configurar grafica") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlatlali ixnextilistli" : "Configure graph";
+            break;
+        case 0xDB2E18AE14662BD1ull:
+            if (std::strcmp(es, "Tipo de grafica") == 0) return g_tlalpowa_i18n_language == 1 ? "Ixnextilistli tlamantli" : "Graph type";
+            break;
+        case 0xA5747CF2881DAACCull:
+            if (std::strcmp(es, "Modelo de ajuste") == 0) return g_tlalpowa_i18n_language == 1 ? "Ajuste machiyotl" : "Fit model";
+            break;
+        case 0xB426181FCD9D4BF9ull:
+            if (std::strcmp(es, "Configurar") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlatlali" : "Configure";
+            break;
+        case 0x18E5BE32041ECA4Full:
+            if (std::strcmp(es, "Duplicar") == 0) return g_tlalpowa_i18n_language == 1 ? "Omechiwa" : "Duplicate";
+            break;
+        case 0x4A9570A89DD589BCull:
+            if (std::strcmp(es, "Eliminar") == 0) return g_tlalpowa_i18n_language == 1 ? "Popoloa" : "Delete";
+            break;
+        case 0xB7789EA307580C71ull:
+            if (std::strcmp(es, "Descargar CSV") == 0) return g_tlalpowa_i18n_language == 1 ? "Temolia CSV" : "Download CSV";
+            break;
+        case 0xE5511A1A40350F0Eull:
+            if (std::strcmp(es, "Copiar PNG") == 0) return g_tlalpowa_i18n_language == 1 ? "Kopiar PNG" : "Copy PNG";
+            break;
+        case 0x7DF328460195A4A9ull:
+            if (std::strcmp(es, "Base larga") == 0) return g_tlalpowa_i18n_language == 1 ? "Wey base" : "Long base";
+            break;
+        case 0x92348C704A527169ull:
+            if (std::strcmp(es, "Cuarentena") == 0) return g_tlalpowa_i18n_language == 1 ? "Cuarentena" : "Quarantine";
+            break;
+        case 0x3EE19DCB68582B90ull:
+            if (std::strcmp(es, "Tablas detectadas") == 0) return g_tlalpowa_i18n_language == 1 ? "Kwawpantli monexti" : "Tables detected";
+            break;
+        case 0x94A599B5E05614F7ull:
+            if (std::strcmp(es, "Excel maestro") == 0) return g_tlalpowa_i18n_language == 1 ? "Excel tlayekanki" : "Master Excel";
+            break;
+        case 0x30799C8908BC8CC9ull:
+            if (std::strcmp(es, "Archivo") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlahkuilolli" : "File";
+            break;
+        case 0x2616B674311F5542ull:
+            if (std::strcmp(es, "Colores") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlapalli" : "Colours";
+            break;
+        case 0x6CB622CDD7F08F00ull:
+            if (std::strcmp(es, "Ultima pagina aceptada") == 0) return g_tlalpowa_i18n_language == 1 ? "Satepan amatlajkuilolli moselilli" : "Last accepted page";
+            break;
+        case 0xEC83A08D876D8CBBull:
+            if (std::strcmp(es, "Ultima cuarentena") == 0) return g_tlalpowa_i18n_language == 1 ? "Satepan cuarentena" : "Last quarantine";
+            break;
+        case 0x758CD8AA2808BF96ull:
+            if (std::strcmp(es, "Esperando tabla validada") == 0) return g_tlalpowa_i18n_language == 1 ? "Chia kwawpantli moyekittak" : "Waiting for validated table";
+            break;
+        case 0x87FBB2AF7BCA3C5Eull:
+            if (std::strcmp(es, "Columnas en cuarentena") == 0) return g_tlalpowa_i18n_language == 1 ? "Columnas ipan cuarentena" : "Columns in quarantine";
+            break;
+        case 0x6BB632B8B89635DFull:
+            if (std::strcmp(es, "Pausar") == 0) return g_tlalpowa_i18n_language == 1 ? "Ketzaltia" : "Pause";
+            break;
+        case 0xBCFB7DE87E761384ull:
+            if (std::strcmp(es, "Detener") == 0) return g_tlalpowa_i18n_language == 1 ? "Tsakwilia" : "Stop";
+            break;
+        case 0xC9360B3DC92D02BFull:
+            if (std::strcmp(es, "Reiniciar") == 0) return g_tlalpowa_i18n_language == 1 ? "Oksepa pehua" : "Restart";
+            break;
+        case 0x5A1F87C098C1931Cull:
+            if (std::strcmp(es, "Reiniciar procesamiento") == 0) return g_tlalpowa_i18n_language == 1 ? "Oksepa pehua tlatequitl" : "Restart processing";
+            break;
+        case 0xB0D23D31687918B1ull:
+            if (std::strcmp(es, "Seleccionar carpeta") == 0) return g_tlalpowa_i18n_language == 1 ? "Xikpejpena carpeta" : "Select folder";
+            break;
+        case 0xD6CBF618F811E773ull:
+            if (std::strcmp(es, "Carpeta") == 0) return g_tlalpowa_i18n_language == 1 ? "Carpeta" : "Folder";
+            break;
+        case 0x3B4A5E106ABF7532ull:
+            if (std::strcmp(es, "Local") == 0) return g_tlalpowa_i18n_language == 1 ? "Nikan" : "Local";
+            break;
+        case 0x6746DC50C84DD53Bull:
+            if (std::strcmp(es, "Web") == 0) return g_tlalpowa_i18n_language == 1 ? "Web" : "Web";
+            break;
+        case 0x293E498588153E79ull:
+            if (std::strcmp(es, "Local usa una carpeta elegida; Web descarga primero desde fuentes oficiales.") == 0) return g_tlalpowa_i18n_language == 1 ? "Nikan kitekiwia carpeta tlapejpenilli; Web achtopa kitemolia tlanawatilli ameyalli." : "Local uses a chosen folder; Web first downloads from official sources.";
+            break;
+        case 0x9B647000C61E2E28ull:
+            if (std::strcmp(es, "No") == 0) return g_tlalpowa_i18n_language == 1 ? "Amo" : "No";
+            break;
+        case 0x9B6E6A00C626787Bull:
+            if (std::strcmp(es, "Si") == 0) return g_tlalpowa_i18n_language == 1 ? "Kema" : "Yes";
+            break;
+        case 0x45225150B51BFA4Cull:
+            if (std::strcmp(es, "Sí") == 0) return g_tlalpowa_i18n_language == 1 ? "Kema" : "Yes";
+            break;
+        case 0xA7AE5B20627558CBull:
+            if (std::strcmp(es, "Stop") == 0) return g_tlalpowa_i18n_language == 1 ? "Tsakwilia" : "Stop";
+            break;
+        case 0xAACC7461057E47C6ull:
+            if (std::strcmp(es, "Reiniciar procesamiento desde cero") == 0) return g_tlalpowa_i18n_language == 1 ? "Oksepa pehua tlatequitl desde cero" : "Restart processing from zero";
+            break;
+        case 0x9205E725D59E5D0Eull:
+            if (std::strcmp(es, "Detener proceso actual sin cerrar esta ventana") == 0) return g_tlalpowa_i18n_language == 1 ? "Tsakwilia axkan tlatequitl amo tsakwa nin ventana" : "Stop the current process without closing this window";
+            break;
+        case 0xBD10479EF39BDDCCull:
+            if (std::strcmp(es, "Cancelar y volver a estado basal sin cerrar esta ventana") == 0) return g_tlalpowa_i18n_language == 1 ? "Xikxoloa wan mokuepa peuhkayotl amo tsakwa nin ventana" : "Cancel and return to baseline state without closing this window";
+            break;
+        case 0xE4CBBDF0F8A0C845ull:
+            if (std::strcmp(es, "Pausar de forma segura: cerrar IXIPTLAH, recargar y reanudar despues sin lectura viva") == 0) return g_tlalpowa_i18n_language == 1 ? "Ketzaltia ika yeknemiliztli: tsakwa IXIPTLAH, oksepa kalaki wan satepan pehua amo yoltok tlapowalistli." : "Pause safely: close IXIPTLAH, reload and resume later without live reads";
+            break;
+        case 0xE474C3B78CF67D3Aull:
+            if (std::strcmp(es, "Render protegido") == 0) return g_tlalpowa_i18n_language == 1 ? "Render motlaxtlawilli" : "Protected render";
+            break;
+        case 0x07EE59C347F1AD5Full:
+            if (std::strcmp(es, "error desconocido") == 0) return g_tlalpowa_i18n_language == 1 ? "amo ixmatki error" : "unknown error";
+            break;
+        case 0xB09B827010878004ull:
+            if (std::strcmp(es, "Clic izquierdo: alternar. Clic derecho: aislar.") == 0) return g_tlalpowa_i18n_language == 1 ? "Opochmaitl clic: patla. Yekmaitl clic: kixeloa." : "Left-click: toggle. Right-click: isolate.";
+            break;
+        case 0xCBC357469CA05908ull:
+            if (std::strcmp(es, "Grupo") == 0) return g_tlalpowa_i18n_language == 1 ? "Ololi" : "Group";
+            break;
+        case 0x655F6F2444FFC956ull:
+            if (std::strcmp(es, "Pares") == 0) return g_tlalpowa_i18n_language == 1 ? "Ome pamitl" : "Pairs";
+            break;
+        case 0x2CB9E9E42E0FE604ull:
+            if (std::strcmp(es, "dias") == 0) return g_tlalpowa_i18n_language == 1 ? "tonalli" : "days";
+            break;
+        case 0xBCA906650A0A0439ull:
+            if (std::strcmp(es, "semanas") == 0) return g_tlalpowa_i18n_language == 1 ? "chikome tonalli" : "weeks";
+            break;
+        case 0x218ABB8E5FCB582Aull:
+            if (std::strcmp(es, "meses") == 0) return g_tlalpowa_i18n_language == 1 ? "metstli" : "months";
+            break;
+        case 0x4059E9BAC1C2DAD5ull:
+            if (std::strcmp(es, "anios") == 0) return g_tlalpowa_i18n_language == 1 ? "xiwitl" : "years";
+            break;
+        case 0x4B2A1A4070FAEE54ull:
+            if (std::strcmp(es, "unidad") == 0) return g_tlalpowa_i18n_language == 1 ? "Senka" : "unit";
+            break;
+        case 0xC82BF7DBBA6629C0ull:
+            if (std::strcmp(es, "desfase") == 0) return g_tlalpowa_i18n_language == 1 ? "kawitl ixtlapal" : "lag";
+            break;
+        case 0xF5821957A1C8F551ull:
+            if (std::strcmp(es, "calculando") == 0) return g_tlalpowa_i18n_language == 1 ? "motlapowilia" : "calculating";
+            break;
+        case 0x551D44D4E9822C12ull:
+            if (std::strcmp(es, "sin desfase") == 0) return g_tlalpowa_i18n_language == 1 ? "amo kawitl ixtlapal" : "no lag";
+            break;
+        case 0x71332B8E8D6511F4ull:
+            if (std::strcmp(es, "mejor") == 0) return g_tlalpowa_i18n_language == 1 ? "achi kuali" : "best";
+            break;
+        case 0x17703C946E12FA6Eull:
+            if (std::strcmp(es, "Guardar configuracion") == 0) return g_tlalpowa_i18n_language == 1 ? "Ajokui tlatlalilistli" : "Save settings";
+            break;
+        case 0xA710619B9C3FC7BBull:
+            if (std::strcmp(es, "Grafica actualizada.") == 0) return g_tlalpowa_i18n_language == 1 ? "Ixnextilistli yankuik motlali." : "Graph updated.";
+            break;
+        case 0x4713E36B32B3B91Aull:
+            if (std::strcmp(es, "Cancelar") == 0) return g_tlalpowa_i18n_language == 1 ? "Xikxoloa" : "Cancel";
+            break;
+        case 0x9DBD2DF4BDA96B17ull:
+            if (std::strcmp(es, "Eje X") == 0) return g_tlalpowa_i18n_language == 1 ? "Eje X" : "X axis";
+            break;
+        case 0x9DBD2CF4BDA96964ull:
+            if (std::strcmp(es, "Eje Y") == 0) return g_tlalpowa_i18n_language == 1 ? "Eje Y" : "Y axis";
+            break;
+        case 0x44B367D531B7A2AEull:
+            if (std::strcmp(es, "Eje Z / estratificacion") == 0) return g_tlalpowa_i18n_language == 1 ? "Eje Z / tlapantli" : "Z axis / stratification";
+            break;
+        case 0xFDEA9AC3223F3AEAull:
+            if (std::strcmp(es, "Usar filtros visibles del panel lateral") == 0) return g_tlalpowa_i18n_language == 1 ? "Kitekiwia tlatzejtzeloalli tlen nesi ipan nakastlan panel" : "Use visible filters from the side panel";
+            break;
+        case 0x21BAC6A633B08560ull:
+            if (std::strcmp(es, "Mostrar ajuste estadistico cuando aplique") == 0) return g_tlalpowa_i18n_language == 1 ? "Nextia estadística ajuste tla moneki" : "Show statistical fit when applicable";
+            break;
+        case 0x06F2C9DE5292AAF6ull:
+            if (std::strcmp(es, "barras") == 0) return g_tlalpowa_i18n_language == 1 ? "tlapamitl" : "bars";
+            break;
+        case 0x0C7FB771B8B856ECull:
+            if (std::strcmp(es, "líneas") == 0) return g_tlalpowa_i18n_language == 1 ? "pamitl" : "lines";
+            break;
+        case 0x14D0B78D07AE8839ull:
+            if (std::strcmp(es, "área") == 0) return g_tlalpowa_i18n_language == 1 ? "ixtlahwatl" : "area";
+            break;
+        case 0x30EE13FBD1AD66A6ull:
+            if (std::strcmp(es, "histograma") == 0) return g_tlalpowa_i18n_language == 1 ? "histograma" : "histogram";
+            break;
+        case 0x8370EED9B0D4A764ull:
+            if (std::strcmp(es, "dispersión") == 0) return g_tlalpowa_i18n_language == 1 ? "xixinilistli" : "scatter";
+            break;
+        case 0x2A7721F3F02235F8ull:
+            if (std::strcmp(es, "Datos epidemiologicos") == 0) return g_tlalpowa_i18n_language == 1 ? "Kokolistli tlamachiyotl" : "Epidemiological data";
+            break;
+        case 0x5AF8827172DDC46Bull:
+            if (std::strcmp(es, "Datos atmosfericos") == 0) return g_tlalpowa_i18n_language == 1 ? "Ehekatl tlamachiyotl" : "Atmospheric data";
+            break;
+        case 0xCE426F47EDCE42FDull:
+            if (std::strcmp(es, "Datos demograficos") == 0) return g_tlalpowa_i18n_language == 1 ? "Altepetlakameh tlamachiyotl" : "Demographic data";
+            break;
+        case 0xC76C4CB0A296A0D3ull:
+            if (std::strcmp(es, "Tiempo") == 0) return g_tlalpowa_i18n_language == 1 ? "Kawitl" : "Time";
+            break;
+        case 0x732A6FCCA54A9E74ull:
+            if (std::strcmp(es, "Territorio") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlalli" : "Territory";
+            break;
+        case 0xFD80A251951E6BBFull:
+            if (std::strcmp(es, "Incidencia semanal") == 0) return g_tlalpowa_i18n_language == 1 ? "Chikome tonalli incidencia" : "Weekly incidence";
+            break;
+        case 0xED28ED01CBDC7648ull:
+            if (std::strcmp(es, "Enfermedad") == 0) return g_tlalpowa_i18n_language == 1 ? "Kokolistli" : "Disease";
+            break;
+        case 0xDB6B5D6E90231842ull:
+            if (std::strcmp(es, "Grupo de enfermedad") == 0) return g_tlalpowa_i18n_language == 1 ? "Kokolistli ololi" : "Disease group";
+            break;
+        case 0xAC0E31A7213048B7ull:
+            if (std::strcmp(es, "Acumulado femenino") == 0) return g_tlalpowa_i18n_language == 1 ? "Siwatl mosentilli" : "Female cumulative";
+            break;
+        case 0x015316B94B4540D5ull:
+            if (std::strcmp(es, "Acumulado masculino") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlakatl mosentilli" : "Male cumulative";
+            break;
+        case 0x05BC5D9D7C7D286Eull:
+            if (std::strcmp(es, "Contaminante") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlazolli" : "Pollutant";
+            break;
+        case 0x8B218CCBFA629722ull:
+            if (std::strcmp(es, "Concentración") == 0) return g_tlalpowa_i18n_language == 1 ? "Mosenkaualistli" : "Concentration";
+            break;
+        case 0x4ADE5A5F88DB3B77ull:
+            if (std::strcmp(es, "Estación RAMA") == 0) return g_tlalpowa_i18n_language == 1 ? "RAMA estación" : "RAMA station";
+            break;
+        case 0x10EB7CBFC049244Dull:
+            if (std::strcmp(es, "Promedio semanal") == 0) return g_tlalpowa_i18n_language == 1 ? "Chikome tonalli promedio" : "Weekly average";
+            break;
+        case 0xC423A523632F4AFBull:
+            if (std::strcmp(es, "Población total") == 0) return g_tlalpowa_i18n_language == 1 ? "Nochipa tlakah" : "Total population";
+            break;
+        case 0x4A4447738C2C4903ull:
+            if (std::strcmp(es, "Densidad") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlatemilli" : "Density";
+            break;
+        case 0x7C67358B8714E729ull:
+            if (std::strcmp(es, "Estructura etaria") == 0) return g_tlalpowa_i18n_language == 1 ? "Xiwitl tlamantli" : "Age structure";
+            break;
+        case 0xB8B8A1E2C80FA09Dull:
+            if (std::strcmp(es, "Distribución por sexo") == 0) return g_tlalpowa_i18n_language == 1 ? "Sexo xexelolistli" : "Distribution by sex";
+            break;
+        case 0xE746A30E2C7833C1ull:
+            if (std::strcmp(es, "Índice demográfico") == 0) return g_tlalpowa_i18n_language == 1 ? "Demografía index" : "Demographic index";
+            break;
+        case 0x3699CC31D2CFCE30ull:
+            if (std::strcmp(es, "Semana") == 0) return g_tlalpowa_i18n_language == 1 ? "Chikome tonalli" : "Week";
+            break;
+        case 0x5B7C76AC7DADD83Full:
+            if (std::strcmp(es, "Año") == 0) return g_tlalpowa_i18n_language == 1 ? "Xiwitl" : "Year";
+            break;
+        case 0x654E9E306EBCBD0Full:
+            if (std::strcmp(es, "Periodo") == 0) return g_tlalpowa_i18n_language == 1 ? "Kawitl tlamantli" : "Period";
+            break;
+        case 0x3C6AA56AC1AFF410ull:
+            if (std::strcmp(es, "Rango temporal") == 0) return g_tlalpowa_i18n_language == 1 ? "Kawitl nepantla" : "Time range";
+            break;
+        case 0xE8AE0CFD9B23C2D9ull:
+            if (std::strcmp(es, "Alcaldía") == 0) return g_tlalpowa_i18n_language == 1 ? "Alcaldía" : "Borough";
+            break;
+        case 0x1B47F1E12B4FB6FCull:
+            if (std::strcmp(es, "Municipio") == 0) return g_tlalpowa_i18n_language == 1 ? "Altepekopewaltl" : "Municipality";
+            break;
+        case 0x1F39A4FA7544CE70ull:
+            if (std::strcmp(es, "Entidad") == 0) return g_tlalpowa_i18n_language == 1 ? "Entidad" : "State";
+            break;
+        case 0xA6E9D5DBA35F73EDull:
+            if (std::strcmp(es, "Coordenada X") == 0) return g_tlalpowa_i18n_language == 1 ? "Coordenada X" : "X coordinate";
+            break;
+        case 0xA6E9D4DBA35F723Aull:
+            if (std::strcmp(es, "Coordenada Y") == 0) return g_tlalpowa_i18n_language == 1 ? "Coordenada Y" : "Y coordinate";
+            break;
+        case 0x6F5362BCD66ADC0Aull:
+            if (std::strcmp(es, "Unidad analitica") == 0) return g_tlalpowa_i18n_language == 1 ? "Analítica senkayotl" : "Analytical unit";
+            break;
+        case 0x698A9E684B1552F7ull:
+            if (std::strcmp(es, "Categoria/tiempo") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlamantli/kawitl" : "Category/time";
+            break;
+        case 0xB004CE378F41D12Full:
+            if (std::strcmp(es, "Valor") == 0) return g_tlalpowa_i18n_language == 1 ? "Ipatij" : "Value";
+            break;
+        case 0x58994B4333936A16ull:
+            if (std::strcmp(es, "Proporcion") == 0) return g_tlalpowa_i18n_language == 1 ? "Proporción" : "Proportion";
+            break;
+        case 0x9FC78773ECF7B5D8ull:
+            if (std::strcmp(es, "Alcaldia") == 0) return g_tlalpowa_i18n_language == 1 ? "Alcaldía" : "Borough";
+            break;
+        case 0x8F1A11EC14FA927Dull:
+            if (std::strcmp(es, "Incidentes") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlamochiwalli" : "Incidents";
+            break;
+        case 0x04C3D098033622CCull:
+            if (std::strcmp(es, "O3 alcaldia") == 0) return g_tlalpowa_i18n_language == 1 ? "O3 alcaldía" : "Borough O3";
+            break;
+        case 0x4945C123030CEBC7ull:
+            if (std::strcmp(es, "Residual casos") == 0) return g_tlalpowa_i18n_language == 1 ? "Kokolistli residual" : "Case residual";
+            break;
+        case 0xBFF81E0F2C6C8CC8ull:
+            if (std::strcmp(es, "datos seleccionados") == 0) return g_tlalpowa_i18n_language == 1 ? "tlamachiyotl tlapejpenilli" : "selected data";
+            break;
+        case 0x58DCE327D7289F91ull:
+            if (std::strcmp(es, "todos los datos") == 0) return g_tlalpowa_i18n_language == 1 ? "nochi tlamachiyotl" : "all data";
+            break;
+        case 0xCC758019CB5CEB43ull:
+            if (std::strcmp(es, "Gráfica de dispersión") == 0) return g_tlalpowa_i18n_language == 1 ? "Xixinilistli ixnextilistli" : "Scatter graph";
+            break;
+        case 0xE6FBE16CAC1E8778ull:
+            if (std::strcmp(es, "incidencia O3") == 0) return g_tlalpowa_i18n_language == 1 ? "O3 incidencia" : "O3 incidence";
+            break;
+        case 0x16CB662C890A22CFull:
+            if (std::strcmp(es, "Gráfica de líneas") == 0) return g_tlalpowa_i18n_language == 1 ? "Pamitl ixnextilistli" : "Line graph";
+            break;
+        case 0x97D17E1C9E616745ull:
+            if (std::strcmp(es, "serie temporal") == 0) return g_tlalpowa_i18n_language == 1 ? "kawitl serie" : "time series";
+            break;
+        case 0x81D2614AE5AD935Eull:
+            if (std::strcmp(es, "Gráfica de área") == 0) return g_tlalpowa_i18n_language == 1 ? "Ixtlahwatl ixnextilistli" : "Area graph";
+            break;
+        case 0x4136368292521400ull:
+            if (std::strcmp(es, "acumulado temporal") == 0) return g_tlalpowa_i18n_language == 1 ? "kawitl mosentilli" : "temporal cumulative";
+            break;
+        case 0x4992D0CB697665C6ull:
+            if (std::strcmp(es, "Histograma") == 0) return g_tlalpowa_i18n_language == 1 ? "Histograma" : "Histogram";
+            break;
+        case 0x6DAA37F68ADFBDADull:
+            if (std::strcmp(es, "distribución") == 0) return g_tlalpowa_i18n_language == 1 ? "xexelolistli" : "distribution";
+            break;
+        case 0x0CCD94C487465A5Full:
+            if (std::strcmp(es, "Gráfica de barras") == 0) return g_tlalpowa_i18n_language == 1 ? "Tlapamitl ixnextilistli" : "Bar chart";
+            break;
+        case 0xA6A2869F572DA149ull:
+            if (std::strcmp(es, "comparación discreta") == 0) return g_tlalpowa_i18n_language == 1 ? "tlamachtilistli discreta" : "discrete comparison";
+            break;
+        case 0x42D7D0F1A28BC64Full:
+            if (std::strcmp(es, "Creada") == 0) return g_tlalpowa_i18n_language == 1 ? "Mochiuh" : "Created";
+            break;
+        case 0xC05B8738B6D112FFull:
+            if (std::strcmp(es, "Limite de 8 graficas alcanzado en esta pestana.") == 0) return g_tlalpowa_i18n_language == 1 ? "8 ixnextilistli tlamitl ipan nin ixtsontli." : "Limit of 8 graphs reached in this tab.";
+            break;
+        case 0x7BCC86EC20E5FA7Eull:
+            if (std::strcmp(es, "Filtro lateral") == 0) return g_tlalpowa_i18n_language == 1 ? "Nakastlan tlatzejtzeloalli" : "Side filter";
+            break;
+        case 0x389084A211A23031ull:
+            if (std::strcmp(es, "Todos los datos") == 0) return g_tlalpowa_i18n_language == 1 ? "Nochi tlamachiyotl" : "All data";
+            break;
+        case 0xDC09BBFE2152E3DEull:
+            if (std::strcmp(es, "filtro lateral") == 0) return g_tlalpowa_i18n_language == 1 ? "nakastlan tlatzejtzeloalli" : "side filter";
+            break;
+        case 0xEF383538177F4F30ull:
+            if (std::strcmp(es, "todos") == 0) return g_tlalpowa_i18n_language == 1 ? "nochi" : "all";
+            break;
+        case 0x1E23FD81DD1FD227ull:
+            if (std::strcmp(es, "Copiando PNG.") == 0) return g_tlalpowa_i18n_language == 1 ? "PNG mokopia." : "Copying PNG.";
+            break;
+        case 0xCC3700CE36FC0BD1ull:
+            if (std::strcmp(es, "No pude copiar PNG: rectangulo de grafica invalido.") == 0) return g_tlalpowa_i18n_language == 1 ? "Amo nikweliti nikopia PNG: ixnextilistli rectángulo amo yek." : "Could not copy PNG: invalid graph rectangle.";
+            break;
+        case 0x7331E4FCFE018DAEull:
+            if (std::strcmp(es, "PNG de grafica copiado al portapapeles.") == 0) return g_tlalpowa_i18n_language == 1 ? "Ixnextilistli PNG mokopiouh ipan portapapeles." : "Graph PNG copied to clipboard.";
+            break;
+        case 0x8172BFCB7BBB9B03ull:
+            if (std::strcmp(es, "No pude copiar PNG al portapapeles en esta plataforma.") == 0) return g_tlalpowa_i18n_language == 1 ? "Amo nikweliti nikopia PNG ipan portapapeles ipan nin plataforma." : "Could not copy PNG to the clipboard on this platform.";
+            break;
+        case 0x4414F95980E5CD8Eull:
+            if (std::strcmp(es, "territorial") == 0) return g_tlalpowa_i18n_language == 1 ? "tlalli ipan" : "territorial";
+            break;
+        case 0x8B82261E0100B677ull:
+            if (std::strcmp(es, "robusto") == 0) return g_tlalpowa_i18n_language == 1 ? "chikawak" : "robust";
+            break;
+        case 0x2A734E3481588AB6ull:
+            if (std::strcmp(es, "pares") == 0) return g_tlalpowa_i18n_language == 1 ? "ome pamitl" : "pairs";
+            break;
+        case 0x39BB5E9B72C5AEACull:
+            if (std::strcmp(es, "enfermedades") == 0) return g_tlalpowa_i18n_language == 1 ? "kokolistli" : "diseases";
+            break;
+        case 0x4436E45981029045ull:
+            if (std::strcmp(es, "territorios") == 0) return g_tlalpowa_i18n_language == 1 ? "tlalli" : "territories";
+            break;
+        case 0x4670F415A9987C72ull:
+            if (std::strcmp(es, "Unidad analitica: alcaldia/municipio por semana epidemiologica y enfermedad; O3 horario RAMA triangulado al territorio y desplazado por desfase.") == 0) return g_tlalpowa_i18n_language == 1 ? "Analítica senkayotl: alcaldía/altepekopewaltl ipan chikome tonalli kokolistli; O3 hora RAMA tlalli tlatamachiwalli wan kawitl ixtlapal." : "Analytical unit: borough/municipality by epidemiological week and disease; hourly RAMA O3 triangulated to the territory and shifted by lag.";
+            break;
+        case 0x78460B65D0C909DEull:
+            if (std::strcmp(es, "Unidad analitica: subconjunto filtrado por tiempo, territorio y seleccion lateral.") == 0) return g_tlalpowa_i18n_language == 1 ? "Analítica senkayotl: tlatzejtzeloalli seki ipan kawitl, tlalli wan nakastlan tlapejpenilli." : "Analytical unit: subset filtered by time, territory and side selection.";
+            break;
+        default: break;
+    }
+    const char* deep = tlalpowa_tr_deep(es);
+    if (deep != es) return deep;
+    return es;
+}
+
+std::string tlalpowa_trs(const std::string& es) {
+    const char* translated = tlalpowa_tr(es.c_str());
+    return translated == es.c_str() ? es : std::string(translated);
+}
+
+std::string tlalpowa_graph_tab_label(int index_one_based) {
+    const int n = std::max(1, index_one_based);
+    if (g_tlalpowa_i18n_language == 1) return std::string("Ixnextilistli ") + std::to_string(n);
+    if (g_tlalpowa_i18n_language == 2) return std::string("Graph ") + std::to_string(n);
+    return std::string("Grafica ") + std::to_string(n);
+}
+
+
 constexpr const char* kElementTopAddGraph = "el.sup.grafica";
 
 constexpr const char* kElementTimelineDateEdit = "##el.hist.fecha";
@@ -2196,7 +3951,7 @@ float golden_chrome_label_font_px(float  ) {
 }
 
 ImVec2 golden_chrome_label_size(const char* label, float h) {
-    const char* visible = label ? label : "";
+    const char* visible = tlalpowa_tr(label ? label : "");
     ImFont* font = ImGui::GetFont();
     const float font_px = golden_chrome_label_font_px(h);
     if (!font) return ImGui::CalcTextSize(visible);
@@ -2262,7 +4017,7 @@ GoldenChromeResult draw_golden_control_hitbox(const char* id, const ImVec2& a, f
 void draw_golden_control_label(ImDrawList* dl, const char* label, const ImVec2& a, float w, float h,
                                ImU32 text_col) {
     if (!dl) return;
-    const char* visible = label ? label : "";
+    const char* visible = tlalpowa_tr(label ? label : "");
     ImFont* font = ImGui::GetFont();
     const float font_px = golden_chrome_label_font_px(h);
     const ImVec2 text = golden_chrome_label_size(visible, h);
@@ -3545,8 +5300,8 @@ void tlalpowa_ensure_user_profile_defaults(UiState& ui) {
 
 const char* tlalpowa_language_label(int language) {
     switch (std::clamp(language, 0, 2)) {
-        case 1: return "Náhuatl (central)";
-        case 2: return "Inglés";
+        case 1: return "Náhuatl (Central)";
+        case 2: return "English (UK)";
         case 0:
         default: return "Español (México)";
     }
@@ -3555,7 +5310,7 @@ const char* tlalpowa_language_label(int language) {
 const char* tlalpowa_language_code(int language) {
     switch (std::clamp(language, 0, 2)) {
         case 1: return "nah-central";
-        case 2: return "en";
+        case 2: return "en-GB";
         case 0:
         default: return "es-MX";
     }
@@ -3563,10 +5318,10 @@ const char* tlalpowa_language_code(int language) {
 
 const char* tlalpowa_theme_label(int theme_mode) {
     switch (theme_mode) {
-        case -1: return "Igual que el sistema";
-        case 1: return "Oscuro";
+        case -1: return tlalpowa_tr("Igual que el sistema");
+        case 1: return tlalpowa_tr("Oscuro");
         case 0:
-        default: return "Claro";
+        default: return tlalpowa_tr("Claro");
     }
 }
 
@@ -3581,11 +5336,11 @@ const char* tlalpowa_theme_code(int theme_mode) {
 
 const char* tlalpowa_gender_label(int gender) {
     switch (std::clamp(gender, 0, 3)) {
-        case 0: return "Mujer";
-        case 2: return "No binario";
-        case 3: return "Hombre";
+        case 0: return tlalpowa_tr("Mujer");
+        case 2: return tlalpowa_tr("No binario");
+        case 3: return tlalpowa_tr("Hombre");
         case 1:
-        default: return "Prefiero no decirlo";
+        default: return tlalpowa_tr("Prefiero no decirlo");
     }
 }
 
@@ -13051,8 +14806,6 @@ bool compile_mobility_from_gtfs_zip(const fs::path& zip_path, nlohmann::json* au
 
         if (rr == routes.end()) continue;
         const Rt& r = rr->second;
-        int shape_ix = 0;
-
         for (const auto& sid : shapes) {
             auto sp = shape_points.find(sid);
 
@@ -13064,7 +14817,7 @@ bool compile_mobility_from_gtfs_zip(const fs::path& zip_path, nlohmann::json* au
 
             ml.name = !r.shortn.empty() ? (std::string("Línea ") + r.shortn) : (!r.longn.empty() ? r.longn : rid);
 
-            if (shapes.size() > 1) ml.name += " · trazo " + std::to_string(++shape_ix);
+            /* El nombre público de la ruta no expone trazos internos GTFS. */
             ml.color_hex = r.color;
             ml.source_precision = "gtfs";
 
@@ -17632,7 +19385,7 @@ void draw_mobility_layer(ImDrawList* dl, const std::vector<MobilityLine>& lines,
                         drawn_icon = true;
 
 
-                        if (hover_check && std::hypot(mouse.x - p.x, mouse.y - p.y) <= half + 4.0f) hovered_mobility = ag.system + " · " + ag.name + (ag.line_names.empty() ? "" : " · " + ag.line_names);
+                        if (hover_check && std::hypot(mouse.x - p.x, mouse.y - p.y) <= half + 4.0f) hovered_mobility = ag.name.empty() ? ag.system : ag.name;
                     } else {
 
                         std::optional<fs::path> icon = find_mobility_station_icon(ag.group, ag.name, render_year, transfer_station, ag.line_hint);
@@ -17654,7 +19407,7 @@ void draw_mobility_layer(ImDrawList* dl, const std::vector<MobilityLine>& lines,
                                 drawn_icon = true;
 
 
-                                if (hover_check && std::hypot(mouse.x - p.x, mouse.y - p.y) <= half + 4.0f) hovered_mobility = ag.system + " · " + ag.name + (ag.line_names.empty() ? "" : " · " + ag.line_names);
+                                if (hover_check && std::hypot(mouse.x - p.x, mouse.y - p.y) <= half + 4.0f) hovered_mobility = ag.name.empty() ? ag.system : ag.name;
                             }
                         }
                     }
@@ -17673,7 +19426,7 @@ void draw_mobility_layer(ImDrawList* dl, const std::vector<MobilityLine>& lines,
             ++dots_drawn;
 
 
-            if (hover_check && std::hypot(mouse.x - p.x, mouse.y - p.y) <= dot_r + 5.0f) hovered_mobility = ag.system + " · " + ag.name + (ag.line_names.empty() ? "" : " · " + ag.line_names);
+            if (hover_check && std::hypot(mouse.x - p.x, mouse.y - p.y) <= dot_r + 5.0f) hovered_mobility = ag.name.empty() ? ag.system : ag.name;
         }
     }
 
@@ -28381,7 +30134,7 @@ void draw_top_bar(UiState& ui) {
     draw_refined_tab("Principal", 0);
 
     for (int i = 0; i < ui.graph_tabs; ++i) {
-        std::string label = std::string("Grafica ") + std::to_string(i + 1);
+        std::string label = tlalpowa_graph_tab_label(i + 1);
         draw_refined_tab(label.c_str(), i + 1);
     }
 
@@ -28394,7 +30147,7 @@ void draw_top_bar(UiState& ui) {
             ++ui.graph_tabs;
             ui.active_tab = ui.graph_tabs;
         }
-        if (plus_result.hovered) ImGui::SetTooltip("Crear otra pestaña de gráfica");
+        if (plus_result.hovered) ImGui::SetTooltip("%s", tlalpowa_tr("Crear otra pestaña de gráfica"));
     }
 
 
@@ -29728,12 +31481,12 @@ bool import_template_combo(const char* id, int& current, const char* const* item
     bool changed = false;
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, golden_tab_rounding());
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(golden_tab_frame_pad_x(), golden_tab_frame_pad_y()));
-    if (ImGui::BeginCombo(id, items[current])) {
+    if (ImGui::BeginCombo(id, tlalpowa_tr(items[current]))) {
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
         for (int i = 0; i < count; ++i) {
             ImGui::PushID(i);
             const bool selected = (i == current);
-            if (ImGui::Selectable(items[i], selected, 0, ImVec2(0.0f, tlalpowa_import_control_height()))) {
+            if (ImGui::Selectable(tlalpowa_tr(items[i]), selected, 0, ImVec2(0.0f, tlalpowa_import_control_height()))) {
                 current = i;
                 changed = true;
             }
@@ -31521,8 +33274,8 @@ void force_current_native_tool_outer_rect(const SettingsMapOverlayGeometry& g) {
 void draw_source_slide_button(bool& from_web, const ImVec4& accent) {
     
     const float h = tlalpowa_import_control_height();
-    const float local_w = golden_chrome_auto_width("Local", h, false);
-    const float web_w = golden_chrome_auto_width("Web", h, false);
+    const float local_w = golden_chrome_auto_width(tlalpowa_tr("Local"), h, false);
+    const float web_w = golden_chrome_auto_width(tlalpowa_tr("Web"), h, false);
     const float w = local_w + web_w;
     const ImVec2 p = ImGui::GetCursorScreenPos();
     const GoldenChromeResult local_hit = draw_golden_button_template("##origen-local-canonico", "Local", p, local_w, h, accent, true, !from_web, !from_web, false);
@@ -31530,13 +33283,13 @@ void draw_source_slide_button(bool& from_web, const ImVec4& accent) {
     if (local_hit.clicked) from_web = false;
     if (web_hit.clicked) from_web = true;
     (void)w;
-    if (local_hit.hovered || web_hit.hovered) ImGui::SetTooltip("Local usa una carpeta elegida; Web descarga primero desde fuentes oficiales.");
+    if (local_hit.hovered || web_hit.hovered) ImGui::SetTooltip("%s", tlalpowa_tr("Local usa una carpeta elegida; Web descarga primero desde fuentes oficiales."));
 }
 
 bool draw_binary_slide_button(const char* id_prefix, const char* off_label, const char* on_label, bool& value, const ImVec4& accent, bool light, const char* tooltip = nullptr) {
     const float h = tlalpowa_import_control_height();
-    const float off_w = golden_chrome_auto_width(off_label, h, false);
-    const float on_w = golden_chrome_auto_width(on_label, h, false);
+    const float off_w = golden_chrome_auto_width(tlalpowa_tr(off_label), h, false);
+    const float on_w = golden_chrome_auto_width(tlalpowa_tr(on_label), h, false);
     const ImVec2 p = ImGui::GetCursorScreenPos();
     std::string off_id = std::string("##") + id_prefix + "-off";
     std::string on_id = std::string("##") + id_prefix + "-on";
@@ -31545,7 +33298,7 @@ bool draw_binary_slide_button(const char* id_prefix, const char* off_label, cons
     bool changed = false;
     if (off_hit.clicked && value) { value = false; changed = true; }
     if (on_hit.clicked && !value) { value = true; changed = true; }
-    if (tooltip && (off_hit.hovered || on_hit.hovered)) ImGui::SetTooltip("%s", tooltip);
+    if (tooltip && (off_hit.hovered || on_hit.hovered)) ImGui::SetTooltip("%s", tlalpowa_tr(tooltip));
     return changed;
 }
 
@@ -36717,30 +38470,30 @@ void draw_external_session_credentials_panel(const ExternalDataSourceSpec& spec)
     }
 
 
-    ImGui::SeparatorText("Credenciales de descarga en esta sesion");
+    ImGui::SeparatorText(tlalpowa_tr("Credenciales de descarga en esta sesion"));
 
-    ImGui::TextDisabled("No se guardan en IXIPTLAH, auditorias, catalogos ni archivos de configuracion.");
+    ImGui::TextDisabled("%s", tlalpowa_tr("No se guardan en IXIPTLAH, auditorias, catalogos ni archivos de configuracion."));
     bool changed = false;
 
     if (id == "sentinel5p_tropomi") {
 
         ImGui::SetNextItemWidth(std::min(520.0f, ImGui::GetContentRegionAvail().x));
 
-        changed |= ImGui::InputTextWithHint("##cdse_token", "TLALPOWA_CDSE_ACCESS_TOKEN opcional", cdse_token.data(), cdse_token.size(), ImGuiInputTextFlags_Password);
+        changed |= ImGui::InputTextWithHint("##cdse_token", tlalpowa_tr("TLALPOWA_CDSE_ACCESS_TOKEN opcional"), cdse_token.data(), cdse_token.size(), ImGuiInputTextFlags_Password);
 
         ImGui::SetNextItemWidth(std::min(250.0f, ImGui::GetContentRegionAvail().x));
 
-        changed |= ImGui::InputTextWithHint("##cdse_user", "usuario CDSE si no hay token", cdse_user.data(), cdse_user.size());
+        changed |= ImGui::InputTextWithHint("##cdse_user", tlalpowa_tr("usuario CDSE si no hay token"), cdse_user.data(), cdse_user.size());
 
         ImGui::SameLine(0.0f, 8.0f);
 
         ImGui::SetNextItemWidth(std::min(250.0f, ImGui::GetContentRegionAvail().x));
 
-        changed |= ImGui::InputTextWithHint("##cdse_pass", "password CDSE", cdse_password.data(), cdse_password.size(), ImGuiInputTextFlags_Password);
+        changed |= ImGui::InputTextWithHint("##cdse_pass", tlalpowa_tr("password CDSE"), cdse_password.data(), cdse_password.size(), ImGuiInputTextFlags_Password);
 
         ImGui::SetNextItemWidth(160.0f);
 
-        changed |= ImGui::InputTextWithHint("##cdse_totp", "TOTP si aplica", cdse_totp.data(), cdse_totp.size(), ImGuiInputTextFlags_Password);
+        changed |= ImGui::InputTextWithHint("##cdse_totp", tlalpowa_tr("TOTP si aplica"), cdse_totp.data(), cdse_totp.size(), ImGuiInputTextFlags_Password);
 
     } else if (id == "nasa_firms") {
 
@@ -36756,16 +38509,16 @@ void draw_external_session_credentials_panel(const ExternalDataSourceSpec& spec)
 
         ImGui::SetNextItemWidth(std::min(420.0f, ImGui::GetContentRegionAvail().x));
 
-        changed |= ImGui::InputTextWithHint("##laads_token", "TLALPOWA_LAADS_TOKEN si aplica", laads_token.data(), laads_token.size(), ImGuiInputTextFlags_Password);
+        changed |= ImGui::InputTextWithHint("##laads_token", tlalpowa_tr("TLALPOWA_LAADS_TOKEN si aplica"), laads_token.data(), laads_token.size(), ImGuiInputTextFlags_Password);
 
         changed |= draw_golden_checkbox_labeled("Usar .netrc de Earthdata en esta sesion", &use_netrc, ImVec4(0.10f, 0.48f, 0.86f, 1.0f), system_light_theme());
 
     } else if (id.find("era5") != std::string::npos || id.find("cams") != std::string::npos) {
 
-        ImGui::TextWrapped("CDS/ADS usa cdsapi y aceptacion de terminos del dataset. Tlalpowa indexa aqui el NetCDF/GRIB resultante cuando lo pongas en la carpeta de la fuente.");
+        ImGui::TextWrapped("%s", tlalpowa_tr("CDS/ADS usa cdsapi y aceptacion de terminos del dataset. Tlalpowa indexa aqui el NetCDF/GRIB resultante cuando lo pongas en la carpeta de la fuente."));
     } else {
 
-        ImGui::TextWrapped("Esta fuente puede requerir sesion del portal. Si no hay endpoint publico directo, descarga el archivo primario y usa modo Local.");
+        ImGui::TextWrapped("%s", tlalpowa_tr("Esta fuente puede requerir sesion del portal. Si no hay endpoint publico directo, descarga el archivo primario y usa modo Local."));
     }
 
     if (changed) {
@@ -36809,8 +38562,8 @@ void draw_ruoa_session_credentials_panel(UiState& ui, const ImVec4& accent) {
         gender = ui.user_gender;
     }
 
-    ImGui::SeparatorText("RUOA_UNAM");
-    ImGui::TextDisabled("Credenciales de esta sesion: solo correo y contrasena; no se escriben en IXIPTLAH ni configuracion persistente.");
+    ImGui::SeparatorText(tlalpowa_tr("RUOA_UNAM"));
+    ImGui::TextDisabled("%s", tlalpowa_tr("Credenciales de esta sesion: solo correo y contrasena; no se escriben en IXIPTLAH ni configuracion persistente."));
 
     const float avail = std::max(1.0f, ImGui::GetContentRegionAvail().x);
     const float gap = std::max(6.0f, golden_w(kGoldenN10));
@@ -36820,20 +38573,20 @@ void draw_ruoa_session_credentials_panel(UiState& ui, const ImVec4& accent) {
     const float user_w = std::clamp(field_budget * 0.52f, 168.0f, 420.0f);
     const float pass_w = std::clamp(field_budget - user_w, 140.0f, 360.0f);
 
-    if (import_soft_button("Visitar página", accent, false, ImVec2(button_w, 0.0f))) {
+    if (import_soft_button(tlalpowa_tr("Visitar página"), accent, false, ImVec2(button_w, 0.0f))) {
         open_url("https://ruoa.unam.mx/pembu/descargas_pembu/");
     }
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Abre la pagina oficial de descargas PEMBU en el navegador. El login interno de Tlalpowa usa solo correo y contrasena al iniciar la importacion.");
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tlalpowa_tr("Abre la pagina oficial de descargas PEMBU en el navegador. El login interno de Tlalpowa usa solo correo y contrasena al iniciar la importacion."));
 
     ImGui::SameLine(0.0f, gap);
     bool changed = false;
     ImGui::SetNextItemWidth(user_w);
-    changed |= ImGui::InputTextWithHint("##ruoa_usuario_directo", "correo RUOA", ruoa_user.data(), ruoa_user.size());
+    changed |= ImGui::InputTextWithHint("##ruoa_usuario_directo", tlalpowa_tr("correo RUOA"), ruoa_user.data(), ruoa_user.size());
 
     ImGui::SameLine(0.0f, gap);
     ImGui::SetNextItemWidth(pass_w);
-    changed |= ImGui::InputTextWithHint("##ruoa_password_directo", "contraseña RUOA", ruoa_pass.data(), ruoa_pass.size(), ImGuiInputTextFlags_Password);
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("La contrasena permanece solo en el entorno del proceso actual; no se guarda en IXIPTLAH ni en el perfil.");
+    changed |= ImGui::InputTextWithHint("##ruoa_password_directo", tlalpowa_tr("contraseña RUOA"), ruoa_pass.data(), ruoa_pass.size(), ImGuiInputTextFlags_Password);
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tlalpowa_tr("La contrasena permanece solo en el entorno del proceso actual; no se guarda en IXIPTLAH ni en el perfil."));
 
     if (changed) {
         external_set_process_env_utf8("TLALPOWA_RUOA_USERNAME", ruoa_user.data());
@@ -36847,16 +38600,16 @@ void draw_ruoa_session_credentials_panel(UiState& ui, const ImVec4& accent) {
 
     ImGui::SameLine(0.0f, gap);
     if (login_state == 2) {
-        ImGui::TextDisabled("verificando");
+        ImGui::TextDisabled("%s", tlalpowa_tr("verificando"));
         if (!login_message.empty() && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", login_message.c_str());
     } else if (login_state > 0) {
-        ImGui::TextColored(ImVec4(0.08f, 0.55f, 0.22f, 1.0f), "%s", tlalpowa_ruoa_ingreso_label_for_gender(gender));
+        ImGui::TextColored(ImVec4(0.08f, 0.55f, 0.22f, 1.0f), "%s", tlalpowa_tr(tlalpowa_ruoa_ingreso_label_for_gender(gender)));
         if (!login_message.empty() && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", login_message.c_str());
     } else if (login_state < 0) {
-        ImGui::TextColored(ImVec4(0.86f, 0.08f, 0.10f, 1.0f), "ERROR, intenta de nuevo");
+        ImGui::TextColored(ImVec4(0.86f, 0.08f, 0.10f, 1.0f), "%s", tlalpowa_tr("ERROR, intenta de nuevo"));
         if (!login_message.empty() && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", login_message.c_str());
     } else {
-        ImGui::TextDisabled("sin verificar");
+        ImGui::TextDisabled("%s", tlalpowa_tr("sin verificar"));
     }
 
     /*
@@ -36865,7 +38618,7 @@ void draw_ruoa_session_credentials_panel(UiState& ui, const ImVec4& accent) {
      * porcentaje | aceptados | servidor | errores reales | archivo/tiempo.
      */
     if (ui.atmosphere_importing) {
-        if (import_soft_button("Detener RUOA al cerrar CSV actual", accent, true, ImVec2(244.0f, 0.0f))) {
+        if (import_soft_button(tlalpowa_tr("Detener RUOA al cerrar CSV actual"), accent, true, ImVec2(244.0f, 0.0f))) {
             ui.cancel_requested.store(true);
             std::lock_guard<std::mutex> lock(ui.mu);
             ui.status = "RUOA_UNAM: detencion solicitada desde panel de importacion.";
@@ -36891,19 +38644,19 @@ void draw_external_import_controls(UiState& ui, const ImVec4& accent, ExternalFi
     
     const ImportUnifiedRowLayout row = import_unified_row_layout(ImGui::GetContentRegionAvail().x);
     ImGui::SetNextItemWidth(row.source_w);
-    const std::string preview_label = std::string(external_file_family_title(family)) + " · " + spec.label;
+    const std::string preview_label = std::string(tlalpowa_tr(external_file_family_title(family))) + " · " + tlalpowa_tr(spec.label);
     if (ImGui::BeginCombo(external_file_family_combo_id(family), preview_label.c_str())) {
         std::string last_category;
         for (int idx : allowed) {
             const auto& item = reg[static_cast<size_t>(idx)];
             if (last_category != item.category) {
                 if (!last_category.empty()) ImGui::Separator();
-                ImGui::TextDisabled("%s", item.category);
+                ImGui::TextDisabled("%s", tlalpowa_tr(item.category));
                 last_category = item.category;
             }
             ImGui::PushID(idx);
             const bool selected = (idx == ui.external_source);
-            if (ImGui::Selectable(item.label, selected, 0, ImVec2(0.0f, tlalpowa_import_control_height()))) {
+            if (ImGui::Selectable(tlalpowa_tr(item.label), selected, 0, ImVec2(0.0f, tlalpowa_import_control_height()))) {
                 ui.external_source = idx;
                 ui.external_dir_custom = false;
                 ui.local_external_dir = selected_external_source_root_for_mode(idx, ui.external_from_web);
@@ -36913,7 +38666,7 @@ void draw_external_import_controls(UiState& ui, const ImVec4& accent, ExternalFi
                 save_user_location_state(ui);
             }
             if (selected) ImGui::SetItemDefaultFocus();
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s\nDominio: %s\nFormatos: %s", item.provider, item.domain, item.formats);
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s\n%s: %s\n%s: %s", tlalpowa_tr(item.provider), tlalpowa_tr("Dominio"), tlalpowa_tr(item.domain), tlalpowa_tr("Formatos"), tlalpowa_tr(item.formats));
             ImGui::PopID();
         }
         ImGui::EndCombo();
@@ -36940,21 +38693,21 @@ void draw_external_import_controls(UiState& ui, const ImVec4& accent, ExternalFi
     draw_external_path_box(ui, accent, family);
     ImGui::PopStyleVar();
 
-    ImGui::TextWrapped("Tipo de archivo: %s · dominio: %s · proveedor: %s · formatos esperados: %s", external_file_family_title(family), spec.domain, spec.provider, spec.formats);
-    ImGui::TextWrapped("%s", spec.note);
+    ImGui::TextWrapped(tlalpowa_tr("Tipo de archivo: %s · dominio: %s · proveedor: %s · formatos esperados: %s"), tlalpowa_tr(external_file_family_title(family)), tlalpowa_tr(spec.domain), tlalpowa_tr(spec.provider), tlalpowa_tr(spec.formats));
+    ImGui::TextWrapped("%s", tlalpowa_tr(spec.note));
     const auto derivables = external_derivable_products_for_domain(spec.domain, spec.id);
-    ImGui::TextDisabled("Productos derivables registrados: %d", static_cast<int>(derivables.size()));
+    ImGui::TextDisabled(tlalpowa_tr("Productos derivables registrados: %d"), static_cast<int>(derivables.size()));
     if (spec.requires_account) {
-        ImGui::TextDisabled("Puede requerir cuenta, token, licencia o descarga externa; Tlalpowa no aceptará HTML/JSON de login como dato.");
-        ImGui::TextWrapped("%s", external_auth_hint_for_source(spec).c_str());
+        ImGui::TextDisabled("%s", tlalpowa_tr("Puede requerir cuenta, token, licencia o descarga externa; Tlalpowa no aceptará HTML/JSON de login como dato."));
+        ImGui::TextWrapped("%s", tlalpowa_tr(external_auth_hint_for_source(spec).c_str()));
         draw_external_session_credentials_panel(spec);
     }
     const bool external_complete = !ui.external_importing && ui.external_import_detected > 0 && ui.external_import_indexed >= ui.external_import_detected;
     if (external_complete) {
-        if (import_soft_button("Abrir documentacion", accent, false, ImVec2(154.0f, 0.0f))) open_url(spec.documentation_url);
+        if (import_soft_button(tlalpowa_tr("Abrir documentacion"), accent, false, ImVec2(154.0f, 0.0f))) open_url(spec.documentation_url);
         ImGui::SameLine(0.0f, 8.0f);
     }
-    ImGui::TextDisabled("Detectados: %d · indexados: %d", ui.external_import_detected, ui.external_import_indexed);
+    ImGui::TextDisabled(tlalpowa_tr("Detectados: %d · indexados: %d"), ui.external_import_detected, ui.external_import_indexed);
     ImGui::TextDisabled("%s", ui.external_import_status.c_str());
 }
 
@@ -36964,7 +38717,7 @@ void draw_epidemiology_web_download_controls(UiState& ui, const ImVec4& accent) 
 
     ImGui::Dummy(ImVec2(1.0f, 2.0f));
 
-    ImGui::TextDisabled("Fuentes oficiales");
+    ImGui::TextDisabled("%s", tlalpowa_tr("Fuentes oficiales"));
 
     ImGui::SameLine();
 
@@ -36978,7 +38731,7 @@ void draw_epidemiology_web_download_controls(UiState& ui, const ImVec4& accent) 
 
         ImGui::SameLine(0.0f, 12.0f);
 
-        if (import_soft_button("solo CDMX", accent, false, ImVec2(88.0f, 0.0f))) {
+        if (import_soft_button(tlalpowa_tr("solo CDMX"), accent, false, ImVec2(88.0f, 0.0f))) {
 
             ui.epi_download_cdmx = true;
 
@@ -36989,7 +38742,7 @@ void draw_epidemiology_web_download_controls(UiState& ui, const ImVec4& accent) 
 
         ImGui::SameLine(0.0f, std::max(1.0f, golden_w(kGoldenN11)));
 
-        if (import_soft_button("solo Edomex", accent, false, ImVec2(104.0f, 0.0f))) {
+        if (import_soft_button(tlalpowa_tr("solo Edomex"), accent, false, ImVec2(104.0f, 0.0f))) {
 
             ui.epi_download_cdmx = false;
 
@@ -37004,7 +38757,7 @@ void draw_epidemiology_web_download_controls(UiState& ui, const ImVec4& accent) 
 
     const int web_epi_min_year = (ui.epi_download_cdmx && !ui.epi_download_edomex) ? 2019 : 2008;
 
-    draw_year_range_slider("##epi_year_range_web", ui.epi_year_start, ui.epi_year_end, web_epi_min_year, 2026, accent, "Periodo web");
+    draw_year_range_slider("##epi_year_range_web", ui.epi_year_start, ui.epi_year_end, web_epi_min_year, 2026, accent, tlalpowa_tr("Periodo web"));
 
 
     const std::string roots = "CDMX: " + path_utf8(epidemiology_cdmx_root()) + "\nEdomex: " + path_utf8(epidemiology_edomex_root());
@@ -37016,17 +38769,17 @@ void draw_epidemiology_web_download_controls(UiState& ui, const ImVec4& accent) 
 
         ImGui::TextDisabled("%3.0f%% · %s", std::clamp(ui.epi_download_progress, 0.0f, 1.0f) * 100.0f, ui.epi_download_phase.c_str());
 
-        if (import_soft_button("Detener despues del archivo actual", accent, false)) ui.epi_cancel_requested.store(true);
+        if (import_soft_button(tlalpowa_tr("Detener despues del archivo actual"), accent, false)) ui.epi_cancel_requested.store(true);
     }
 
-    if (import_soft_button("Abrir portal CDMX", accent, false, ImVec2(150.0f, 0.0f))) {
+    if (import_soft_button(tlalpowa_tr("Abrir portal CDMX"), accent, false, ImVec2(150.0f, 0.0f))) {
 
         open_url("https://sersalud.cdmx.gob.mx/sspcdmx/direccion_epi_preven.php");
     }
 
     ImGui::SameLine(0.0f, 8.0f);
 
-    if (import_soft_button(ui.epi_downloading ? "Descarga en curso" : "Descargar/actualizar web", accent, true, ImVec2(210.0f, 0.0f))) {
+    if (import_soft_button(ui.epi_downloading ? tlalpowa_tr("Descarga en curso") : tlalpowa_tr("Descargar/actualizar web"), accent, true, ImVec2(210.0f, 0.0f))) {
 
         if (!ui.epi_downloading && !ui.running.load()) download_epidemiology_sources_async(ui);
     }
@@ -37670,14 +39423,14 @@ void draw_import_3d_content(UiState& ui, const PipelineStats& stats, const Extra
                             const ImVec4& accent) {
     ensure_import_3d_defaults(ui);
     draw_import_compact_header(ui, stats, preview, accent,
-        "Modelo Blender georreferenciado, vista cenital 4K y salida nativa .tlalpowa3d");
+        tlalpowa_tr("Modelo Blender georreferenciado, vista cenital 4K y salida nativa .tlalpowa3d"));
     golden_manual_gap_y(tlalpowa_import_gap_above_source_row());
     const char* sources[] = {"Blender"};
     ImGui::SetNextItemWidth(std::max(220.0f, ImGui::GetContentRegionAvail().x * 0.42f));
     import_template_combo("##fuente_modelo_3d", ui.import_3d_source, sources, IM_ARRAYSIZE(sources),
                           std::max(220.0f, ImGui::GetContentRegionAvail().x * 0.42f), accent, ui.light_theme);
     ImGui::SameLine(0.0f, tlalpowa_import_gap_x());
-    if (import_soft_button("Seleccionar .blend", accent, false, ImVec2(170.0f, 0.0f))) {
+    if (import_soft_button(tlalpowa_tr("Seleccionar .blend"), accent, false, ImVec2(170.0f, 0.0f))) {
         if (auto selected = pick_windows_file(L"Seleccionar modelo Blender", L"Archivo Blender (*.blend)", L"*.blend")) {
             configure_import_3d_paths_for_blend(ui, *selected);
             ui.import_3d_ready = false;
@@ -37688,28 +39441,28 @@ void draw_import_3d_content(UiState& ui, const PipelineStats& stats, const Extra
     ImGui::Separator();
     const float field_w = std::max(160.0f, ImGui::GetContentRegionAvail().x * 0.22f);
     ImGui::SetNextItemWidth(field_w);
-    ImGui::InputDouble("Longitud centro", &ui.import_3d_center_lon, 0.00001, 0.001, "%.10f");
+    ImGui::InputDouble((std::string(tlalpowa_tr("Longitud centro")) + "##import_3d_center_lon").c_str(), &ui.import_3d_center_lon, 0.00001, 0.001, "%.10f");
     ImGui::SameLine();
     ImGui::SetNextItemWidth(field_w);
-    ImGui::InputDouble("Latitud centro", &ui.import_3d_center_lat, 0.00001, 0.001, "%.10f");
+    ImGui::InputDouble((std::string(tlalpowa_tr("Latitud centro")) + "##import_3d_center_lat").c_str(), &ui.import_3d_center_lat, 0.00001, 0.001, "%.10f");
     ImGui::SetNextItemWidth(field_w);
-    ImGui::InputDouble("Escala m/unidad", &ui.import_3d_meters_per_unit, 0.1, 1.0, "%.6f");
+    ImGui::InputDouble((std::string(tlalpowa_tr("Escala m/unidad")) + "##import_3d_meters_per_unit").c_str(), &ui.import_3d_meters_per_unit, 0.1, 1.0, "%.6f");
     ImGui::SameLine();
     ImGui::SetNextItemWidth(field_w);
-    ImGui::InputDouble("Rotacion", &ui.import_3d_rotation_deg, 0.1, 1.0, "%.4f");
+    ImGui::InputDouble((std::string(tlalpowa_tr("Rotacion")) + "##import_3d_rotation_deg").c_str(), &ui.import_3d_rotation_deg, 0.1, 1.0, "%.4f");
     ImGui::SetNextItemWidth(field_w);
-    ImGui::InputDouble("Escala vertical", &ui.import_3d_vertical_scale, 0.01, 0.1, "%.4f");
+    ImGui::InputDouble((std::string(tlalpowa_tr("Escala vertical")) + "##import_3d_vertical_scale").c_str(), &ui.import_3d_vertical_scale, 0.01, 0.1, "%.4f");
     ui.import_3d_meters_per_unit = std::clamp(ui.import_3d_meters_per_unit, 0.01, 100000.0);
     ui.import_3d_vertical_scale = std::clamp(ui.import_3d_vertical_scale, 0.01, 100.0);
-    ImGui::TextDisabled("Ctrl + dos clics derechos: area. Esquinas: escala. Mantén Alt y arrastra sobre la imagen para rotar. Enter: confirmar.");
+    ImGui::TextDisabled("%s", tlalpowa_tr("Ctrl + dos clics derechos: area. Esquinas: escala. Mantén Alt y arrastra sobre la imagen para rotar. Enter: confirmar."));
     ImGui::TextWrapped("%s", ui.import_3d_status.c_str());
-    if (import_soft_button(ui.import_3d_busy.load() ? "Procesando en Blender..." : "Generar vista 4K y ajustar en mapa",
+    if (import_soft_button(ui.import_3d_busy.load() ? tlalpowa_tr("Procesando en Blender...") : tlalpowa_tr("Generar vista 4K y ajustar en mapa"),
                            accent, true, ImVec2(280.0f, 0.0f))) {
         if (!ui.import_3d_busy.load()) start_import_3d_preview(ui);
     }
     if (ui.import_3d_ready && !ui.import_3d_busy.load()) {
         ImGui::SameLine(0.0f, tlalpowa_import_gap_x());
-        if (import_soft_button("Volver al ajuste", accent, false, ImVec2(150.0f, 0.0f))) {
+        if (import_soft_button(tlalpowa_tr("Volver al ajuste"), accent, false, ImVec2(150.0f, 0.0f))) {
             begin_import_3d_alignment(ui, ui.import_3d_editing_existing);
         }
     }
@@ -37717,7 +39470,7 @@ void draw_import_3d_content(UiState& ui, const PipelineStats& stats, const Extra
 
 void draw_import_configuration_content(UiState& ui, const PipelineStats& stats, const ExtractionPreview& preview, const fs::path& out, const ImVec4& accent) {
     const bool import_light_theme = ui.light_theme;
-    const char* import_tabs[] = {"XLSX, XLS, JSON y CSV", "NetCDF, HDF y GeoTIFF", "SHP, GeoJSON y PBF", "PDF", "3D"};
+    const char* import_tabs[] = {tlalpowa_tr("XLSX, XLS, JSON y CSV"), tlalpowa_tr("NetCDF, HDF y GeoTIFF"), tlalpowa_tr("SHP, GeoJSON y PBF"), "PDF", "3D"};
     draw_golden_tab_strip("import-tabs", ui.import_config_page, import_tabs, IM_ARRAYSIZE(import_tabs), accent, import_light_theme);
     TlalpowaImportNativeControlHeightScope import_native_height_scope;
 
@@ -37940,7 +39693,7 @@ void draw_import_configuration_content(UiState& ui, const PipelineStats& stats, 
                 draw_pdf_path_box(ui, accent);
                 if (!ui.import_from_web && ui.import_pdf_source >= 0 && ui.import_pdf_source <= 4) {
                     ImGui::SameLine(0.0f, row.gap);
-                    if (import_soft_button("Reprocesar local desde cero", accent, false, ImVec2(214.0f, 0.0f))) {
+                    if (import_soft_button(tlalpowa_tr("Reprocesar local desde cero"), accent, false, ImVec2(214.0f, 0.0f))) {
                         ui.import_tab = 2;
                         ui.pending_import_after_epi_download = false;
                         ui.clean_outputs_requested.store(true, std::memory_order_relaxed);
@@ -37955,7 +39708,7 @@ void draw_import_configuration_content(UiState& ui, const PipelineStats& stats, 
                             tlalpowa_start_import_for_current_selection(ui);
                         }
                     }
-                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Borra y reconstruye solo el nucleo epidemiologico local, preservando RAMA/REDMET/RUOA/PEMBU.");
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tlalpowa_tr("Borra y reconstruye solo el nucleo epidemiologico local, preservando RAMA/REDMET/RUOA/PEMBU."));
                 }
                 const bool has_pdf_preview = ui.running.load() || !preview.pdf_file.empty() || !preview.page_image.empty() || !preview.tokens.empty();
                 if (has_pdf_preview) {
@@ -38002,7 +39755,6 @@ bool draw_side_tree_header_checkbox(const char* id,
                                     bool disabled,
                                     const ImVec4& color,
                                     bool light_theme,
-                                    const char* tooltip,
                                     const std::function<void(bool)>& set_scope,
                                     bool default_open,
                                     ImGuiTreeNodeFlags extra_flags,
@@ -38012,20 +39764,17 @@ bool draw_side_tree_header_plain(const char* id,
                                  bool any_selected,
                                  const ImVec4& color,
                                  bool light_theme,
-                                 const char* tooltip,
                                  bool default_open);
 bool draw_side_boolean_check(const char* id,
                              const char* label,
                              bool& value,
                              const ImVec4& color,
-                             bool light_theme,
-                             const char* tooltip);
+                             bool light_theme);
 bool draw_side_network_filter_check(const char* id,
                                     const char* label,
                                     bool& value,
                                     const ImVec4& color,
                                     bool light_theme,
-                                    const char* tooltip,
                                     const std::function<void()>& isolate_scope);
 void draw_catalog_flat_atmospheric(const char* id_prefix,
                                    const std::map<std::string, std::string>& names,
@@ -38247,7 +39996,7 @@ void draw_user_profile_header_row(UiState& ui, const ImVec4& accent, bool light)
     const ImVec2 name_sz = ImGui::CalcTextSize(name.c_str());
     const float title_y = row_min.y + std::max(0.0f, (row_h - name_sz.y - text_h) * 0.5f);
     dl->AddText(ImVec2(text_x, title_y), title_col, name.c_str());
-    const std::string sub = std::string(tlalpowa_language_label(ui.user_language)) + " · Tema " + tlalpowa_theme_label(std::clamp(ui.user_theme_mode, -1, 1));
+    const std::string sub = std::string(tlalpowa_language_label(ui.user_language)) + " · " + tlalpowa_tr("Tema") + " " + tlalpowa_theme_label(std::clamp(ui.user_theme_mode, -1, 1));
     dl->AddText(ImVec2(text_x, title_y + name_sz.y + std::max(1.0f, h * kGoldenN9)), sub_col, sub.c_str());
 }
 
@@ -38257,12 +40006,12 @@ void draw_user_configuration_content(UiState& ui, const ImVec4& accent) {
     const float control_w = std::clamp(ImGui::GetContentRegionAvail().x * kGoldenN1, 260.0f, std::max(260.0f, ImGui::GetContentRegionAvail().x));
 
     ImGui::PushID("configuracion-usuario-perfil");
-    ImGui::TextUnformatted("Usuario");
+    ImGui::TextUnformatted(tlalpowa_tr("Usuario"));
     golden_config_line_gap();
     draw_user_profile_header_row(ui, accent, light);
     golden_config_line_gap();
 
-    ImGui::TextUnformatted("Nombre de usuario");
+    ImGui::TextUnformatted(tlalpowa_tr("Nombre de usuario"));
     {
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(golden_tab_frame_pad_x(), golden_tab_frame_pad_y()));
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, golden_tab_rounding());
@@ -38280,9 +40029,9 @@ void draw_user_configuration_content(UiState& ui, const ImVec4& accent) {
     }
     golden_config_line_gap();
 
-    ImGui::TextUnformatted("Género gramatical");
+    ImGui::TextUnformatted(tlalpowa_tr("Género gramatical"));
     {
-        const char* gender_items[] = { "Mujer", "Prefiero no decirlo", "No binario", "Hombre" };
+        const char* gender_items[] = { tlalpowa_tr("Mujer"), tlalpowa_tr("Prefiero no decirlo"), tlalpowa_tr("No binario"), tlalpowa_tr("Hombre") };
         int gender = std::clamp(ui.user_gender, 0, 3);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(golden_tab_frame_pad_x(), golden_tab_frame_pad_y()));
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, golden_tab_rounding());
@@ -38296,9 +40045,9 @@ void draw_user_configuration_content(UiState& ui, const ImVec4& accent) {
     }
     golden_config_line_gap();
 
-    ImGui::TextUnformatted("Idioma");
+    ImGui::TextUnformatted(tlalpowa_tr("Idioma"));
     {
-        const char* language_items[] = { "Español (México)", "Náhuatl (central)", "Inglés" };
+        const char* language_items[] = { "Español (México)", "Náhuatl (Central)", "English (UK)" };
         int lang = std::clamp(ui.user_language, 0, 2);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(golden_tab_frame_pad_x(), golden_tab_frame_pad_y()));
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, golden_tab_rounding());
@@ -38312,10 +40061,10 @@ void draw_user_configuration_content(UiState& ui, const ImVec4& accent) {
     }
     golden_config_line_gap();
 
-    ImGui::TextUnformatted("Tema");
+    ImGui::TextUnformatted(tlalpowa_tr("Tema"));
     {
         
-        const char* theme_items[] = { "Igual que el sistema", "Claro", "Oscuro" };
+        const char* theme_items[] = { tlalpowa_tr("Igual que el sistema"), tlalpowa_tr("Claro"), tlalpowa_tr("Oscuro") };
         int theme = std::clamp(ui.user_theme_mode, -1, 1) + 1;
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(golden_tab_frame_pad_x(), golden_tab_frame_pad_y()));
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, golden_tab_rounding());
@@ -38333,44 +40082,44 @@ void draw_user_configuration_content(UiState& ui, const ImVec4& accent) {
 
     ImGui::Separator();
     golden_config_line_gap();
-    ImGui::TextUnformatted("Actualizaciones GitHub");
-    ImGui::TextWrapped("Repositorio: mauricioisbl/Tlalpowa. La comprobacion compara el manifiesto SHA-256 y descarga solo los archivos modificados.");
+    ImGui::TextUnformatted(tlalpowa_tr("Actualizaciones GitHub"));
+    ImGui::TextWrapped("%s", tlalpowa_tr("Repositorio: mauricioisbl/Tlalpowa. La comprobacion compara el manifiesto SHA-256 y descarga solo los archivos modificados."));
     golden_config_line_gap();
 
-    ImGui::TextUnformatted("Actualizacion automatica");
+    ImGui::TextUnformatted(tlalpowa_tr("Actualizacion automatica"));
     const bool github_updates_blocked_for_author = tlalpowa_profile_is_mauri(ui);
-    if (draw_binary_slide_button("github-auto-update", "No", "Si", ui.github_auto_update_enabled, accent, light,
-                                 "Comprueba GitHub al arrancar y aplica solo los archivos publicados que hayan cambiado.")) {
+    if (draw_binary_slide_button("github-auto-update", tlalpowa_tr("No"), tlalpowa_tr("Si"), ui.github_auto_update_enabled, accent, light,
+                                 tlalpowa_tr("Comprueba GitHub al arrancar y aplica solo los archivos publicados que hayan cambiado."))) {
         ui.github_auto_update_preference_seen = true;
         save_user_location_state(ui);
     }
-    ImGui::TextWrapped(github_updates_blocked_for_author && !ui.github_auto_update_enabled
-        ? "Desactivada para este perfil. Puedes activarla explicitamente."
+    ImGui::TextWrapped("%s", github_updates_blocked_for_author && !ui.github_auto_update_enabled
+        ? tlalpowa_tr("Desactivada para este perfil. Puedes activarla explicitamente.")
         : (ui.github_auto_update_enabled
-            ? "Activada. Tlalpowa comprobara GitHub al arrancar y aplicara solo archivos modificados."
-            : "Desactivada. La comprobacion manual sigue disponible."));
+            ? tlalpowa_tr("Activada. Tlalpowa comprobara GitHub al arrancar y aplicara solo archivos modificados.")
+            : tlalpowa_tr("Desactivada. La comprobacion manual sigue disponible.")));
     golden_config_line_gap();
 
-    ImGui::TextUnformatted("Importar desde GitHub");
-    if (draw_binary_slide_button("github-import-data", "No", "Si", ui.github_import_data_enabled, accent, light, "Si esta activo, la carpeta Datos del repositorio sustituye la carpeta Datos local al aplicar actualizaciones.")) {
+    ImGui::TextUnformatted(tlalpowa_tr("Importar desde GitHub"));
+    if (draw_binary_slide_button("github-import-data", tlalpowa_tr("No"), tlalpowa_tr("Si"), ui.github_import_data_enabled, accent, light, tlalpowa_tr("Si esta activo, la carpeta Datos del repositorio sustituye la carpeta Datos local al aplicar actualizaciones."))) {
         ui.github_import_data_preference_seen = true;
         save_user_location_state(ui);
     }
     if (!ui.github_import_data_preference_seen && tlalpowa_profile_is_mauri(ui)) {
-        ImGui::TextWrapped("Perfil mauri detectado: por omision no se sustituyen Datos locales hasta que lo actives explicitamente.");
+        ImGui::TextWrapped("%s", tlalpowa_tr("Perfil mauri detectado: por omision no se sustituyen Datos locales hasta que lo actives explicitamente."));
     } else {
-        ImGui::TextWrapped(ui.github_import_data_enabled ? "Datos se sustituira por el contenido de GitHub al aplicar actualizaciones." : "Datos locales se preservara al aplicar actualizaciones.");
+        ImGui::TextWrapped("%s", ui.github_import_data_enabled ? tlalpowa_tr("Datos se sustituira por el contenido de GitHub al aplicar actualizaciones.") : tlalpowa_tr("Datos locales se preservara al aplicar actualizaciones."));
     }
     golden_config_line_gap();
 
     const float button_h = tlalpowa_import_control_height();
-    const float check_w = golden_chrome_auto_width(ui.github_update_checking ? "Comprobando..." : "Comprobar ahora", button_h, false);
-    const GoldenChromeResult gh_check_hit = draw_golden_button_template("settings-github-check-now", ui.github_update_checking ? "Comprobando..." : "Comprobar ahora", ImGui::GetCursorScreenPos(), check_w, button_h, accent, light, false, false, false);
+    const float check_w = golden_chrome_auto_width(ui.github_update_checking ? tlalpowa_tr("Comprobando...") : tlalpowa_tr("Comprobar ahora"), button_h, false);
+    const GoldenChromeResult gh_check_hit = draw_golden_button_template("settings-github-check-now", ui.github_update_checking ? tlalpowa_tr("Comprobando...") : tlalpowa_tr("Comprobar ahora"), ImGui::GetCursorScreenPos(), check_w, button_h, accent, light, false, false, false);
     if (!ui.github_update_checking && gh_check_hit.clicked) {
         tlalpowa_start_github_update_check(ui, true);
     }
     golden_config_line_gap();
-    ImGui::TextWrapped("%s", ui.github_update_status.empty() ? "GitHub sin comprobar" : ui.github_update_status.c_str());
+    ImGui::TextWrapped("%s", ui.github_update_status.empty() ? tlalpowa_tr("GitHub sin comprobar") : tlalpowa_tr(ui.github_update_status.c_str()));
 
     
     ImGui::Dummy(ImVec2(1.0f, 1.0f));
@@ -38409,7 +40158,7 @@ void draw_settings_window(UiState& ui) {
     const TlalpowaSurfaceTemplate surface = tlalpowa_surface_template(light);
     const TlalpowaSurfaceStack surface_stack = tlalpowa_push_surface_stack(surface, accent, light, surface.pad_tight);
 
-    ImGui::Begin("Configuracion", &open, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoTitleBar);
+    ImGui::Begin(tlalpowa_tr("Configuracion"), &open, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoTitleBar);
     enforce_current_imgui_window_native_chrome(L"Configuracion");
     force_current_native_tool_outer_rect(settings_geom);
     if (!open) ui.show_settings_window = false;
@@ -38418,12 +40167,12 @@ void draw_settings_window(UiState& ui) {
 
     const float index_w = std::clamp(ImGui::GetWindowWidth() * 0.118033988749895f, 106.0f, 148.0f);
     ImGui::BeginChild("##settings-index", ImVec2(index_w, 0.0f), false, tlalpowa_flat_child_flags(ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse));
-    ImGui::TextUnformatted("Configuracion");
+    ImGui::TextUnformatted(tlalpowa_tr("Configuracion"));
     golden_config_line_gap();
     const float nav_w = std::max(1.0f, ImGui::GetContentRegionAvail().x);
-    if (draw_golden_button_template("settings-nav-user", "Usuario", ImGui::GetCursorScreenPos(), nav_w, golden_tab_chrome_height(), accent, light, ui.settings_page == 0, false, false).clicked) ui.settings_page = 0;
+    if (draw_golden_button_template("settings-nav-user", tlalpowa_tr("Usuario"), ImGui::GetCursorScreenPos(), nav_w, golden_tab_chrome_height(), accent, light, ui.settings_page == 0, false, false).clicked) ui.settings_page = 0;
     golden_config_line_gap();
-    if (draw_golden_button_template("settings-nav-import", "Importar", ImGui::GetCursorScreenPos(), nav_w, golden_tab_chrome_height(), accent, light, ui.settings_page == 1, false, false).clicked) ui.settings_page = 1;
+    if (draw_golden_button_template("settings-nav-import", tlalpowa_tr("Importar"), ImGui::GetCursorScreenPos(), nav_w, golden_tab_chrome_height(), accent, light, ui.settings_page == 1, false, false).clicked) ui.settings_page = 1;
     ImGui::EndChild();
     ImGui::SameLine(0.0f, surface.pad.x);
     
@@ -38693,6 +40442,19 @@ std::string group_label(const std::string& group) {
         {"radiacion", "Radiación Solar Y Ultravioleta"},
         {"superficie", "Superficie Terrestre Y Vegetación"},
         {"focos_calor", "Focos De Calor Y Energía Radiativa"},
+        {"gas_traza_satelital", "Gases Traza Satelitales"},
+        {"gas_efecto_invernadero_satelital", "Gases De Efecto Invernadero Satelitales"},
+        {"aerosol_satelital", "Aerosol Satelital"},
+        {"radiacion_satelital", "Radiación Satelital"},
+        {"focos_calor_satelital", "Focos De Calor Satelitales"},
+        {"nubes_satelital", "Nubes Satelitales"},
+        {"superficie_satelital", "Superficie Satelital"},
+        {"meteorologico_derivado", "Meteorología Derivada"},
+        {"carbono_derivado", "Carbono Derivado"},
+        {"aerosoles_derivados", "Aerosoles Derivados"},
+        {"gases_derivados", "Gases Derivados"},
+        {"cov_derivados", "COV Derivados"},
+        {"metal_particulado", "Metal Particulado"},
         {"epidemiologicos", "Datos Epidemiológicos"},
         {"meteorologicos", "Datos Meteorológicos"},
         {"contaminantes_atmosfericos", "Datos De Contaminantes Atmosféricos"},
@@ -38705,7 +40467,7 @@ std::string group_label(const std::string& group) {
         {"sin_categoria", "Sin Categoría Técnica"}
     };
     const auto it = labels.find(group);
-    return it == labels.end() ? sidebar_display_label(group.empty() ? "Sin Categoría Técnica" : group, 36) : it->second;
+    return it == labels.end() ? sidebar_display_label(group.empty() ? tlalpowa_tr("Sin Categoría Técnica") : group, 36) : tlalpowa_trs(it->second);
 }
 
 float hue_to_rgb_component(float p, float q, float t) {
@@ -39340,7 +41102,7 @@ void draw_epi_pinned_window(EpiPiePopupData& data,
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, 3.0f));
 
-    if (ImGui::Begin("Desglose epidemiologico###epi-pinned-breakdown", &open,
+    if (ImGui::Begin((std::string(tlalpowa_tr("Desglose epidemiologico")) + "###epi-pinned-breakdown").c_str(), &open,
         ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking |
         ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings)) {
 
@@ -39683,51 +41445,6 @@ bool bool_scope_any_selected(std::initializer_list<const bool*> values) {
 }
 
 
-bool draw_side_scope_check(const char* id,
-                           bool all_selected,
-                           bool any_selected,
-                           bool disabled,
-                           const ImVec4& color,
-                           bool light_theme,
-
-                           const char* tooltip,
-
-
-                           const std::function<void(bool)>& set_scope) {
-
-
-    const bool mixed = any_selected && !all_selected;
-
-    if (disabled) ImGui::BeginDisabled(true);
-
-    ImGui::PushID(id ? id : "side-scope-check");
-    const ColorCheckHit hit = draw_color_check_square("##side-scope-check", all_selected, color, light_theme, mixed);
-
-    ImGui::PopID();
-
-    if (disabled) ImGui::EndDisabled();
-
-    if (hit.hovered && tooltip && *tooltip) {
-
-        ImGui::BeginTooltip();
-
-        ImGui::TextUnformatted(tooltip);
-
-        if (mixed) ImGui::TextDisabled("Seleccion parcial: clic para activar todo el conjunto visible.");
-
-        ImGui::EndTooltip();
-    }
-
-    if (!disabled && hit.left) {
-        set_scope(!all_selected);
-
-        return true;
-    }
-
-    return false;
-}
-
-
 struct TlalpowaSideRowHit {
     bool hovered;
     bool left;
@@ -39787,7 +41504,7 @@ void tlalpowa_draw_side_leaf_row(const TlalpowaSideRowHit& hit,
 
     const ImVec2 text_min(hit.mark_max.x + golden_side_row_inline_gap_x(), hit.row_min.y + (row_h - text_h) * 0.5f);
     const ImVec2 text_max(std::max(text_min.x + 1.0f, hit.row_max.x), hit.row_max.y);
-    const char* const safe_label = label ? label : "";
+    const char* const safe_label = tlalpowa_tr(label ? label : "");
     /* Compatibilidad ImGui: el overload corto de AddText no recibe clip rect; el
        clipping se aplica en el draw-list para evitar firmas dependientes de version. */
     dl->PushClipRect(ImVec2(text_min.x, hit.row_min.y), ImVec2(text_max.x, hit.row_max.y), true);
@@ -39802,14 +41519,13 @@ bool draw_side_tree_header_checkbox(const char* id,
                                     bool disabled,
                                     const ImVec4& color,
                                     bool light_theme,
-                                    const char* tooltip,
                                     const std::function<void(bool)>& set_scope,
                                     bool default_open = false,
                                     ImGuiTreeNodeFlags extra_flags = 0,
                                     const std::function<void()>& isolate_scope = std::function<void()>()) {
     
     const char* safe_id = (id && *id) ? id : (label ? label : "side-index-row");
-    const char* safe_label = label ? label : "";
+    const char* safe_label = tlalpowa_tr(label ? label : "");
     static std::unordered_map<std::string, bool> open_state;
     const bool flag_default_open = (extra_flags & ImGuiTreeNodeFlags_DefaultOpen) != 0;
     bool& open = open_state.try_emplace(safe_id, default_open || flag_default_open).first->second;
@@ -39880,12 +41596,6 @@ bool draw_side_tree_header_checkbox(const char* id,
         dl->AddText(text_pos, text_col, safe_label);
     }
 
-    if (hovered && tooltip && *tooltip) {
-        ImGui::BeginTooltip();
-        ImGui::TextUnformatted(tooltip);
-        ImGui::TextDisabled("Fila: abrir/cerrar. Casilla: clic izquierdo alterna; clic derecho aísla.");
-        ImGui::EndTooltip();
-    }
     ImGui::PopID();
 
     if (open) ImGui::TreePush(safe_id);
@@ -39898,20 +41608,13 @@ bool draw_side_boolean_check(const char* id,
                              const char* label,
                              bool& value,
                              const ImVec4& color,
-                             bool light_theme,
-                             const char* tooltip = nullptr) {
+                             bool light_theme) {
 
     ImGui::PushID(id ? id : label);
     const TlalpowaSideRowHit hit = tlalpowa_side_leaf_row_hit("##side-bool-row");
     tlalpowa_draw_side_leaf_row(hit, label ? label : "", value, color, light_theme, false, false);
 
     const bool changed = hit.left || hit.right;
-    if (!g_tlalpowa_side_panel_input_suppressed && hit.hovered) {
-        ImGui::BeginTooltip();
-        if (tooltip && *tooltip) ImGui::TextUnformatted(tooltip);
-        else ImGui::TextUnformatted(label ? label : "Alternar capa");
-        ImGui::EndTooltip();
-    }
 
     if (hit.right) value = true;
     else if (hit.left) value = !value;
@@ -39926,19 +41629,11 @@ bool draw_side_network_filter_check(const char* id,
                                     bool& value,
                                     const ImVec4& color,
                                     bool light_theme,
-                                    const char* tooltip,
                                     const std::function<void()>& isolate_scope) {
     ImGui::PushID(id ? id : label);
     const TlalpowaSideRowHit hit = tlalpowa_side_leaf_row_hit("##side-network-row");
     tlalpowa_draw_side_leaf_row(hit, label ? label : "", value, color, light_theme, false, false);
     const bool changed = hit.left || hit.right;
-    if (!g_tlalpowa_side_panel_input_suppressed && hit.hovered) {
-        ImGui::BeginTooltip();
-        if (tooltip && *tooltip) ImGui::TextUnformatted(tooltip);
-        else ImGui::TextUnformatted(label ? label : "Filtrar red");
-        ImGui::TextDisabled("Clic derecho: aislar sólo esta red.");
-        ImGui::EndTooltip();
-    }
     if (hit.right) {
         if (isolate_scope) isolate_scope();
         value = true;
@@ -39971,7 +41666,6 @@ bool draw_side_tree_header_plain(const char* id,
                                  bool any_selected,
                                  const ImVec4& color,
                                  bool light_theme,
-                                 const char* tooltip,
                                  bool default_open = false) {
     (void)light_theme;
     ImGui::PushID(id && *id ? id : (label ? label : "side-plain-tree"));
@@ -39979,16 +41673,10 @@ bool draw_side_tree_header_plain(const char* id,
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, std::max(1.0f, golden_w(kGoldenN14))));
     ImGui::SetNextItemOpen(default_open, ImGuiCond_Once);
     const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
-    const std::string shown = std::string(any_selected ? "● " : "○ ") + (label ? label : "");
+    const std::string shown = std::string(any_selected ? "● " : "○ ") + tlalpowa_tr(label ? label : "");
     const bool open = ImGui::TreeNodeEx("##plain-tree", flags, "%s", shown.c_str());
     ImGui::PopStyleVar();
     ImGui::PopStyleColor();
-    if (ImGui::IsItemHovered() && tooltip && *tooltip) {
-        ImGui::BeginTooltip();
-        ImGui::TextUnformatted(tooltip);
-        ImGui::TextDisabled("Esta cabecera no selecciona todo: cada subelemento autoriza su propio flujo IXIPTLAH-SM.");
-        ImGui::EndTooltip();
-    }
     ImGui::PopID();
     return open;
 }
@@ -40019,6 +41707,75 @@ std::string atmospheric_sidebar_type_label(const std::string& id, const std::map
     return label;
 }
 
+std::string atmospheric_sidebar_compact_group_label(const std::string& group) {
+    const std::string g = lowercase_ascii(group);
+    struct Label { const char* key; const char* es; const char* nah; const char* en; };
+    static const Label labels[] = {
+        {"contaminante_criterio", "Criterio", "criterio", "Criteria"},
+        {"gas_traza", "Gases traza", "ehecameh traza", "Trace gases"},
+        {"gas_traza_satelital", "Gases traza", "ehecameh traza", "Trace gases"},
+        {"gas_efecto_invernadero", "GEI", "GEI", "GHG"},
+        {"gas_efecto_invernadero_satelital", "GEI", "GEI", "GHG"},
+        {"cov", "Compuestos volátiles", "COV patlanih", "Volatile compounds"},
+        {"cov_derivados", "COV derivados", "COV derivados", "Derived VOCs"},
+        {"aerosoles", "Aerosoles", "aerosoles", "Aerosols"},
+        {"aerosol_satelital", "Aerosoles", "aerosoles", "Aerosols"},
+        {"aerosoles_derivados", "Aerosoles derivados", "aerosoles derivados", "Derived aerosols"},
+        {"metales", "Metales", "tepuzmeh", "Metals"},
+        {"metal", "Metales", "tepuzmeh", "Metals"},
+        {"metal_particulado", "Metal particulado", "tepuz tlapilli", "Particulate metal"},
+        {"meteorologico", "Meteorología", "ehecatlamatiliztli", "Meteorology"},
+        {"meteorologico_derivado", "Derivados meteorológicos", "meteorología derivados", "Meteorological derivatives"},
+        {"radiacion", "Radiación", "tonameyotl", "Radiation"},
+        {"radiacion_satelital", "Radiación", "tonameyotl", "Radiation"},
+        {"focos_calor", "Focos calor", "totoniliz focos", "Heat sources"},
+        {"focos_calor_satelital", "Focos calor", "totoniliz focos", "Heat sources"},
+        {"nubes_satelital", "Nubes", "mixtin", "Clouds"},
+        {"superficie", "Superficie", "tlalli ixpan", "Surface"},
+        {"superficie_satelital", "Superficie", "tlalli ixpan", "Surface"},
+        {"carbono", "Carbono", "carbono", "Carbon"},
+        {"carbono_derivado", "Carbono", "carbono", "Carbon"},
+        {"gases_derivados", "Gases derivados", "gases derivados", "Derived gases"},
+        {"datos_atmosfericos", "Atmósfera", "ehecatl", "Atmosphere"},
+        {"sin_categoria", "Atmósfera", "ehecatl", "Atmosphere"}
+    };
+    for (const Label& label : labels) {
+        if (g == label.key) {
+            if (g_tlalpowa_i18n_language == 1) return label.nah;
+            if (g_tlalpowa_i18n_language == 2) return label.en;
+            return label.es;
+        }
+    }
+    if (g.find("cov") != std::string::npos) {
+        if (g_tlalpowa_i18n_language == 1) return "COV patlanih";
+        if (g_tlalpowa_i18n_language == 2) return "Volatile compounds";
+        return "Compuestos volátiles";
+    }
+    if (g.find("aerosol") != std::string::npos) {
+        if (g_tlalpowa_i18n_language == 1) return "aerosoles";
+        if (g_tlalpowa_i18n_language == 2) return "Aerosols";
+        return "Aerosoles";
+    }
+    if (g.find("meteor") != std::string::npos) {
+        if (g_tlalpowa_i18n_language == 1) return "ehecatlamatiliztli";
+        if (g_tlalpowa_i18n_language == 2) return "Meteorology";
+        return "Meteorología";
+    }
+    if (g.find("radi") != std::string::npos) {
+        if (g_tlalpowa_i18n_language == 1) return "tonameyotl";
+        if (g_tlalpowa_i18n_language == 2) return "Radiation";
+        return "Radiación";
+    }
+    if (g.find("gas") != std::string::npos) {
+        if (g_tlalpowa_i18n_language == 1) return "gases";
+        if (g_tlalpowa_i18n_language == 2) return "Gases";
+        return "Gases";
+    }
+    if (g_tlalpowa_i18n_language == 1) return "ehecatl";
+    if (g_tlalpowa_i18n_language == 2) return "Atmosphere";
+    return "Atmósfera";
+}
+
 void draw_catalog_flat_atmospheric(const char* id_prefix,
                                    const std::map<std::string, std::string>& names,
                                    const std::map<std::string, std::string>& groups,
@@ -40033,9 +41790,13 @@ void draw_catalog_flat_atmospheric(const char* id_prefix,
                                             : atmospheric_sidebar_key_is_contaminant(id, groups);
         if (!belongs) continue;
         const std::string g = groups.count(id) ? groups.at(id) : atmospheric_catalog_group_for_key(id);
+        const std::string translated_name = tlalpowa_trs(name);
+        const std::string translated_group = atmospheric_sidebar_compact_group_label(g);
         if (!needle.empty() && normalize_key(name).find(needle) == std::string::npos &&
-            normalize_key(group_label(g)).find(needle) == std::string::npos && normalize_key(atmospheric_sidebar_type_label(id, groups)).find(needle) == std::string::npos) continue;
-        items.push_back({id, name, g});
+            normalize_key(translated_name).find(needle) == std::string::npos &&
+            normalize_key(group_label(g)).find(needle) == std::string::npos &&
+            normalize_key(translated_group).find(needle) == std::string::npos) continue;
+        items.push_back({id, translated_name, g});
     }
 
     std::sort(items.begin(), items.end(), [](const Item& a, const Item& b) {
@@ -40073,8 +41834,8 @@ void draw_catalog_flat_atmospheric(const char* id_prefix,
         }
 
         if (!g_tlalpowa_side_panel_input_suppressed && hit.hovered) {
-            const std::string cls = atmospheric_sidebar_type_label(item.id, groups);
-            ImGui::SetTooltip("%s", cls.empty() ? "Atmósfera" : cls.c_str());
+            const std::string cls = atmospheric_sidebar_compact_group_label(item.group);
+            ImGui::SetTooltip("%s", cls.empty() ? tlalpowa_tr("Atmósfera") : cls.c_str());
         }
         ImGui::PopID();
     }
@@ -40162,7 +41923,6 @@ void draw_catalog_grouped(const char* tree_prefix,
             group_ids.empty(),
             group_color,
             light_theme,
-            pollutants ? "Activar o desactivar todos los parámetros visibles de esta subcategoría." : "Activar o desactivar todas las enfermedades visibles de esta subcategoría.",
 
             [&](bool enabled) { side_scope_set_selected(group_ids, selected, enabled); },
             !needle.empty(),
@@ -40212,14 +41972,9 @@ void draw_catalog_grouped(const char* tree_prefix,
             }
 
             const bool suppressed = g_tlalpowa_side_panel_input_suppressed;
-            const bool show_tooltip = !suppressed && hit.hovered;
-            if (show_tooltip) {
-                ImGui::BeginTooltip();
-                ImGui::TextUnformatted(name.c_str());
-                if (pollutants) ImGui::TextDisabled("%s", atmospheric_sidebar_type_label(id, groups).c_str());
-                else ImGui::Text("Grupo: %s", group_label(group).c_str());
-                ImGui::TextUnformatted(pollutants ? "Clic derecho: ver solo este elemento" : "Clic izquierdo: alternar. Clic derecho: dejar solo esta enfermedad.");
-                ImGui::EndTooltip();
+            if (pollutants && !suppressed && hit.hovered) {
+                const std::string cls = atmospheric_sidebar_compact_group_label(item_effective_group);
+                ImGui::SetTooltip("%s", cls.empty() ? tlalpowa_tr("Atmósfera") : cls.c_str());
             }
 
             ImGui::PopID();
@@ -40284,8 +42039,8 @@ void draw_side_solar_light_viewer(const UiState& ui) {
 
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
-        ImGui::Text("Angulo solar del centro visible del mapa.");
-        ImGui::Text("Elevacion %.2f°, azimut %.2f°.", ui.solar_live_elevation_deg, ui.solar_live_azimuth_deg);
+        ImGui::Text("%s", tlalpowa_tr("Angulo solar del centro visible del mapa."));
+        ImGui::Text("%s %.2f°, %s %.2f°.", tlalpowa_tr("Elevacion"), ui.solar_live_elevation_deg, tlalpowa_tr("azimut"), ui.solar_live_azimuth_deg);
         ImGui::TextUnformatted(coord.c_str());
         ImGui::EndTooltip();
     }
@@ -40354,12 +42109,11 @@ void draw_side_panel(UiState& ui) {
         const float row_h = golden_checkbox_side() * 1.18f;
         const float w = ImGui::GetContentRegionAvail().x;
         ImGui::PushID("tlal-neblina");
-        ImGui::TextDisabled("Neblina");
+        ImGui::TextDisabled("%s", tlalpowa_tr("Neblina"));
         ImGui::SameLine();
         const bool auto_fog = ui.map_fog_manual < 0.0f;
         bool auto_tmp = auto_fog;
-        if (draw_side_boolean_check("auto", "Auto", auto_tmp, group_color_vec("meteorologicos"), ui.light_theme,
-                                    "Neblina calibrada por humedad, PM2.5 y profundidad óptica de aerosoles; no carga teselas adicionales.")) {
+        if (draw_side_boolean_check("auto", "Auto", auto_tmp, group_color_vec("meteorologicos"), ui.light_theme)) {
             ui.map_fog_manual = auto_tmp ? -1.0f : 0.18f;
         }
         if (ui.map_fog_manual >= 0.0f) {
@@ -40381,7 +42135,7 @@ void draw_side_panel(UiState& ui) {
     ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, surface.frame_hovered);
     ImGui::PushStyleColor(ImGuiCol_FrameBgActive, surface.frame_active);
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-    ImGui::InputTextWithHint("##buscar-datos", "Buscar Datos", search, sizeof(search));
+    ImGui::InputTextWithHint("##buscar-datos", tlalpowa_tr("Buscar Datos"), search, sizeof(search));
     ImGui::PopStyleColor(3);
     ImGui::PopStyleVar(3);
 
@@ -40389,7 +42143,7 @@ void draw_side_panel(UiState& ui) {
 
     if (!ui.focus_jurisdiction_id.empty()) {
 
-        ImGui::TextDisabled("Vista: %s", compact_label(ui.focus_jurisdiction_name, 24).c_str());
+        ImGui::TextDisabled("%s: %s", tlalpowa_tr("Vista"), compact_label(ui.focus_jurisdiction_name, 24).c_str());
 
         if (golden_small_button("Ver todas")) {
 
@@ -40469,7 +42223,6 @@ void draw_side_panel(UiState& ui) {
         side_scope_any_selected(visible_disease_ids, ui.selected_diseases),
         visible_disease_ids.empty() && !native_epidemiology_available,
         group_color_vec("epidemiologicos"), ui.light_theme,
-        "Activar todo epidemiología: lee núcleos IXIPTLAH elementales directamente, aun si el catálogo lateral todavía no listó cada enfermedad importada.",
         [&](bool enabled) {
             ui.selected_diseases.clear();
             if (enabled) ui.selected_diseases.insert(kTlalpowaAllEpidemiologySelection);
@@ -40517,23 +42270,19 @@ void draw_side_panel(UiState& ui) {
         if (meteorological_category) {
             if (draw_side_network_filter_check("side-net-redmet-meteo", "REDMET", ui.atmospheric_filter_redmet,
                                                meteorological_color, ui.light_theme,
-                                               "REDMET: red meteorológica horaria. No aparece dentro de contaminantes.",
                                                [&]() { isolate_atmospheric_network(&ui.atmospheric_filter_redmet); })) invalidate_atmosphere_view();
         } else {
             if (draw_side_network_filter_check("side-net-rama-cont", "RAMA", ui.atmospheric_filter_rama,
                                                contaminant_color, ui.light_theme,
-                                               "RAMA: red de contaminantes horarios. No aparece dentro de meteorología.",
                                                [&]() { isolate_atmospheric_network(&ui.atmospheric_filter_rama); })) invalidate_atmosphere_view();
         }
         if (draw_side_network_filter_check(meteorological_category ? "side-net-pembu-ruoa-meteo" : "side-net-pembu-ruoa-cont",
                                            "PEMBU_RUOA", ui.atmospheric_filter_pembu_ruoa,
                                            meteorological_category ? meteorological_color : contaminant_color, ui.light_theme,
-                                           "PEMBU_RUOA: estación minutal; se muestra sólo si reportó para la fecha/hora consultada.",
                                            [&]() { isolate_atmospheric_network(&ui.atmospheric_filter_pembu_ruoa); })) invalidate_atmosphere_view();
         if (draw_side_network_filter_check(meteorological_category ? "side-net-ruoa-meteo" : "side-net-ruoa-cont",
                                            "RUOA", ui.atmospheric_filter_ruoa,
                                            meteorological_category ? meteorological_color : contaminant_color, ui.light_theme,
-                                           "RUOA: estación minutal; se muestra sólo si reportó para la fecha/hora consultada.",
                                            [&]() { isolate_atmospheric_network(&ui.atmospheric_filter_ruoa); })) invalidate_atmosphere_view();
     };
 
@@ -40542,7 +42291,6 @@ void draw_side_panel(UiState& ui) {
         "side-category-meteorological", "Datos Meteorológicos",
         side_scope_all_selected(visible_meteorological_ids, ui.selected_pollutants), meteorological_any_selected, false,
         group_color_vec("meteorologicos"), ui.light_theme,
-        "Activa sólo variables meteorológicas; REDMET, PEMBU_RUOA y RUOA filtran la red sin encender contaminantes.",
         [&](bool enabled) { side_scope_set_selected(visible_meteorological_ids, ui.selected_pollutants, enabled); invalidate_atmosphere_view(); },
         false, 0, isolate_atmospheric_category);
 
@@ -40558,7 +42306,6 @@ void draw_side_panel(UiState& ui) {
         "side-category-contaminants", "Datos De Contaminantes Atmosféricos",
         side_scope_all_selected(visible_contaminant_ids, ui.selected_pollutants), contaminant_any_selected, false,
         group_color_vec("contaminantes_atmosfericos"), ui.light_theme,
-        "Activa sólo contaminantes atmosféricos; nunca enciende meteorología ni estaciones por arrastre.",
         [&](bool enabled) { side_scope_set_selected(visible_contaminant_ids, ui.selected_pollutants, enabled); invalidate_atmosphere_view(); },
         false, 0, isolate_atmospheric_category);
 
@@ -40578,7 +42325,6 @@ void draw_side_panel(UiState& ui) {
 
         bool_scope_any_selected({&population, &density, &sex, &age}),
         false, group_color_vec("demograficos"), ui.light_theme,
-        "Activar o desactivar todas las capas demográficas visibles.",
 
         [&](bool enabled) { bool_scope_set_selected({&population, &density, &sex, &age}, enabled); },
         false, 0, isolate_demographic_category);
@@ -40587,14 +42333,10 @@ void draw_side_panel(UiState& ui) {
 
         ImGui::Indent(std::max(1.0f, golden_w(kGoldenN11)));
 
-        draw_side_boolean_check("side-demographic-population", "Población", population, group_color_vec("demograficos"), ui.light_theme,
-                                "Mostrar u ocultar capa demográfica de población.");
-        draw_side_boolean_check("side-demographic-density", "Densidad De Población", density, group_color_vec("demograficos"), ui.light_theme,
-                                "Mostrar u ocultar densidad demográfica; no se calcula si la casilla está apagada.");
-        draw_side_boolean_check("side-demographic-sex", "Sexo · Gráfica De Círculo", sex, group_color_vec("demograficos"), ui.light_theme,
-                                "Mostrar distribución por sexo como gráfica circular.");
-        draw_side_boolean_check("side-demographic-age", "Edad · Gráfica De Barra", age, group_color_vec("demograficos"), ui.light_theme,
-                                "Mostrar estructura etaria como gráfica de barras.");
+        draw_side_boolean_check("side-demographic-population", "Población", population, group_color_vec("demograficos"), ui.light_theme);
+        draw_side_boolean_check("side-demographic-density", "Densidad De Población", density, group_color_vec("demograficos"), ui.light_theme);
+        draw_side_boolean_check("side-demographic-sex", "Sexo · Gráfica De Círculo", sex, group_color_vec("demograficos"), ui.light_theme);
+        draw_side_boolean_check("side-demographic-age", "Edad · Gráfica De Barra", age, group_color_vec("demograficos"), ui.light_theme);
 
         ImGui::Unindent(std::max(1.0f, golden_w(kGoldenN11)));
 
@@ -40613,7 +42355,6 @@ void draw_side_panel(UiState& ui) {
         "side-category-historical-maps", "Datos Históricos",
         historical_all_selected, historical_any_selected, false,
         group_color_vec("historicos"), ui.light_theme,
-        "Datos históricos en IXIPTLAH-SM: 3D, calendarios y mapas se cargan sólo por casilla explícita.",
 
         [&](bool enabled) {
 
@@ -40643,8 +42384,7 @@ void draw_side_panel(UiState& ui) {
 
 
         draw_side_boolean_check("side-historical-year-sync", "Año Sincronizado Con Línea Temporal", ui.historical_maps_use_timeline_year,
-                                group_color_vec("historicos"), ui.light_theme,
-                                "Sincronizar la reconstrucción histórica con la línea temporal inferior.");
+                                group_color_vec("historicos"), ui.light_theme);
 
         if (!ui.historical_maps_use_timeline_year) {
 
@@ -40659,11 +42399,11 @@ void draw_side_panel(UiState& ui) {
 
             const int visible_hist_year = timeline_year_from_hour(ui.timeline_hour);
 
-            ImGui::TextDisabled("Año visible: %d", visible_hist_year);
+            ImGui::TextDisabled("%s: %d", tlalpowa_tr("Año visible"), visible_hist_year);
 
             if (visible_hist_year >= 2000) {
 
-                ImGui::TextWrapped("Fecha reciente: no se sobrepintan restos lacustres históricos; el satélite queda como presente.");
+                ImGui::TextWrapped("%s", tlalpowa_tr("Fecha reciente: no se sobrepintan restos lacustres históricos; el satélite queda como presente."));
             }
         }
 
@@ -40680,13 +42420,12 @@ void draw_side_panel(UiState& ui) {
         ui.historical_maps_show_recreated_raster = ui.historical_maps_load_3d;
 
         draw_side_boolean_check("side-historical-load-3d", "Cargar 3D", ui.historical_maps_load_3d,
-                                group_color_vec("historicos"), ui.light_theme,
-                                "Carga la representación 3D estática preconvertida; nunca abre Blender ni el .blend durante la ejecución.");
+                                group_color_vec("historicos"), ui.light_theme);
 
         if (ui.historical_maps_load_3d) {
             const auto models = installed_tlalpowa3d_files();
             ImGui::Indent(std::max(1.0f, golden_w(kGoldenN12)));
-            if (models.empty()) ImGui::TextDisabled("Sin modelos Blender convertidos");
+            if (models.empty()) ImGui::TextDisabled("%s", tlalpowa_tr("Sin modelos Blender convertidos"));
             if (ui.historical_3d_model_path.empty() && !models.empty()) ui.historical_3d_model_path = models.front();
             for (const auto& model : models) {
                 const std::string model_path = path_utf8(model);
@@ -40703,29 +42442,26 @@ void draw_side_panel(UiState& ui) {
                     ui.historical_3d_model_path = model;
                 }
                 ImGui::SameLine();
-                if (ImGui::SmallButton("Editar")) edit_installed_tlalpowa3d(ui, model);
+                if (ImGui::SmallButton(tlalpowa_tr("Editar"))) edit_installed_tlalpowa3d(ui, model);
                 ImGui::PopID();
             }
             ImGui::Unindent(std::max(1.0f, golden_w(kGoldenN12)));
         }
 
         draw_side_boolean_check("side-historical-calendars", "Cargar Calendarios Históricos", ui.historical_calendars_load,
-                                group_color_vec("historicos"), ui.light_theme,
-                                "Autoriza lectura de calendarios históricos; apagado mantiene cero cálculo calendárico.");
+                                group_color_vec("historicos"), ui.light_theme);
         if (ui.historical_calendars_load) {
             ImGui::Indent(std::max(1.0f, golden_w(kGoldenN12)));
             const bool tonalpohualli_before = ui.historical_calendar_tonalpohualli;
             draw_side_boolean_check("side-historical-tonalpohualli", "Tonalpohualli", ui.historical_calendar_tonalpohualli,
-                                    group_color_vec("historicos"), ui.light_theme,
-                                    "Activar o desactivar el calendario Tonalpohualli.");
+                                    group_color_vec("historicos"), ui.light_theme);
             if (ui.historical_calendar_tonalpohualli != tonalpohualli_before) {
                 // La casilla lateral es la autoridad explícita del usuario: al activarla debe reaparecer
                 // el Tonalli en la línea temporal, pero nunca queda autoencendido al abrir Tlalpowa.
                 ui.timeline_show_tonalli = ui.historical_calendar_tonalpohualli;
             }
             draw_side_boolean_check("side-historical-julian", "Calendario Juliano", ui.historical_calendar_julian,
-                                    group_color_vec("historicos"), ui.light_theme,
-                                    "Activar o desactivar el calendario juliano.");
+                                    group_color_vec("historicos"), ui.light_theme);
             ImGui::Unindent(std::max(1.0f, golden_w(kGoldenN12)));
         } else {
             ui.historical_calendar_tonalpohualli = false;
@@ -40734,13 +42470,10 @@ void draw_side_panel(UiState& ui) {
         }
 
         draw_side_boolean_check("side-historical-kmz", "Siluetas Oficiales CDMX/REPSA", ui.historical_maps_show_kmz_geometry,
-                                group_color_vec("historicos"), ui.light_theme,
-
-                                "Mostrar sólo geometría oficial: Lago de Texcoco 1519 GeoJSON de Datos CDMX y Cuenca-Lagos KMZ/KML de REPSA/UNAM; sin polígonos aproximados ni parches raster.");
+                                group_color_vec("historicos"), ui.light_theme);
 
         draw_side_boolean_check("side-historical-labels", "Etiquetas De Cuerpos De Agua", ui.historical_maps_show_labels,
-                                group_color_vec("historicos"), ui.light_theme,
-                                "Mostrar u ocultar etiquetas de fuentes oficiales suficientemente visibles.");
+                                group_color_vec("historicos"), ui.light_theme);
 
         ImGui::Unindent(std::max(1.0f, golden_w(kGoldenN11)));
 
@@ -40761,7 +42494,6 @@ void draw_side_panel(UiState& ui) {
         "side-category-mobility", "Datos De Transporte Y Movilidad",
         mobility_all_selected, mobility_any_selected, false,
         group_color_vec("movilidad"), ui.light_theme,
-        "Activar o desactivar todas las capas y sistemas de movilidad visibles.",
 
         [&](bool enabled) {
             ui.mobility_layer_enabled = enabled;
@@ -40777,8 +42509,7 @@ void draw_side_panel(UiState& ui) {
 
 
         draw_side_boolean_check("side-mobility-year-sync", "Año Sincronizado Con Línea Temporal", ui.mobility_use_timeline_year,
-                                group_color_vec("movilidad"), ui.light_theme,
-                                "Sincronizar el año visible de movilidad con la línea temporal.");
+                                group_color_vec("movilidad"), ui.light_theme);
 
         if (!ui.mobility_use_timeline_year) {
 
@@ -40790,11 +42521,11 @@ void draw_side_panel(UiState& ui) {
 
             const int visible_hist_year = timeline_year_from_hour(ui.timeline_hour);
 
-            ImGui::TextDisabled("Año visible: %d", visible_hist_year);
+            ImGui::TextDisabled("%s: %d", tlalpowa_tr("Año visible"), visible_hist_year);
 
             if (visible_hist_year >= 2000) {
 
-                ImGui::TextWrapped("Fecha reciente: no se sobrepintan restos lacustres históricos; el satélite queda como presente.");
+                ImGui::TextWrapped("%s", tlalpowa_tr("Fecha reciente: no se sobrepintan restos lacustres históricos; el satélite queda como presente."));
             }
         }
 
@@ -40815,60 +42546,49 @@ void draw_side_panel(UiState& ui) {
             ImGui::Indent(std::max(1.0f, golden_w(kGoldenN12)));
             for (int i = 0; i < count; ++i) {
                 const std::string id = std::string(prefix ? prefix : "line") + "-" + std::to_string(i + 1);
-                draw_side_boolean_check(id.c_str(), labels[i], values[i], color, ui.light_theme,
-                                        "Hoja de línea: reserva selección granular sin activar otras líneas ni otros sistemas.");
+                draw_side_boolean_check(id.c_str(), labels[i], values[i], color, ui.light_theme);
             }
             ImGui::Unindent(std::max(1.0f, golden_w(kGoldenN12)));
         };
 
-        draw_side_boolean_check("side-mobility-metro", "Metro", ui.mobility_show_metro, group_color_vec("movilidad_sistemas"), ui.light_theme,
-                                "Mostrar u ocultar Metro; sus líneas quedan como hojas explícitas de IXIPTLAH-SM.");
+        draw_side_boolean_check("side-mobility-metro", "Metro", ui.mobility_show_metro, group_color_vec("movilidad_sistemas"), ui.light_theme);
         if (ui.mobility_show_metro) {
             static const char* labels[] = {"Línea 1", "Línea 2", "Línea 3", "Línea 4", "Línea 5", "Línea 6", "Línea 7", "Línea 8", "Línea 9", "Línea A", "Línea B", "Línea 12"};
             draw_line_series("metro-line", labels, metro_lines, 12, group_color_vec("movilidad_sistemas"));
         }
 
-        draw_side_boolean_check("side-mobility-metrobus", "Metrobús", ui.mobility_show_metrobus, group_color_vec("movilidad_sistemas"), ui.light_theme,
-                                "Mostrar u ocultar Metrobús; sus líneas quedan separadas.");
+        draw_side_boolean_check("side-mobility-metrobus", "Metrobús", ui.mobility_show_metrobus, group_color_vec("movilidad_sistemas"), ui.light_theme);
         if (ui.mobility_show_metrobus) {
             static const char* labels[] = {"Línea 1", "Línea 2", "Línea 3", "Línea 4", "Línea 5", "Línea 6", "Línea 7"};
             draw_line_series("metrobus-line", labels, metrobus_lines, 7, group_color_vec("movilidad_sistemas"));
         }
 
-        draw_side_boolean_check("side-mobility-mexibus", "Mexibús", mexibus, group_color_vec("movilidad_sistemas"), ui.light_theme,
-                                "Mostrar u ocultar Mexibús como sistema independiente dentro de transporte y movilidad.");
+        draw_side_boolean_check("side-mobility-mexibus", "Mexibús", mexibus, group_color_vec("movilidad_sistemas"), ui.light_theme);
         if (mexibus) ui.mobility_show_other = true;
 
-        draw_side_boolean_check("side-mobility-electric", "Red De Transportes Eléctricos", ui.mobility_show_electric, group_color_vec("movilidad_sistemas"), ui.light_theme,
-                                "Mostrar tren ligero y trolebús sin mezclarlo con otros sistemas.");
+        draw_side_boolean_check("side-mobility-electric", "Red De Transportes Eléctricos", ui.mobility_show_electric, group_color_vec("movilidad_sistemas"), ui.light_theme);
         if (ui.mobility_show_electric) {
             ImGui::Indent(std::max(1.0f, golden_w(kGoldenN12)));
-            draw_side_boolean_check("side-mobility-tren-ligero", "Tren Ligero", tren_ligero, group_color_vec("movilidad_sistemas"), ui.light_theme,
-                                    "Hoja de Tren Ligero.");
+            draw_side_boolean_check("side-mobility-tren-ligero", "Tren Ligero", tren_ligero, group_color_vec("movilidad_sistemas"), ui.light_theme);
             static const char* labels[] = {"Trolebús Línea 1", "Trolebús Línea 2", "Trolebús Línea 3", "Trolebús Línea 4", "Trolebús Línea 5", "Trolebús Línea 6", "Trolebús Línea 7", "Trolebús Línea 8", "Trolebús Línea 9", "Trolebús Línea 10", "Trolebús Línea 11", "Trolebús Línea 12"};
             draw_line_series("trolebus-line", labels, trolebus_lines, 12, group_color_vec("movilidad_sistemas"));
             ImGui::Unindent(std::max(1.0f, golden_w(kGoldenN12)));
         }
 
-        draw_side_boolean_check("side-mobility-trains", "Redes Ferroviarias", ui.mobility_show_trains, group_color_vec("movilidad_sistemas"), ui.light_theme,
-                                "Mostrar redes ferroviarias integradas.");
+        draw_side_boolean_check("side-mobility-trains", "Redes Ferroviarias", ui.mobility_show_trains, group_color_vec("movilidad_sistemas"), ui.light_theme);
         if (ui.mobility_show_trains) {
             ImGui::Indent(std::max(1.0f, golden_w(kGoldenN12)));
-            draw_side_boolean_check("side-mobility-suburbano", "Suburbano", suburbano, group_color_vec("movilidad_sistemas"), ui.light_theme, "Hoja del Tren Suburbano.");
-            draw_side_boolean_check("side-mobility-insurgente", "Tren El Insurgente", insurgente, group_color_vec("movilidad_sistemas"), ui.light_theme, "Hoja del Tren El Insurgente.");
+            draw_side_boolean_check("side-mobility-suburbano", "Suburbano", suburbano, group_color_vec("movilidad_sistemas"), ui.light_theme);
+            draw_side_boolean_check("side-mobility-insurgente", "Tren El Insurgente", insurgente, group_color_vec("movilidad_sistemas"), ui.light_theme);
             ImGui::Unindent(std::max(1.0f, golden_w(kGoldenN12)));
         }
 
-        draw_side_boolean_check("side-mobility-cablebus", "Cablebús", cablebus, group_color_vec("movilidad_sistemas"), ui.light_theme,
-                                "Mostrar Cablebús como sistema independiente.");
+        draw_side_boolean_check("side-mobility-cablebus", "Cablebús", cablebus, group_color_vec("movilidad_sistemas"), ui.light_theme);
         if (cablebus) ui.mobility_show_electric = true;
 
-        draw_side_boolean_check("side-mobility-rtp", "RTP", ui.mobility_show_rtp, group_color_vec("movilidad_sistemas"), ui.light_theme,
-                                "Mostrar u ocultar RTP.");
-        draw_side_boolean_check("side-mobility-pumabus", "Pumabús", ui.mobility_show_pumabus, group_color_vec("movilidad_sistemas"), ui.light_theme,
-                                "Mostrar u ocultar Pumabús.");
-        draw_side_boolean_check("side-mobility-concessioned", "Concesionados", ui.mobility_show_concessioned, group_color_vec("movilidad_sistemas"), ui.light_theme,
-                                "Mostrar u ocultar rutas concesionadas.");
+        draw_side_boolean_check("side-mobility-rtp", "RTP", ui.mobility_show_rtp, group_color_vec("movilidad_sistemas"), ui.light_theme);
+        draw_side_boolean_check("side-mobility-pumabus", "Pumabús", ui.mobility_show_pumabus, group_color_vec("movilidad_sistemas"), ui.light_theme);
+        draw_side_boolean_check("side-mobility-concessioned", "Concesionados", ui.mobility_show_concessioned, group_color_vec("movilidad_sistemas"), ui.light_theme);
 
 
         ImGui::Unindent(std::max(1.0f, golden_w(kGoldenN11)));
@@ -43025,7 +44745,7 @@ void draw_atmospheric_marker_circle(const char* id, ImU32 color, float radius, c
     ImGui::InvisibleButton(id, ImVec2(radius * 2.0f, radius * 2.0f));
     if (tooltip && tooltip[0] && ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
-        ImGui::TextUnformatted(tooltip);
+        ImGui::TextUnformatted(tlalpowa_tr(tooltip));
         ImGui::EndTooltip();
     }
 }
@@ -43972,7 +45692,7 @@ void draw_atmospheric_pinned_window(AtmosphericPopupData& data, const ImVec2& ca
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, std::max(8.0f, golden_h(kGoldenN12)));
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, std::max(6.0f, golden_h(kGoldenN13)));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(std::max(12.0f, golden_w(kGoldenN13)), std::max(10.0f, golden_h(kGoldenN13))));
-    if (ImGui::Begin("Estación atmosférica###atmospheric-rama-detail", &open,
+    if (ImGui::Begin((std::string(tlalpowa_tr("Estación atmosférica")) + "###atmospheric-rama-detail").c_str(), &open,
                      ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize)) {
         draw_atmospheric_station_card_contents(data, light_theme);
     }
@@ -45151,10 +46871,8 @@ std::string draw_historical_native_layer(ImDrawList* dl,
     const bool drew_mesh = draw_historical_native_mesh(dl, view, origin, size, alpha, selected_path);
     if (!drew_mesh) return {};
 
-    if (!input_blocked && mouse.x >= a.x && mouse.x <= b.x && mouse.y >= a.y && mouse.y <= b.y) {
-        return "Tenochtitlan 3D · detalle completo adaptativo · georreferenciado Templo Mayor–Tlatelolco";
-    }
-
+    (void)input_blocked;
+    (void)mouse;
     return {};
 }
 
@@ -47459,7 +49177,7 @@ void draw_map(UiState& ui, float dt) {
                 }
 
                 const float d = std::hypot(mouse.x - p.x, mouse.y - p.y);
-                if (!map_input_blocked && d <= std::max(6.0f, station_pin_radius + 4.0f)) hovered_station = s.id + " - " + s.name;
+                if (!map_input_blocked && d <= std::max(6.0f, station_pin_radius + 4.0f)) hovered_station = s.name.empty() ? s.id : s.name;
                 const ImU32 pin = selected_station_radius_key.empty()
                     ? (ui.light_theme ? IM_COL32(37, 111, 157, 224) : IM_COL32(148, 224, 240, 226))
                     : atmospheric_cloud_color(selected_station_radius_key, 226);
@@ -47766,7 +49484,7 @@ if (map_input_blocked) {
 
         ImGui::TextUnformatted(hovered_historical_map.c_str());
 
-        ImGui::TextUnformatted("Fuente oficial CDMX/REPSA; se dibuja como perímetro cerrado sin geometría reconstruida.");
+        /* Tooltip documental retirado: se muestra sólo el nombre de la capa. */
 
         ImGui::EndTooltip();
 
@@ -47776,7 +49494,7 @@ if (map_input_blocked) {
 
         ImGui::TextUnformatted(hovered_mobility.c_str());
 
-        ImGui::TextUnformatted("Red de movilidad integrada historica");
+        /* Tooltip documental retirado: se muestra sólo el nombre de la estación/trazo. */
 
         ImGui::EndTooltip();
 
@@ -47791,7 +49509,7 @@ if (map_input_blocked) {
 
         ImGui::TextUnformatted(hovered_station.c_str());
 
-        ImGui::TextUnformatted("Estacion atmosferica; visible solo si reporto en la hora consultada.");
+        /* Tooltip documental retirado: se muestra sólo el identificador de la estación. */
 
         ImGui::EndTooltip();
     }
@@ -55248,19 +56966,19 @@ void draw_ozone_correlation_plot(ImDrawList* dl,
 const char* tlac_tipo_txt(int type);
 
 const char* tlac_tipo_txt(int type) {
-    return tlac_tipo_label(type);
+    return tlalpowa_tr(tlac_tipo_label(type));
 }
 
 
 
 const char* tlac_dom_txt(int domain) {
-    return tlac_eje_dom_label(domain);
+    return tlalpowa_tr(tlac_eje_dom_label(domain));
 }
 
 
 
 const char* tlac_campo_txt(int domain, int field) {
-    return tlac_eje_campo_label(domain, field);
+    return tlalpowa_tr(tlac_eje_campo_label(domain, field));
 }
 
 
@@ -55539,7 +57257,7 @@ void process_pending_graph_capture(UiState& ui, int framebuffer_w, int framebuff
     if (!tlac_px_rect(ui.graph_capture_min.x, ui.graph_capture_min.y,
                       ui.graph_capture_max.x, ui.graph_capture_max.y,
                       sx, sy, framebuffer_w, framebuffer_h, &r)) {
-        graph_set_status(ui, "No pude copiar PNG: rectangulo de grafica invalido.");
+        graph_set_status(ui, tlalpowa_tr("No pude copiar PNG: rectangulo de grafica invalido."));
         return;
     }
     const int x0 = r.x0;
@@ -55563,7 +57281,7 @@ void process_pending_graph_capture(UiState& ui, int framebuffer_w, int framebuff
 #else
     (void)png;
 #endif
-    graph_set_status(ui, ok ? "PNG de grafica copiado al portapapeles." : "No pude copiar PNG al portapapeles en esta plataforma.");
+    graph_set_status(ui, ok ? tlalpowa_tr("PNG de grafica copiado al portapapeles.") : tlalpowa_tr("No pude copiar PNG al portapapeles en esta plataforma."));
 }
 
 
@@ -55670,8 +57388,8 @@ bool draw_graph_gallery_tile(UiState& ui, const TlacGal& item, const ImVec2& pos
     tlac_tile_text_xy(&t, ImGui::GetTextLineHeight(), &tx, &ty0, &ty1);
     const ImU32 text_col = light ? IM_COL32(33, 45, 58, 238) : IM_COL32(232, 240, 247, 238);
     const ImU32 sub_col = light ? IM_COL32(92, 104, 118, 188) : IM_COL32(166, 182, 196, 188);
-    dl->AddText(ImVec2(tx, ty0), text_col, item.title);
-    dl->AddText(ImVec2(tx, ty1), sub_col, item.subtitle);
+    dl->AddText(ImVec2(tx, ty0), text_col, tlalpowa_tr(item.title));
+    dl->AddText(ImVec2(tx, ty1), sub_col, tlalpowa_tr(item.subtitle));
     return clicked;
 }
 
@@ -55688,8 +57406,8 @@ void draw_graph_type_gallery(UiState& ui, int tab_index, float width, float heig
     const int item_count = layout.item_count;
     const float tile_w = layout.tile_w;
     const float tile_h = layout.tile_h;
-    dl->AddText(ImVec2(origin.x + pad, origin.y + pad * kGoldenN1), ui.light_theme ? IM_COL32(36, 48, 60, 232) : IM_COL32(226, 236, 245, 232), "Crear grafica");
-    dl->AddText(ImVec2(origin.x + pad, origin.y + pad * kGoldenN1 + ImGui::GetTextLineHeight() * 1.10f), ui.light_theme ? IM_COL32(90, 104, 118, 180) : IM_COL32(162, 178, 194, 180), "Elige un tipo.");
+    dl->AddText(ImVec2(origin.x + pad, origin.y + pad * kGoldenN1), ui.light_theme ? IM_COL32(36, 48, 60, 232) : IM_COL32(226, 236, 245, 232), tlalpowa_tr("Crear grafica"));
+    dl->AddText(ImVec2(origin.x + pad, origin.y + pad * kGoldenN1 + ImGui::GetTextLineHeight() * 1.10f), ui.light_theme ? IM_COL32(90, 104, 118, 180) : IM_COL32(162, 178, 194, 180), tlalpowa_tr("Elige un tipo."));
     int& count = ui.graph_counts[tab_index];
     for (int i = 0; i < item_count; ++i) {
         const TlacGal* item = tlac_gal_item(static_cast<size_t>(i));
@@ -55703,9 +57421,9 @@ void draw_graph_type_gallery(UiState& ui, int tab_index, float width, float heig
                 ui.selected_graph_tab = tab_index;
                 ui.selected_graph_index = count;
                 ++count;
-                graph_set_status(ui, std::string("Creada: ") + (item->title && item->title[0] ? item->title : tlac_tipo_txt(spec.chart_type)) + ".");
+                graph_set_status(ui, std::string(tlalpowa_tr("Creada")) + ": " + (item->title && item->title[0] ? tlalpowa_tr(item->title) : tlac_tipo_txt(spec.chart_type)) + ".");
             } else {
-                graph_set_status(ui, "Limite de 8 graficas alcanzado en esta pestana.");
+                graph_set_status(ui, tlalpowa_tr("Limite de 8 graficas alcanzado en esta pestana."));
             }
         }
     }
@@ -55715,17 +57433,17 @@ void draw_graph_type_gallery(UiState& ui, int tab_index, float width, float heig
 
 void draw_axis_combo_pair(const char* prefix, int& domain, int& field) {
     ImGui::PushID(prefix);
-    ImGui::TextUnformatted(prefix);
+    ImGui::TextUnformatted(tlalpowa_tr(prefix));
     const char* domains[5] = {tlac_dom_txt(0), tlac_dom_txt(1), tlac_dom_txt(2), tlac_dom_txt(3), tlac_dom_txt(4)};
     ImGui::SetNextItemWidth(220.0f);
-    ImGui::Combo("Dominio", &domain, domains, IM_ARRAYSIZE(domains));
+    ImGui::Combo((std::string(tlalpowa_tr("Dominio")) + "##dominio").c_str(), &domain, domains, IM_ARRAYSIZE(domains));
     ImGui::SameLine();
     const char* field_labels[5] = {
         tlac_campo_txt(domain, 0), tlac_campo_txt(domain, 1), tlac_campo_txt(domain, 2), tlac_campo_txt(domain, 3), tlac_campo_txt(domain, 4)
     };
     field = std::clamp(field, 0, 4);
     ImGui::SetNextItemWidth(220.0f);
-    ImGui::Combo("Variable", &field, field_labels, IM_ARRAYSIZE(field_labels));
+    ImGui::Combo((std::string(tlalpowa_tr("Variable")) + "##variable").c_str(), &field, field_labels, IM_ARRAYSIZE(field_labels));
     ImGui::PopID();
 }
 
@@ -55752,40 +57470,41 @@ void draw_chart_external_table(const GraphSpec& spec,
     (void)light_theme;
     const ChartStats stats = compute_chart_stats(pts);
     ImGui::Spacing();
-    ImGui::SeparatorText("Resultados estadisticos");
+    ImGui::SeparatorText(tlalpowa_tr("Resultados estadisticos"));
 
     if (ozone_mode && !corr.status.empty()) ImGui::TextWrapped("%s", corr.status.c_str());
     if (ozone_mode && corr.rows.size() >= 2) {
-        ImGui::Text("Relacion lineal global: incidencia semanal = %.8f + %.8f * O3 territorial", corr.intercept, corr.slope);
+        ImGui::Text("%s: %s = %.8f + %.8f * O3 %s", tlalpowa_tr("Relacion lineal global"), tlalpowa_tr("Incidencia semanal"), corr.intercept, corr.slope, tlalpowa_tr("territorial"));
         ImGui::Text("Pearson r: %.6f | R2: %.6f | Spearman rho: %.6f | Kendall tau: %.6f",
                     corr.pearson, corr.r2, corr.spearman, corr.kendall);
-        ImGui::Text("Theil-Sen robusto: incidencia = %.8f + %.8f * O3 | RMSE casos: %.6f | MAE casos: %.6f | p aprox: %.6g",
+        ImGui::Text("Theil-Sen %s: incidencia = %.8f + %.8f * O3 | RMSE casos: %.6f | MAE casos: %.6f | p aprox: %.6g", tlalpowa_tr("robusto"),
                     corr.theil_sen_intercept, corr.theil_sen_slope, corr.rmse, corr.mae, corr.p_normal_approx);
-        ImGui::Text("Cobertura analitica: %d pares | %d enfermedades | %d territorios | %d dias O3 | %lld horas O3 validas | desfase %d dias",
-                    static_cast<int>(corr.rows.size()), corr.disease_count, corr.jurisdiction_count,
-                    corr.ozone_day_count, static_cast<long long>(corr.ozone_hour_count), corr.best_lag_days);
-        ImGui::Text("Agregacion temporal de exposicion: %s", ozone_exposure_aggregation_label(spec.exposure_aggregation));
+        ImGui::Text("%s: %d %s | %d %s | %d %s | %d %s O3 | %lld horas O3 validas | %s %d %s",
+                    tlalpowa_tr("Cobertura analitica"),
+                    static_cast<int>(corr.rows.size()), tlalpowa_tr("pares"), corr.disease_count, tlalpowa_tr("enfermedades"), corr.jurisdiction_count, tlalpowa_tr("territorios"),
+                    corr.ozone_day_count, tlalpowa_tr("dias"), static_cast<long long>(corr.ozone_hour_count), tlalpowa_tr("desfase"), corr.best_lag_days, tlalpowa_tr("dias"));
+        ImGui::Text("%s: %s", tlalpowa_tr("Agregacion temporal de exposicion"), tlalpowa_tr(ozone_exposure_aggregation_label(spec.exposure_aggregation)));
     } else {
-        ImGui::Text("Descriptivos: n=%d | suma=%lld | media=%.6f | mediana=%.6f | DE=%.6f | CV=%.6f",
+        ImGui::Text("%s: n=%d | suma=%lld | media=%.6f | mediana=%.6f | DE=%.6f | CV=%.6f", tlalpowa_tr("Descriptivos"),
                     stats.n, static_cast<long long>(stats.sum), stats.mean, stats.median, stats.sd, stats.cv);
-        ImGui::Text("Rango observado: minimo=%lld | maximo=%lld | tipo=%s | seleccion=%s",
+        ImGui::Text("%s: minimo=%lld | maximo=%lld | tipo=%s | seleccion=%s", tlalpowa_tr("Rango observado"),
                     static_cast<long long>(stats.min_value), static_cast<long long>(stats.max_value),
-                    tlac_tipo_txt(spec.chart_type), spec.use_selected_data ? "datos seleccionados" : "todos los datos");
+                    tlac_tipo_txt(spec.chart_type), spec.use_selected_data ? tlalpowa_tr("datos seleccionados") : tlalpowa_tr("todos los datos"));
     }
 
-    ImGui::TextWrapped(ozone_mode
+    ImGui::TextWrapped("%s", tlalpowa_tr(ozone_mode
         ? "Unidad analitica: alcaldia/municipio por semana epidemiologica y enfermedad; O3 horario RAMA triangulado al territorio y desplazado por desfase."
-        : "Unidad analitica: subconjunto filtrado por tiempo, territorio y seleccion lateral.");
+        : "Unidad analitica: subconjunto filtrado por tiempo, territorio y seleccion lateral."));
 
     const float table_h = ozone_mode && corr.rows.size() >= 2 ? 132.0f : 112.0f;
     if (ozone_mode && corr.rows.size() >= 2) {
         if (ImGui::BeginTable("chart-corr-detail-table", 6, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders, ImVec2(width, table_h))) {
-            ImGui::TableSetupColumn("Semana");
-            ImGui::TableSetupColumn("Alcaldia");
-            ImGui::TableSetupColumn("Enfermedad");
-            ImGui::TableSetupColumn("Incidentes");
-            ImGui::TableSetupColumn("O3 alcaldia");
-            ImGui::TableSetupColumn("Residual casos");
+            ImGui::TableSetupColumn(tlalpowa_tr("Semana"));
+            ImGui::TableSetupColumn(tlalpowa_tr("Alcaldia"));
+            ImGui::TableSetupColumn(tlalpowa_tr("Enfermedad"));
+            ImGui::TableSetupColumn(tlalpowa_tr("Incidentes"));
+            ImGui::TableSetupColumn(tlalpowa_tr("O3 alcaldia"));
+            ImGui::TableSetupColumn(tlalpowa_tr("Residual casos"));
             ImGui::TableHeadersRow();
             int emitted = 0;
             for (const auto& r : corr.rows) {
@@ -55803,9 +57522,9 @@ void draw_chart_external_table(const GraphSpec& spec,
         }
     } else {
         if (ImGui::BeginTable("chart-point-detail-table", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders, ImVec2(width, table_h))) {
-            ImGui::TableSetupColumn("Categoria/tiempo");
-            ImGui::TableSetupColumn("Valor");
-            ImGui::TableSetupColumn("Proporcion");
+            ImGui::TableSetupColumn(tlalpowa_tr("Categoria/tiempo"));
+            ImGui::TableSetupColumn(tlalpowa_tr("Valor"));
+            ImGui::TableSetupColumn(tlalpowa_tr("Proporcion"));
             ImGui::TableHeadersRow();
             const double denom = std::max(1.0, static_cast<double>(stats.sum));
             int emitted = 0;
@@ -55819,7 +57538,7 @@ void draw_chart_external_table(const GraphSpec& spec,
             if (pts.empty()) {
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
-                ImGui::TextUnformatted("No hay filas para el filtro actual.");
+                ImGui::TextUnformatted(tlalpowa_tr("No hay filas para el filtro actual."));
             }
             ImGui::EndTable();
         }
@@ -55882,7 +57601,7 @@ static void draw_ozone_compact_legend(UiState& ui,
                         ui.selected_diseases.insert(item.id);
                     }
                 }
-                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Clic izquierdo: alternar. Clic derecho: aislar.");
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tlalpowa_tr("Clic izquierdo: alternar. Clic derecho: aislar."));
                 ImGui::SameLine();
                 char line[256];
                 std::snprintf(line, sizeof(line), "%s  n=%d", compact_label(item.name, 36).c_str(), item.pairs);
@@ -55890,8 +57609,8 @@ static void draw_ozone_compact_legend(UiState& ui,
                 if (ImGui::IsItemHovered()) {
                     ImGui::BeginTooltip();
                     ImGui::TextUnformatted(item.name.c_str());
-                    ImGui::Text("Grupo: %s", group_label(item.group).c_str());
-                    ImGui::Text("Pares: %d", item.pairs);
+                    ImGui::Text("%s: %s", tlalpowa_tr("Grupo"), group_label(item.group).c_str());
+                    ImGui::Text("%s: %d", tlalpowa_tr("Pares"), item.pairs);
                     ImGui::EndTooltip();
                 }
                 ImGui::PopID();
@@ -55903,22 +57622,22 @@ static void draw_ozone_compact_legend(UiState& ui,
 }
 
 static void draw_ozone_lag_controls(GraphSpec& spec) {
-    ImGui::TextUnformatted("Desfase");
+    ImGui::TextUnformatted(tlalpowa_tr("Desfase"));
     int unit = tlac_lag_unit_clean(spec.lag_unit);
     int value = std::clamp(spec.lag_value > 0 || spec.lag_days == 0
         ? spec.lag_value
         : ozmvm_lag_value_from_days(spec.lag_days, unit), 0, tlac_lag_slider_max(unit));
     bool changed = false;
-    const char* units[] = {"dias", "semanas", "meses", "anios"};
+    const char* units[] = {tlalpowa_tr("dias"), tlalpowa_tr("semanas"), tlalpowa_tr("meses"), tlalpowa_tr("anios")};
     ImGui::SetNextItemWidth(118.0f);
-    if (ImGui::Combo("unidad##ozone-lag-unit", &unit, units, IM_ARRAYSIZE(units))) {
+    if (ImGui::Combo((std::string(tlalpowa_tr("unidad")) + "##ozone-lag-unit").c_str(), &unit, units, IM_ARRAYSIZE(units))) {
         value = std::clamp(ozmvm_lag_value_from_days(spec.lag_days, unit), 0, tlac_lag_slider_max(unit));
         changed = true;
     }
     ImGui::SameLine();
     ImGui::SetNextItemWidth(std::max(180.0f, ImGui::GetContentRegionAvail().x - 130.0f));
     char label[64];
-    std::snprintf(label, sizeof(label), "desfase (%s)", tlac_lag_unit_label(unit));
+    std::snprintf(label, sizeof(label), "%s (%s)", tlalpowa_tr("desfase"), tlalpowa_tr(tlac_lag_unit_label(unit)));
     if (ImGui::SliderInt(label, &value, 0, tlac_lag_slider_max(unit))) changed = true;
     if (changed) {
         spec.lag_unit = unit;
@@ -55927,7 +57646,7 @@ static void draw_ozone_lag_controls(GraphSpec& spec) {
         spec.auto_best_lag = false;
         reset_ozone_best_lag_search(spec);
     }
-    ImGui::TextDisabled("%d dias", std::max(0, spec.lag_days));
+    ImGui::TextDisabled("%d %s", std::max(0, spec.lag_days), tlalpowa_tr("dias"));
 }
 
 void draw_ozone_panel(UiState& ui,
@@ -55940,10 +57659,10 @@ void draw_ozone_panel(UiState& ui,
     const TlalpowaSurfaceTemplate surface = tlalpowa_surface_template(ui.light_theme);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(surface.pad_tight.x * 0.25f, surface.pad_tight.y * 0.18f));
     ImGui::BeginChild(label, size, false, tlalpowa_flat_child_flags(ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse));
-    ImGui::TextUnformatted(lagged ? "Desfase" : "0 dias");
+    ImGui::TextUnformatted(lagged ? tlalpowa_tr("Desfase") : tlalpowa_tr("0 dias"));
     ImGui::SameLine();
     if (lagged) {
-        if (spec.auto_best_lag || spec.best_lag_search_active) ImGui::TextDisabled("calculando");
+        if (spec.auto_best_lag || spec.best_lag_search_active) ImGui::TextDisabled("%s", tlalpowa_tr("calculando"));
         else ImGui::TextDisabled("%d d", std::max(0, spec.lag_days));
         ImGui::SameLine();
         if (golden_small_button("recalcular")) {
@@ -55951,7 +57670,7 @@ void draw_ozone_panel(UiState& ui,
             spec.auto_best_lag = true;
         }
     } else {
-        ImGui::TextDisabled("sin desfase");
+        ImGui::TextDisabled("%s", tlalpowa_tr("sin desfase"));
     }
     if (corr.pending_async) {
         const float pct = corr.grouped_total > 0
@@ -55965,7 +57684,7 @@ void draw_ozone_panel(UiState& ui,
         const int total = std::max(1, spec.best_lag_total);
         const int tested = std::clamp(spec.best_lag_tested, 0, total);
         ImGui::SameLine();
-        ImGui::TextDisabled("%d/%d · mejor %d d", tested, total, std::max(0, spec.best_lag_best));
+        ImGui::TextDisabled("%d/%d · %s %d d", tested, total, tlalpowa_tr("mejor"), std::max(0, spec.best_lag_best));
     }
 
     const int legend_count = ozone_legend_disease_count(legend_corr);
@@ -56002,20 +57721,20 @@ void draw_graph_configuration_modal(UiState& ui) {
         const int tab = std::clamp(ui.graph_config_tab, 1, 2);
         const int idx = ui.graph_config_index;
         if (idx < 0 || idx >= std::clamp(ui.graph_counts[tab], 0, 8)) {
-            ImGui::TextUnformatted("La grafica seleccionada ya no existe.");
+            ImGui::TextUnformatted(tlalpowa_tr("La grafica seleccionada ya no existe."));
             if (toolbar_button("Cerrar", ui.accent, true)) ImGui::CloseCurrentPopup();
             ImGui::EndPopup();
             ImGui::PopStyleVar();
             return;
         }
         GraphSpec& spec = ui.graph_specs[tab][static_cast<size_t>(idx)];
-        ImGui::TextUnformatted("Configurar grafica");
+        ImGui::TextUnformatted(tlalpowa_tr("Configurar grafica"));
         const int graph_combo_count = tlac_combo_count();
         const char* types[8] = {};
-        for (int ti = 0; ti < graph_combo_count && ti < 8; ++ti) types[ti] = tlac_combo_label(ti);
+        for (int ti = 0; ti < graph_combo_count && ti < 8; ++ti) types[ti] = tlalpowa_tr(tlac_combo_label(ti));
         int graph_combo_index = tlac_combo_de_tipo(ui.pending_chart_type);
         ImGui::SetNextItemWidth(260.0f);
-        if (ImGui::Combo("Tipo de grafica", &graph_combo_index, types, graph_combo_count)) {
+        if (ImGui::Combo((std::string(tlalpowa_tr("Tipo de grafica")) + "##tipo-grafica").c_str(), &graph_combo_index, types, graph_combo_count)) {
             ui.pending_chart_type = tlac_tipo_de_combo(graph_combo_index);
         }
         draw_axis_combo_pair("Eje X", ui.pending_axis_x_domain, ui.pending_axis_x);
@@ -56025,9 +57744,9 @@ void draw_graph_configuration_modal(UiState& ui) {
         draw_golden_checkbox_labeled("Usar filtros visibles del panel lateral", &ui.pending_use_selected_data, ui.accent, ui.light_theme);
         draw_golden_checkbox_labeled("Mostrar ajuste estadistico cuando aplique", &ui.pending_show_fit_line, ui.accent, ui.light_theme);
         ImGui::SetNextItemWidth(220.0f);
-        ImGui::Combo("Modelo de ajuste", &ui.pending_fit_model, "OLS\0Theil-Sen\0");
+        ImGui::Combo((std::string(tlalpowa_tr("Modelo de ajuste")) + "##modelo-ajuste").c_str(), &ui.pending_fit_model, "OLS\0Theil-Sen\0");
         ImGui::Spacing();
-        if (toolbar_button("Guardar configuracion", ui.accent, true)) {
+        if (toolbar_button(tlalpowa_tr("Guardar configuracion"), ui.accent, true)) {
             spec.chart_type = ui.pending_chart_type;
             spec.axis_x_domain = ui.pending_axis_x_domain;
             spec.axis_x = ui.pending_axis_x;
@@ -56042,11 +57761,11 @@ void draw_graph_configuration_modal(UiState& ui) {
             tlac_limpia_spec(spec);
             reset_ozone_best_lag_search(spec);
             tlac_titulo_pon(spec, tlac_titulo_base(spec));
-            graph_set_status(ui, "Grafica actualizada.");
+            graph_set_status(ui, tlalpowa_tr("Grafica actualizada."));
             ImGui::CloseCurrentPopup();
         }
         ImGui::SameLine();
-        if (toolbar_button("Cancelar", ui.accent, false)) ImGui::CloseCurrentPopup();
+        if (toolbar_button(tlalpowa_tr("Cancelar"), ui.accent, false)) ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
     }
     ImGui::PopStyleVar();
@@ -56108,7 +57827,7 @@ void draw_single_graph_card(UiState& ui, int tab_index, int graph_index, float c
     }
     if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) ImGui::OpenPopup("graph-card-menu");
     if (ozone_epi_disp) {
-        const char* table_mode = spec.use_selected_data ? "Filtro lateral" : "Todos los datos";
+        const char* table_mode = spec.use_selected_data ? tlalpowa_tr("Filtro lateral") : tlalpowa_tr("Todos los datos");
         dl->AddText(ImVec2(a.x + pad, a.y + pad * kGoldenN2 + header_gap * 2.0f),
                     ui.light_theme ? IM_COL32(82, 94, 106, 196) : IM_COL32(170, 184, 198, 196), table_mode);
         const float gap = std::clamp(card_w * kGoldenN8, 18.0f, 34.0f);
@@ -56125,27 +57844,27 @@ void draw_single_graph_card(UiState& ui, int tab_index, int graph_index, float c
                           ui.accent, ui.light_theme, spec.show_fit_line, spec.fit_model);
         char summary[96];
         std::snprintf(summary, sizeof(summary), "n=%d · %s", static_cast<int>(chart_points.size()),
-                      spec.use_selected_data ? "filtro lateral" : "todos");
+                      spec.use_selected_data ? tlalpowa_tr("filtro lateral") : tlalpowa_tr("todos"));
         dl->AddText(ImVec2(a.x + pad, plot_bottom + std::clamp(pad * kGoldenN2, 8.0f, 18.0f)),
                     ui.light_theme ? IM_COL32(82, 94, 106, 210) : IM_COL32(170, 184, 198, 210), summary);
     }
     if (ImGui::BeginPopup("graph-card-menu")) {
-        if (ImGui::MenuItem("Configurar")) {
+        if (ImGui::MenuItem(tlalpowa_tr("Configurar"))) {
             tlac_precarga_spec(ui, spec);
             ui.graph_config_tab = tab_index;
             ui.graph_config_index = graph_index;
             request_config = true;
         }
-        if (ImGui::MenuItem("Duplicar", nullptr, false, ui.graph_counts[tab_index] < 8)) duplicate_graph = true;
-        if (ImGui::MenuItem("Eliminar")) remove_graph = true;
+        if (ImGui::MenuItem(tlalpowa_tr("Duplicar"), nullptr, false, ui.graph_counts[tab_index] < 8)) duplicate_graph = true;
+        if (ImGui::MenuItem(tlalpowa_tr("Eliminar"))) remove_graph = true;
         ImGui::Separator();
-        if (ImGui::MenuItem("Descargar CSV")) export_graph_csv(ui, spec, tab_index, graph_index);
-        if (ImGui::MenuItem("Copiar PNG")) {
+        if (ImGui::MenuItem(tlalpowa_tr("Descargar CSV"))) export_graph_csv(ui, spec, tab_index, graph_index);
+        if (ImGui::MenuItem(tlalpowa_tr("Copiar PNG"))) {
             ui.graph_capture_min = a;
             ui.graph_capture_max = b;
             ui.graph_capture_mode = 1;
             ui.graph_capture_pending = true;
-            graph_set_status(ui, "Copiando PNG.");
+            graph_set_status(ui, tlalpowa_tr("Copiando PNG."));
         }
         ImGui::EndPopup();
     }
@@ -57151,6 +58870,7 @@ int run_tlalpowa_app() {
         ImGui_ImplGlfw_NewFrame();
 
         ImGui::NewFrame();
+        tlalpowa_i18n_set_language(ui.user_language);
         try {
             static int last_active_tab_for_memory = 0;
             draw_top_bar(ui);
@@ -57180,12 +58900,12 @@ int run_tlalpowa_app() {
         } catch (const std::exception& e) {
 
             std::lock_guard<std::mutex> lock(ui.mu);
-            ui.status = std::string("Render protegido: ") + e.what();
+            ui.status = std::string(tlalpowa_tr("Render protegido")) + ": " + e.what();
 
         } catch (...) {
 
             std::lock_guard<std::mutex> lock(ui.mu);
-            ui.status = "Render protegido: error desconocido";
+            ui.status = std::string(tlalpowa_tr("Render protegido")) + ": " + tlalpowa_tr("error desconocido");
         }
 
         ImGui::Render();
