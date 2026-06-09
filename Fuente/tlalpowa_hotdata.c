@@ -27,6 +27,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <sched.h>
 #define TLALPOWA_PATH_SEP '/'
 #endif
 
@@ -42,9 +43,17 @@
 #define TLAL_HOT_DEFAULT_BUDGET (96ull * 1024ull * 1024ull)
 #define TLAL_HOT_MAX_BUDGET (384ull * 1024ull * 1024ull)
 #define TLAL_HOT_DEFAULT_CACHE_BYTES (32ull * 1024ull * 1024ull)
-#define TLAL_HOT_MAX_CACHE_BYTES (128ull * 1024ull * 1024ull)
-#define TLAL_HOT_CACHE_LINES_MAX 128u
-#define TLAL_HOT_CACHE_LINES_DEFAULT 48u
+#define TLAL_HOT_MAX_CACHE_BYTES (256ull * 1024ull * 1024ull)
+#define TLAL_HOT_DEFAULT_RETAINED_MAP_BYTES (128ull * 1024ull * 1024ull)
+#define TLAL_HOT_MAX_RETAINED_MAP_BYTES (256ull * 1024ull * 1024ull)
+#define TLAL_HOT_CACHE_LINES_MAX 8192u
+#define TLAL_HOT_CACHE_LINES_DEFAULT 4096u
+#define TLAL_HOT_STARTUP_GATE_RECORDS_DEFAULT 10u
+#define TLAL_HOT_STARTUP_GATE_RECORDS_MAX 16u
+#define TLAL_HOT_STARTUP_GATE_BYTES_DEFAULT (64u * 1024u)
+#define TLAL_HOT_STARTUP_GATE_BYTES_MAX (2u * 1024u * 1024u)
+#define TLAL_HOT_STARTUP_CATEGORY_LIMIT_DEFAULT 512u
+#define TLAL_HOT_STARTUP_CATEGORY_LIMIT_MAX 512u
 #define TLAL_PAGE_PROBE_BYTES 4096u
 #define TLAL_CORE_SLOT_COUNT 5u
 #define TLAL_CORE_SLOT_ANY 0u
@@ -78,6 +87,7 @@ typedef struct TlalHotFile {
     char path[TLALPOWA_HOT_PATH_MAX];
     uint64_t size;
     uint32_t kind;
+    TlalMappedFile map;
 } TlalHotFile;
 
 typedef struct TlalHotRecord {
@@ -136,6 +146,8 @@ typedef struct TlalHotRuntimeIndex {
     uint64_t cache_bytes;
     uint64_t cache_limit_bytes;
     uint64_t cache_tick;
+    uint64_t mapped_file_bytes;
+    uint64_t mapped_file_limit_bytes;
     uint32_t cache_line_count;
 } TlalHotRuntimeIndex;
 
@@ -158,8 +170,58 @@ typedef struct TlalTopHit {
     uint32_t record_index;
 } TlalTopHit;
 
+typedef struct TlalStartupCategory {
+    uint32_t core_group;
+    uint32_t type;
+    uint32_t schema;
+    uint64_t layer_hash;
+    uint64_t temporal_key;
+    uint32_t record_count;
+    uint32_t record_indices[TLAL_HOT_STARTUP_GATE_RECORDS_MAX];
+} TlalStartupCategory;
+
 static TlalHotRuntimeIndex g_tlal_hot_index;
 static volatile unsigned char g_tlal_hot_sink;
+
+/*
+CONTRATO FIJO DE HOT DATA TLALPOWA:
+1) La bienvenida NO busca la fecha civil actual. Casi nunca los datos regionales
+   estan al dia; por tanto el primer plano toma los ULTIMOS DIEZ registros
+   IXIPTLAH realmente disponibles por cada categoria fisica encontrada.
+2) Categoria fisica significa nucleo/tipo/esquema/capa; asi contaminantes,
+   meteorologia, epidemiologia y otros grupos no se colapsan en un unico
+   resumen ni en una fecha inventada.
+3) La bienvenida puede durar un poco mas: solo se desvanece cuando esa hotdata
+   inicial de ultimos diez registros por categoria queda realmente en cache Y
+   cuando la primera fecha visible ya fue preparada; no debe existir pausa de
+   varios segundos despues del fade para que aparezcan datos.
+4) Tras entrar a la aplicacion, la fecha/hora activa solicitada tiene prioridad
+   absoluta y sincronica: se sirve antes que cualquier vecino o barrido amplio.
+5) Los vecinos cronologicos se precalientan despues, adelante/atras por distancia,
+   del mas cercano al mas lejano, en segundo plano y sin robar la ruta activa.
+6) El hilo progresivo posterior nunca bloquea bienvenida y corre con menor
+   prioridad; el primer plano puede elevar prioridad temporalmente si pasan 2 s.
+7) Nunca se sustituyen payloads por resumenes, sidecars ni agregados falsos.
+*/
+#ifdef _WIN32
+static volatile LONG g_tlal_hot_lock_word = 0;
+static void tlal_hot_lock(void) { while (InterlockedCompareExchange(&g_tlal_hot_lock_word, 1, 0) != 0) Sleep(0); }
+static void tlal_hot_unlock(void) { InterlockedExchange(&g_tlal_hot_lock_word, 0); }
+#else
+static volatile int g_tlal_hot_lock_word = 0;
+static void tlal_hot_lock(void) { while (__sync_lock_test_and_set(&g_tlal_hot_lock_word, 1)) sched_yield(); }
+static void tlal_hot_unlock(void) { __sync_lock_release(&g_tlal_hot_lock_word); }
+#endif
+
+static void tlal_mapped_file_init(TlalMappedFile* mf) {
+    if (!mf) return;
+    memset(mf, 0, sizeof(*mf));
+#ifdef _WIN32
+    mf->file = INVALID_HANDLE_VALUE;
+#else
+    mf->fd = -1;
+#endif
+}
 
 static uint32_t tlal_rd_u32_le(const unsigned char* p) {
     return ((uint32_t)p[0]) | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
@@ -244,7 +306,7 @@ static void tlal_unmap_file(TlalMappedFile* mf) {
 
 static int tlal_map_file_readonly(const char* path, TlalMappedFile* mf) {
     if (!path || !mf) return 0;
-    memset(mf, 0, sizeof(*mf));
+    tlal_mapped_file_init(mf);
 #ifdef _WIN32
     mf->file = INVALID_HANDLE_VALUE;
     mf->mapping = NULL;
@@ -264,7 +326,6 @@ static int tlal_map_file_readonly(const char* path, TlalMappedFile* mf) {
     mf->mapped = 1;
     return 1;
 #else
-    mf->fd = -1;
     mf->fd = open(path, O_RDONLY);
     if (mf->fd < 0) return 0;
     {
@@ -291,6 +352,10 @@ static void tlal_runtime_index_free(TlalHotRuntimeIndex* ix) {
         size_t slot;
         for (slot = 0u; slot < TLAL_CORE_SLOT_COUNT; ++slot) free(ix->core_order[slot]);
     }
+    for (i = 0; i < ix->file_count; ++i) {
+        tlal_unmap_file(&ix->files[i].map);
+    }
+    ix->mapped_file_bytes = 0ull;
     free(ix->files);
     free(ix->records);
     free(ix->temporal_order);
@@ -298,7 +363,9 @@ static void tlal_runtime_index_free(TlalHotRuntimeIndex* ix) {
 }
 
 void tlalpowa_hotdata_release_runtime_index(void) {
+    tlal_hot_lock();
     tlal_runtime_index_free(&g_tlal_hot_index);
+    tlal_hot_unlock();
 }
 
 static int tlal_runtime_add_file(TlalHotRuntimeIndex* ix, const char* path, uint64_t size, uint32_t kind, uint32_t* out_index) {
@@ -314,6 +381,7 @@ static int tlal_runtime_add_file(TlalHotRuntimeIndex* ix, const char* path, uint
     }
     *out_index = (uint32_t)ix->file_count;
     memset(&ix->files[ix->file_count], 0, sizeof(ix->files[ix->file_count]));
+    tlal_mapped_file_init(&ix->files[ix->file_count].map);
     snprintf(ix->files[ix->file_count].path, sizeof(ix->files[ix->file_count].path), "%s", path);
     ix->files[ix->file_count].size = size;
     ix->files[ix->file_count].kind = kind;
@@ -412,6 +480,37 @@ static void tlal_touch_file_span(TlalHotState* st, const char* path, uint64_t of
     fclose(f);
 }
 
+static uint64_t tlal_read_path_span(const char* path, uint64_t offset, void* out, uint64_t requested) {
+    FILE* f;
+    uint64_t size, remain;
+    size_t got;
+    if (!path || !*path || !out || requested == 0ull) return 0ull;
+    f = fopen(path, "rb");
+    if (!f) return 0ull;
+    size = tlal_file_size_stream(f);
+    if (offset >= size) { fclose(f); return 0ull; }
+    remain = size - offset;
+    if (remain > requested) remain = requested;
+    if (remain > (uint64_t)SIZE_MAX) remain = (uint64_t)SIZE_MAX;
+    if (!tlal_seek_stream(f, offset)) { fclose(f); return 0ull; }
+    got = fread(out, 1u, (size_t)remain, f);
+    fclose(f);
+    return got;
+}
+
+static uint64_t tlal_read_hot_file_span(const TlalHotFile* file, uint64_t offset, void* out, uint64_t requested) {
+    uint64_t remain;
+    if (!file || !out || requested == 0ull) return 0ull;
+    if (file->map.data && offset < file->map.size) {
+        remain = file->map.size - offset;
+        if (remain > requested) remain = requested;
+        if (remain > (uint64_t)SIZE_MAX) remain = (uint64_t)SIZE_MAX;
+        memcpy(out, file->map.data + offset, (size_t)remain);
+        return remain;
+    }
+    return tlal_read_path_span(file->path, offset, out, requested);
+}
+
 static uint64_t tlal_runtime_cache_limit(const TlalHotRuntimeIndex* ix) {
     if (!ix || ix->cache_limit_bytes == 0ull) return TLAL_HOT_DEFAULT_CACHE_BYTES;
     return ix->cache_limit_bytes;
@@ -454,9 +553,8 @@ static size_t tlal_cache_pick_slot(TlalHotRuntimeIndex* ix) {
 static uint64_t tlal_cache_load_record(TlalHotState* st, const TlalHotRecord* rec, uint64_t bytes) {
     const TlalHotFile* file;
     unsigned char* mem;
-    FILE* f;
-    uint64_t need, limit, room;
-    size_t pos, got;
+    uint64_t need, limit, room, got;
+    size_t pos;
     uint32_t line_limit;
     if (!st || !rec || rec->file_index >= st->index.file_count || bytes == 0ull) return 0ull;
     file = &st->index.files[rec->file_index];
@@ -489,16 +587,12 @@ static uint64_t tlal_cache_load_record(TlalHotState* st, const TlalHotRecord* re
     if (need > room || st->index.cache_bytes + need > room) return 0ull;
     mem = (unsigned char*)malloc((size_t)need);
     if (!mem) return 0ull;
-    f = fopen(file->path, "rb");
-    if (!f) { free(mem); return 0ull; }
-    if (!tlal_seek_stream(f, rec->payload_offset)) { fclose(f); free(mem); return 0ull; }
-    got = fread(mem, 1u, (size_t)need, f);
-    fclose(f);
-    if (got == 0u) { free(mem); return 0ull; }
+    got = tlal_read_hot_file_span(file, rec->payload_offset, mem, need);
+    if (got == 0ull) { free(mem); return 0ull; }
     pos = tlal_cache_pick_slot(&st->index);
     tlal_cache_evict_line(&st->index, pos);
     st->index.cache[pos].data = mem;
-    st->index.cache[pos].bytes = (uint64_t)got;
+    st->index.cache[pos].bytes = got;
     st->index.cache[pos].tick = ++st->index.cache_tick;
     st->index.cache[pos].temporal_key = rec->temporal_key;
     st->index.cache[pos].payload_offset = rec->payload_offset;
@@ -506,9 +600,9 @@ static uint64_t tlal_cache_load_record(TlalHotState* st, const TlalHotRecord* re
     st->index.cache[pos].file_index = rec->file_index;
     st->index.cache[pos].record_index = (uint32_t)(rec - st->index.records);
     st->index.cache[pos].core_group = rec->core_group;
-    st->index.cache_bytes += (uint64_t)got;
-    st->budget_left = st->budget_left > (uint64_t)got ? st->budget_left - (uint64_t)got : 0ull;
-    if (st->stats) { st->stats->touched_bytes += (uint64_t)got; st->stats->cache_bytes = st->index.cache_bytes; }
+    st->index.cache_bytes += got;
+    st->budget_left = st->budget_left > got ? st->budget_left - got : 0ull;
+    if (st->stats) { st->stats->touched_bytes += got; st->stats->cache_bytes = st->index.cache_bytes; }
     g_tlal_hot_sink ^= mem[0];
     return (uint64_t)got;
 }
@@ -520,6 +614,10 @@ static void tlal_touch_record(TlalHotState* st, const TlalHotRecord* rec, uint64
     n = rec->stored_size < bytes ? rec->stored_size : bytes;
     if (tlal_cache_load_record(st, rec, n) != 0ull) return;
     file = &st->index.files[rec->file_index];
+    if (file->map.data) {
+        tlal_touch_mapped_span(st, file->map.data, file->map.size, rec->payload_offset, n, NULL);
+        return;
+    }
     tlal_touch_file_span(st, file->path, rec->payload_offset, n);
 }
 
@@ -602,6 +700,14 @@ static int tlal_parse_ixiptlah_directory_mapped(TlalHotState* st, const char* pa
             tlal_touch_mapped_span(st, mf.data, mf.size, rec.payload_offset, n, &probed);
             if (st->stats) st->stats->record_probe_bytes += probed;
         }
+    }
+    if (st->cfg.keep_runtime_index && file_index < st->index.file_count && mf.mapped &&
+        st->index.mapped_file_bytes <= st->index.mapped_file_limit_bytes &&
+        mf.size <= st->index.mapped_file_limit_bytes - st->index.mapped_file_bytes) {
+        st->index.files[file_index].map = mf;
+        st->index.mapped_file_bytes += mf.size;
+        if (st->stats) st->stats->retained_mapped_file_bytes = st->index.mapped_file_bytes;
+        tlal_mapped_file_init(&mf);
     }
     tlal_unmap_file(&mf);
     return 1;
@@ -805,6 +911,14 @@ static void tlal_hit_from_record(const TlalHotRuntimeIndex* ix, const TlalHotRec
     snprintf(hit->path, sizeof(hit->path), "%s", ix->files[r->file_index].path);
 }
 
+/*
+Orden temporal estricto: la salida inicia con la llave solicitada si existe; si no,
+con el registro real mas cercano. Despues alterna izquierda/derecha segun
+distancia absoluta, por lo que el prefetch avanza desde el vecino mas cercano
+hacia el mas lejano sin barrer registros ajenos a la familia solicitada.
+Durante la bienvenida esta rutina se usa solo con los ultimos registros por
+categoria; los vecinos cronologicos amplios se cargan ya con la interfaz viva.
+*/
 static uint32_t tlal_collect_record_indices_near(const TlalHotRuntimeIndex* ix,
                                                  uint32_t core_group,
                                                  uint64_t temporal_key,
@@ -846,6 +960,12 @@ static uint32_t tlal_collect_record_indices_near(const TlalHotRuntimeIndex* ix,
     return out;
 }
 
+/*
+Prefetch progresivo: temporal_key es la fecha activa o la ultima fecha real de
+una categoria. Se toca primero esa llave o su vecino fisico mas cercano; luego
+los registros adelante/atras por cercania temporal real, sin bloquear la
+bienvenida cuando se invoca desde el hilo de fondo.
+*/
 static void tlal_prewarm_temporal_near(TlalHotState* st, uint32_t core_group, uint64_t temporal_key, uint32_t want, uint64_t bytes) {
     const uint32_t* order;
     size_t order_count;
@@ -877,12 +997,188 @@ static void tlal_prewarm_temporal_near(TlalHotState* st, uint32_t core_group, ui
     if (st->stats) st->stats->progressive_records_touched += touched;
 }
 
-static void tlal_prewarm_progressive_neighbors(TlalHotState* st) {
-    if (!st || st->cfg.progressive_neighbor_records == 0u || st->index.record_count == 0u) return;
+static int tlal_startup_category_same(const TlalStartupCategory* c, const TlalHotRecord* r) {
+    return c && r && c->core_group == r->core_group && c->type == r->type &&
+           c->schema == r->schema && c->layer_hash == r->layer_hash;
+}
+
+static void tlal_startup_category_insert_record(TlalStartupCategory* c,
+                                                const TlalHotRuntimeIndex* ix,
+                                                uint32_t record_index,
+                                                uint32_t per_category) {
+    uint32_t pos, i;
+    uint64_t key;
+    if (!c || !ix || record_index >= ix->record_count || per_category == 0u) return;
+    if (per_category > TLAL_HOT_STARTUP_GATE_RECORDS_MAX) per_category = TLAL_HOT_STARTUP_GATE_RECORDS_MAX;
+    key = ix->records[record_index].temporal_key;
+    if (key == 0ull) return;
+    for (i = 0u; i < c->record_count; ++i) {
+        if (c->record_indices[i] == record_index) return;
+    }
+    pos = c->record_count;
+    for (i = 0u; i < c->record_count; ++i) {
+        const uint32_t ri = c->record_indices[i];
+        const uint64_t old_key = ri < ix->record_count ? ix->records[ri].temporal_key : 0ull;
+        if (key > old_key || (key == old_key && record_index > ri)) { pos = i; break; }
+    }
+    if (c->record_count < per_category) {
+        for (i = c->record_count; i > pos; --i) c->record_indices[i] = c->record_indices[i - 1u];
+        c->record_indices[pos] = record_index;
+        c->record_count += 1u;
+    } else if (pos < per_category) {
+        for (i = per_category - 1u; i > pos; --i) c->record_indices[i] = c->record_indices[i - 1u];
+        c->record_indices[pos] = record_index;
+    }
+    if (c->record_count != 0u) {
+        const uint32_t top = c->record_indices[0];
+        c->temporal_key = top < ix->record_count ? ix->records[top].temporal_key : key;
+    }
+}
+
+static void tlal_startup_category_consider(TlalStartupCategory* cats,
+                                           uint32_t* count,
+                                           uint32_t limit,
+                                           const TlalHotRuntimeIndex* ix,
+                                           uint32_t record_index,
+                                           uint32_t per_category) {
+    uint32_t i;
+    uint32_t weakest = UINT32_MAX;
+    uint64_t weakest_key = UINT64_MAX;
+    const TlalHotRecord* r;
+    if (!cats || !count || !ix || record_index >= ix->record_count || limit == 0u) return;
+    r = &ix->records[record_index];
+    if (r->temporal_key == 0ull) return;
+    for (i = 0u; i < *count; ++i) {
+        if (tlal_startup_category_same(&cats[i], r)) {
+            tlal_startup_category_insert_record(&cats[i], ix, record_index, per_category);
+            return;
+        }
+    }
+    if (*count < limit) {
+        TlalStartupCategory* c = &cats[(*count)++];
+        memset(c, 0, sizeof(*c));
+        c->core_group = r->core_group;
+        c->type = r->type;
+        c->schema = r->schema;
+        c->layer_hash = r->layer_hash;
+        tlal_startup_category_insert_record(c, ix, record_index, per_category);
+        return;
+    }
+    for (i = 0u; i < *count; ++i) {
+        if (cats[i].temporal_key < weakest_key) { weakest_key = cats[i].temporal_key; weakest = i; }
+    }
+    if (weakest != UINT32_MAX && r->temporal_key > cats[weakest].temporal_key) {
+        TlalStartupCategory* c = &cats[weakest];
+        memset(c, 0, sizeof(*c));
+        c->core_group = r->core_group;
+        c->type = r->type;
+        c->schema = r->schema;
+        c->layer_hash = r->layer_hash;
+        tlal_startup_category_insert_record(c, ix, record_index, per_category);
+    }
+}
+
+static int tlal_startup_category_cmp_desc(const void* a, const void* b) {
+    const TlalStartupCategory* ca = (const TlalStartupCategory*)a;
+    const TlalStartupCategory* cb = (const TlalStartupCategory*)b;
+    if (ca->core_group != cb->core_group) return ca->core_group < cb->core_group ? -1 : 1;
+    if (ca->type != cb->type) return ca->type < cb->type ? -1 : 1;
+    if (ca->temporal_key != cb->temporal_key) return ca->temporal_key > cb->temporal_key ? -1 : 1;
+    if (ca->schema != cb->schema) return ca->schema < cb->schema ? -1 : 1;
+    if (ca->layer_hash != cb->layer_hash) return ca->layer_hash < cb->layer_hash ? -1 : 1;
+    return 0;
+}
+
+static void tlal_prewarm_latest_categories(TlalHotState* st) {
+    TlalStartupCategory cats[TLAL_HOT_STARTUP_CATEGORY_LIMIT_MAX];
+    uint32_t count = 0u;
+    uint32_t limit, per_category, i, j;
+    uint64_t bytes, expected;
+    if (!st || st->index.record_count == 0u) return;
+    limit = st->cfg.startup_gate_category_limit;
+    if (limit == 0u) limit = TLAL_HOT_STARTUP_CATEGORY_LIMIT_DEFAULT;
+    if (limit > TLAL_HOT_STARTUP_CATEGORY_LIMIT_MAX) limit = TLAL_HOT_STARTUP_CATEGORY_LIMIT_MAX;
+    per_category = st->cfg.startup_gate_records_per_core;
+    if (per_category == 0u) per_category = TLAL_HOT_STARTUP_GATE_RECORDS_DEFAULT;
+    if (per_category > TLAL_HOT_STARTUP_GATE_RECORDS_MAX) per_category = TLAL_HOT_STARTUP_GATE_RECORDS_MAX;
+    memset(cats, 0, sizeof(cats));
+    for (i = 0u; i < st->index.record_count; ++i) {
+        const TlalHotRecord* r = &st->index.records[i];
+        if (r->core_group == TLALPOWA_HOTDATA_CORE_ANY) continue;
+        tlal_startup_category_consider(cats, &count, limit, &st->index, i, per_category);
+    }
+    if (count > 1u) qsort(cats, count, sizeof(cats[0]), tlal_startup_category_cmp_desc);
+    expected = 0ull;
+    for (i = 0u; i < count; ++i) expected += (uint64_t)cats[i].record_count;
+    if (st->stats) st->stats->startup_gate_expected_hits = expected;
+    bytes = st->cfg.startup_gate_bytes_per_record;
+    if (bytes == 0ull) bytes = TLAL_HOT_STARTUP_GATE_BYTES_DEFAULT;
+    for (i = 0u; i < count && st->budget_left != 0ull; ++i) {
+        for (j = 0u; j < cats[i].record_count && j < per_category && st->budget_left != 0ull; ++j) {
+            const uint32_t ri = cats[i].record_indices[j];
+            const TlalHotRecord* r;
+            uint64_t got;
+            if (ri >= st->index.record_count) continue;
+            r = &st->index.records[ri];
+            got = tlal_cache_load_record(st, r, bytes);
+            if (got != 0ull && st->stats) {
+                st->stats->startup_gate_hits += 1ull;
+                st->stats->startup_gate_bytes += got;
+                st->stats->prepared_hits += 1ull;
+                st->stats->prepared_bytes += got;
+            }
+        }
+    }
+    if (st->stats) {
+        st->stats->startup_gate_categories = count;
+        st->stats->progressive_records_touched += st->stats->startup_gate_hits;
+        st->stats->cache_bytes = st->index.cache_bytes;
+    }
+}
+
+static void tlal_startup_gate_core(TlalHotState* st, uint32_t core_group, uint64_t temporal_key) {
+    uint32_t indices[TLAL_HOT_STARTUP_GATE_RECORDS_MAX];
+    uint32_t cap, count, i;
+    uint64_t exact_hits = 0ull;
+    uint64_t bytes;
+    if (!st || temporal_key == 0ull || st->index.record_count == 0u) return;
     if (!st->index.temporal_order || st->index.temporal_order_count == 0u) (void)tlal_runtime_build_temporal_order(&st->index);
-    tlal_prewarm_temporal_near(st, st->latest_con.core_group, st->latest_con.temporal_key, st->cfg.progressive_neighbor_records, st->cfg.neighbor_bytes_per_record);
-    tlal_prewarm_temporal_near(st, st->latest_met.core_group, st->latest_met.temporal_key, st->cfg.progressive_neighbor_records, st->cfg.neighbor_bytes_per_record);
-    tlal_prewarm_temporal_near(st, st->latest_epi.core_group, st->latest_epi.temporal_key, st->cfg.progressive_neighbor_records, st->cfg.neighbor_bytes_per_record);
+    cap = st->cfg.startup_gate_records_per_core;
+    if (cap == 0u) return;
+    if (cap > TLAL_HOT_STARTUP_GATE_RECORDS_MAX) cap = TLAL_HOT_STARTUP_GATE_RECORDS_MAX;
+    bytes = st->cfg.startup_gate_bytes_per_record;
+    if (bytes == 0ull) bytes = TLAL_HOT_STARTUP_GATE_BYTES_DEFAULT;
+    count = tlal_collect_record_indices_near(&st->index, core_group, temporal_key, cap, indices, &exact_hits);
+    if (st->stats) {
+        st->stats->binary_searches += 1ull;
+        st->stats->startup_gate_exact_hits += exact_hits;
+        st->stats->startup_gate_expected_hits += count;
+        st->stats->progressive_records_touched += count;
+    }
+    for (i = 0u; i < count && st->budget_left != 0ull; ++i) {
+        const TlalHotRecord* r = &st->index.records[indices[i]];
+        uint64_t got = tlal_cache_load_record(st, r, bytes);
+        if (got != 0ull && st->stats) {
+            st->stats->startup_gate_hits += 1ull;
+            st->stats->startup_gate_bytes += got;
+            st->stats->prepared_hits += 1ull;
+            st->stats->prepared_bytes += got;
+        }
+    }
+}
+
+static void tlal_prewarm_startup_gate(TlalHotState* st) {
+    uint64_t before;
+    if (!st || st->index.record_count == 0u) return;
+    if (!st->index.temporal_order || st->index.temporal_order_count == 0u) (void)tlal_runtime_build_temporal_order(&st->index);
+    before = st->stats ? st->stats->startup_gate_hits : 0ull;
+    tlal_prewarm_latest_categories(st);
+    if (st->stats && st->stats->startup_gate_hits > before) { st->stats->cache_bytes = st->index.cache_bytes; return; }
+    tlal_startup_gate_core(st, TLALPOWA_HOTDATA_CORE_CONTAMINANT, st->latest_con.temporal_key);
+    tlal_startup_gate_core(st, TLALPOWA_HOTDATA_CORE_METEOROLOGY, st->latest_met.temporal_key);
+    tlal_startup_gate_core(st, TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY, st->latest_epi.temporal_key);
+    tlal_startup_gate_core(st, TLALPOWA_HOTDATA_CORE_OTHER, st->latest_oth.temporal_key);
+    if (st->stats) st->stats->cache_bytes = st->index.cache_bytes;
 }
 
 static void tlal_touch_3d_file(TlalHotState* st, const char* path) {
@@ -982,6 +1278,12 @@ static void tlal_config_normalize(TlalpowaHotDataConfig* c) {
     if (c->max_runtime_cache_bytes > TLAL_HOT_MAX_CACHE_BYTES) c->max_runtime_cache_bytes = TLAL_HOT_MAX_CACHE_BYTES;
     if (c->runtime_cache_lines == 0u) c->runtime_cache_lines = TLAL_HOT_CACHE_LINES_DEFAULT;
     if (c->runtime_cache_lines > TLAL_HOT_CACHE_LINES_MAX) c->runtime_cache_lines = TLAL_HOT_CACHE_LINES_MAX;
+    if (c->startup_gate_records_per_core == 0u) c->startup_gate_records_per_core = TLAL_HOT_STARTUP_GATE_RECORDS_DEFAULT;
+    if (c->startup_gate_records_per_core > TLAL_HOT_STARTUP_GATE_RECORDS_MAX) c->startup_gate_records_per_core = TLAL_HOT_STARTUP_GATE_RECORDS_MAX;
+    if (c->startup_gate_bytes_per_record == 0u) c->startup_gate_bytes_per_record = TLAL_HOT_STARTUP_GATE_BYTES_DEFAULT;
+    if (c->startup_gate_bytes_per_record > TLAL_HOT_STARTUP_GATE_BYTES_MAX) c->startup_gate_bytes_per_record = TLAL_HOT_STARTUP_GATE_BYTES_MAX;
+    if (c->startup_gate_category_limit == 0u) c->startup_gate_category_limit = TLAL_HOT_STARTUP_CATEGORY_LIMIT_DEFAULT;
+    if (c->startup_gate_category_limit > TLAL_HOT_STARTUP_CATEGORY_LIMIT_MAX) c->startup_gate_category_limit = TLAL_HOT_STARTUP_CATEGORY_LIMIT_MAX;
 }
 
 TlalpowaHotDataConfig tlalpowa_hotdata_default_config(void) {
@@ -990,13 +1292,16 @@ TlalpowaHotDataConfig tlalpowa_hotdata_default_config(void) {
     c.max_depth = 6u;
     c.max_ixiptlah_files = 4096u;
     c.max_payload_bytes_per_record = 2u * 1024u * 1024u;
-    c.enable_3d_touch = 1u;
-    c.probe_bytes_per_record = 4096u;
-    c.progressive_neighbor_records = 16u;
+    c.enable_3d_touch = 0u;
+    c.probe_bytes_per_record = 0u;
+    c.progressive_neighbor_records = 0u;
     c.neighbor_bytes_per_record = 256u * 1024u;
     c.keep_runtime_index = 1u;
     c.max_runtime_cache_bytes = TLAL_HOT_DEFAULT_CACHE_BYTES;
     c.runtime_cache_lines = TLAL_HOT_CACHE_LINES_DEFAULT;
+    c.startup_gate_records_per_core = TLAL_HOT_STARTUP_GATE_RECORDS_DEFAULT;
+    c.startup_gate_bytes_per_record = TLAL_HOT_STARTUP_GATE_BYTES_DEFAULT;
+    c.startup_gate_category_limit = TLAL_HOT_STARTUP_CATEGORY_LIMIT_DEFAULT;
     return c;
 }
 
@@ -1014,17 +1319,31 @@ int tlalpowa_hotdata_prewarm_root(const char* root_utf8,
     st.budget_left = st.cfg.max_total_touch_bytes;
     st.index.cache_limit_bytes = st.cfg.max_runtime_cache_bytes;
     st.index.cache_line_count = st.cfg.runtime_cache_lines;
+    st.index.mapped_file_limit_bytes = st.cfg.max_runtime_cache_bytes >= TLAL_HOT_DEFAULT_RETAINED_MAP_BYTES / 4ull ?
+        st.cfg.max_runtime_cache_bytes * 4ull : TLAL_HOT_DEFAULT_RETAINED_MAP_BYTES;
+    if (st.index.mapped_file_limit_bytes > TLAL_HOT_MAX_RETAINED_MAP_BYTES)
+        st.index.mapped_file_limit_bytes = TLAL_HOT_MAX_RETAINED_MAP_BYTES;
     st.touch_buffer = (unsigned char*)malloc(TLAL_TOUCH_BLOCK_BYTES);
     if (!st.touch_buffer) return 0;
     tlal_scan_dir(&st, root_utf8, 0u);
     (void)tlal_runtime_build_temporal_order(&st.index);
+    /*
+    REGLA DE BIENVENIDA DE PRIMER PLANO:
+    se ignora la fecha civil actual y se toman los ultimos registros IXIPTLAH
+    disponibles por categoria fisica. La pantalla puede permanecer mas tiempo
+    para asegurar ese primer plano real, pero NO espera vecinos cronologicos;
+    ellos se cargan despues, en segundo plano, del mas cercano al mas lejano.
+    */
     tlal_prewarm_latest_candidates(&st);
-    tlal_prewarm_progressive_neighbors(&st);
+    tlal_prewarm_startup_gate(&st);
+    if (stats) stats->retained_mapped_file_bytes = st.index.mapped_file_bytes;
     if (st.cfg.keep_runtime_index) {
         if (stats) stats->cache_bytes = st.index.cache_bytes;
-        tlalpowa_hotdata_release_runtime_index();
+        tlal_hot_lock();
+        tlal_runtime_index_free(&g_tlal_hot_index);
         g_tlal_hot_index = st.index;
         memset(&st.index, 0, sizeof(st.index));
+        tlal_hot_unlock();
     } else {
         tlal_runtime_index_free(&st.index);
         if (stats) stats->cache_bytes = 0ull;
@@ -1042,8 +1361,11 @@ int tlalpowa_hotdata_prefetch_temporal(uint32_t core_group,
     TlalHotState st;
     uint32_t want;
     uint64_t bytes;
+    int ok;
     if (stats) memset(stats, 0, sizeof(*stats));
-    if (temporal_key == 0ull || !g_tlal_hot_index.records || g_tlal_hot_index.record_count == 0u) return 0;
+    if (temporal_key == 0ull) return 0;
+    tlal_hot_lock();
+    if (!g_tlal_hot_index.records || g_tlal_hot_index.record_count == 0u) { tlal_hot_unlock(); return 0; }
     memset(&st, 0, sizeof(st));
     st.cfg = tlalpowa_hotdata_default_config();
     st.cfg.max_total_touch_bytes = 32ull * 1024ull * 1024ull;
@@ -1057,7 +1379,7 @@ int tlalpowa_hotdata_prefetch_temporal(uint32_t core_group,
     st.index = g_tlal_hot_index;
     if (!st.index.temporal_order || st.index.temporal_order_count == 0u) (void)tlal_runtime_build_temporal_order(&st.index);
     st.touch_buffer = (unsigned char*)malloc(TLAL_TOUCH_BLOCK_BYTES);
-    if (!st.touch_buffer) return 0;
+    if (!st.touch_buffer) { tlal_hot_unlock(); return 0; }
     want = st.cfg.progressive_neighbor_records ? st.cfg.progressive_neighbor_records : 1u;
     bytes = st.cfg.neighbor_bytes_per_record ? (uint64_t)st.cfg.neighbor_bytes_per_record : (256ull * 1024ull);
     tlal_prewarm_temporal_near(&st, core_group, temporal_key, want, bytes);
@@ -1065,19 +1387,27 @@ int tlalpowa_hotdata_prefetch_temporal(uint32_t core_group,
     g_tlal_hot_index = st.index;
     memset(&st.index, 0, sizeof(st.index));
     free(st.touch_buffer);
-    return stats ? (stats->progressive_records_touched > 0ull) : 1;
+    ok = stats ? (stats->progressive_records_touched > 0ull) : 1;
+    tlal_hot_unlock();
+    return ok;
 }
 
 int tlalpowa_hotdata_find_nearest(uint32_t core_group,
                                   uint64_t temporal_key,
                                   TlalpowaHotDataHit* hit) {
     uint32_t record_index;
+    int ok = 0;
     if (hit) memset(hit, 0, sizeof(*hit));
-    if (!hit || temporal_key == 0ull || !g_tlal_hot_index.records || g_tlal_hot_index.record_count == 0u) return 0;
-    if (!g_tlal_hot_index.temporal_order || g_tlal_hot_index.temporal_order_count == 0u) return 0;
-    if (!tlal_runtime_find_nearest_record_index(&g_tlal_hot_index, core_group, temporal_key, &record_index)) return 0;
-    tlal_hit_from_record(&g_tlal_hot_index, &g_tlal_hot_index.records[record_index], hit);
-    return 1;
+    if (!hit || temporal_key == 0ull) return 0;
+    tlal_hot_lock();
+    if (g_tlal_hot_index.records && g_tlal_hot_index.record_count != 0u &&
+        g_tlal_hot_index.temporal_order && g_tlal_hot_index.temporal_order_count != 0u &&
+        tlal_runtime_find_nearest_record_index(&g_tlal_hot_index, core_group, temporal_key, &record_index)) {
+        tlal_hit_from_record(&g_tlal_hot_index, &g_tlal_hot_index.records[record_index], hit);
+        ok = 1;
+    }
+    tlal_hot_unlock();
+    return ok;
 }
 
 uint32_t tlalpowa_hotdata_collect_window(uint32_t core_group,
@@ -1087,32 +1417,36 @@ uint32_t tlalpowa_hotdata_collect_window(uint32_t core_group,
     uint32_t stack_indices[256];
     uint32_t local_indices_small[32];
     uint32_t* indices;
-    uint32_t count, i, cap;
+    uint32_t count = 0u, i, cap;
     uint64_t exact_hits = 0ull;
-    if (!hits || max_hits == 0u || temporal_key == 0ull || !g_tlal_hot_index.records || g_tlal_hot_index.record_count == 0u) return 0u;
+    if (!hits || max_hits == 0u || temporal_key == 0ull) return 0u;
     cap = max_hits;
     if (cap > 256u) cap = 256u;
     memset(hits, 0, (size_t)cap * sizeof(*hits));
+    tlal_hot_lock();
+    if (!g_tlal_hot_index.records || g_tlal_hot_index.record_count == 0u) { tlal_hot_unlock(); return 0u; }
     indices = cap <= 32u ? local_indices_small : stack_indices;
     count = tlal_collect_record_indices_near(&g_tlal_hot_index, core_group, temporal_key, cap, indices, &exact_hits);
     for (i = 0u; i < count; ++i) tlal_hit_from_record(&g_tlal_hot_index, &g_tlal_hot_index.records[indices[i]], &hits[i]);
     (void)exact_hits;
+    tlal_hot_unlock();
     return count;
 }
-
 
 uint64_t tlalpowa_hotdata_read_hit(const TlalpowaHotDataHit* hit,
                                    void* out_buffer,
                                    uint64_t out_capacity,
                                    uint64_t payload_relative_offset) {
-    FILE* f;
-    uint64_t remain;
-    size_t got;
+    uint64_t remain, absolute_offset, got = 0ull;
     uint32_t i, limit;
     if (!hit || !out_buffer || out_capacity == 0ull || !hit->path[0]) return 0ull;
     if (payload_relative_offset >= hit->stored_size) return 0ull;
+    if (hit->payload_offset > UINT64_MAX - payload_relative_offset) return 0ull;
     remain = hit->stored_size - payload_relative_offset;
     if (remain > out_capacity) remain = out_capacity;
+    if (remain > (uint64_t)SIZE_MAX) remain = (uint64_t)SIZE_MAX;
+    absolute_offset = hit->payload_offset + payload_relative_offset;
+    tlal_hot_lock();
     limit = tlal_runtime_cache_lines(&g_tlal_hot_index);
     for (i = 0u; i < limit; ++i) {
         TlalHotCacheLine* ln = &g_tlal_hot_index.cache[i];
@@ -1123,42 +1457,54 @@ uint64_t tlalpowa_hotdata_read_hit(const TlalpowaHotDataHit* hit,
             if (cached > remain) cached = remain;
             memcpy(out_buffer, ln->data + payload_relative_offset, (size_t)cached);
             ln->tick = ++g_tlal_hot_index.cache_tick;
+            tlal_hot_unlock();
             return cached;
         }
     }
-    f = fopen(hit->path, "rb");
-    if (!f) return 0ull;
-    if (!tlal_seek_stream(f, hit->payload_offset + payload_relative_offset)) { fclose(f); return 0ull; }
-    got = fread(out_buffer, 1u, (size_t)remain, f);
-    fclose(f);
-    return (uint64_t)got;
+    if (hit->file_index < g_tlal_hot_index.file_count) {
+        got = tlal_read_hot_file_span(&g_tlal_hot_index.files[hit->file_index], absolute_offset, out_buffer, remain);
+        if (got != 0ull) { tlal_hot_unlock(); return got; }
+    }
+    tlal_hot_unlock();
+    return tlal_read_path_span(hit->path, absolute_offset, out_buffer, remain);
 }
 
-
-uint32_t tlalpowa_hotdata_prepare_temporal_view(uint32_t core_group,
-                                                uint64_t temporal_key,
-                                                uint32_t max_hits,
-                                                uint32_t bytes_per_hit,
-                                                TlalpowaHotDataHit* hits,
-                                                TlalpowaHotDataStats* stats) {
+uint32_t tlalpowa_hotdata_prepare_active_temporal_view(uint32_t core_group,
+                                                       uint64_t temporal_key,
+                                                       uint32_t active_hits,
+                                                       uint32_t active_bytes_per_hit,
+                                                       uint32_t neighbor_hits,
+                                                       uint32_t neighbor_bytes_per_hit,
+                                                       TlalpowaHotDataHit* hits,
+                                                       TlalpowaHotDataStats* stats) {
     TlalHotState st;
     uint32_t indices[256];
-    uint32_t cap, count, i;
+    uint32_t cap, count = 0u, i;
     uint64_t exact_hits = 0ull;
-    uint64_t bytes;
+    uint64_t active_bytes, neighbor_bytes, max_bytes;
     if (stats) memset(stats, 0, sizeof(*stats));
-    if (hits && max_hits != 0u) memset(hits, 0, (size_t)max_hits * sizeof(*hits));
-    if (temporal_key == 0ull || max_hits == 0u || !g_tlal_hot_index.records || g_tlal_hot_index.record_count == 0u) return 0u;
-    cap = max_hits > 256u ? 256u : max_hits;
+    if (hits) memset(hits, 0, (size_t)((active_hits + neighbor_hits) > 256u ? 256u : (active_hits + neighbor_hits)) * sizeof(*hits));
+    if (temporal_key == 0ull) return 0u;
+    if (active_hits == 0u) active_hits = 1u;
+    cap = active_hits + neighbor_hits;
+    if (cap == 0u) return 0u;
+    if (cap > 256u) cap = 256u;
+    if (active_hits > cap) active_hits = cap;
+    active_bytes = active_bytes_per_hit ? (uint64_t)active_bytes_per_hit : 96ull * 1024ull;
+    neighbor_bytes = neighbor_bytes_per_hit ? (uint64_t)neighbor_bytes_per_hit : 64ull * 1024ull;
+    if (active_bytes > 4ull * 1024ull * 1024ull) active_bytes = 4ull * 1024ull * 1024ull;
+    if (neighbor_bytes > 4ull * 1024ull * 1024ull) neighbor_bytes = 4ull * 1024ull * 1024ull;
+    tlal_hot_lock();
+    if (!g_tlal_hot_index.records || g_tlal_hot_index.record_count == 0u) { tlal_hot_unlock(); return 0u; }
     count = tlal_collect_record_indices_near(&g_tlal_hot_index, core_group, temporal_key, cap, indices, &exact_hits);
-    if (count == 0u) return 0u;
+    if (count == 0u) { tlal_hot_unlock(); return 0u; }
     memset(&st, 0, sizeof(st));
     st.cfg = tlalpowa_hotdata_default_config();
-    bytes = bytes_per_hit ? (uint64_t)bytes_per_hit : 128ull * 1024ull;
-    if (bytes > 4ull * 1024ull * 1024ull) bytes = 4ull * 1024ull * 1024ull;
-    st.cfg.max_total_touch_bytes = bytes * (uint64_t)count;
+    max_bytes = active_bytes > neighbor_bytes ? active_bytes : neighbor_bytes;
+    st.cfg.max_total_touch_bytes = active_bytes * (uint64_t)(active_hits < count ? active_hits : count);
+    if (count > active_hits) st.cfg.max_total_touch_bytes += neighbor_bytes * (uint64_t)(count - active_hits);
     if (st.cfg.max_total_touch_bytes > 64ull * 1024ull * 1024ull) st.cfg.max_total_touch_bytes = 64ull * 1024ull * 1024ull;
-    st.cfg.max_payload_bytes_per_record = (uint32_t)(bytes > 32ull * 1024ull * 1024ull ? 32ull * 1024ull * 1024ull : bytes);
+    st.cfg.max_payload_bytes_per_record = (uint32_t)(max_bytes > 32ull * 1024ull * 1024ull ? 32ull * 1024ull * 1024ull : max_bytes);
     st.cfg.max_runtime_cache_bytes = g_tlal_hot_index.cache_limit_bytes ? g_tlal_hot_index.cache_limit_bytes : TLAL_HOT_DEFAULT_CACHE_BYTES;
     st.cfg.runtime_cache_lines = g_tlal_hot_index.cache_line_count ? g_tlal_hot_index.cache_line_count : TLAL_HOT_CACHE_LINES_DEFAULT;
     tlal_config_normalize(&st.cfg);
@@ -1167,6 +1513,7 @@ uint32_t tlalpowa_hotdata_prepare_temporal_view(uint32_t core_group,
     st.index = g_tlal_hot_index;
     for (i = 0u; i < count; ++i) {
         const TlalHotRecord* r = &st.index.records[indices[i]];
+        const uint64_t bytes = i < active_hits ? active_bytes : neighbor_bytes;
         uint64_t got = tlal_cache_load_record(&st, r, bytes);
         if (hits) tlal_hit_from_record(&st.index, r, &hits[i]);
         if (stats && got != 0ull) {
@@ -1182,5 +1529,22 @@ uint32_t tlalpowa_hotdata_prepare_temporal_view(uint32_t core_group,
     }
     g_tlal_hot_index = st.index;
     memset(&st.index, 0, sizeof(st.index));
+    tlal_hot_unlock();
     return count;
+}
+
+uint32_t tlalpowa_hotdata_prepare_temporal_view(uint32_t core_group,
+                                                uint64_t temporal_key,
+                                                uint32_t max_hits,
+                                                uint32_t bytes_per_hit,
+                                                TlalpowaHotDataHit* hits,
+                                                TlalpowaHotDataStats* stats) {
+    return tlalpowa_hotdata_prepare_active_temporal_view(core_group,
+                                                        temporal_key,
+                                                        max_hits,
+                                                        bytes_per_hit,
+                                                        0u,
+                                                        bytes_per_hit,
+                                                        hits,
+                                                        stats);
 }

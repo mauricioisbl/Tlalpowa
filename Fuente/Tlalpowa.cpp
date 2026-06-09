@@ -345,7 +345,7 @@ constexpr float kMaxInteractiveZoom = 4096.0f;
 constexpr float kMapMaxPitch = 1.28f;
 constexpr float kStartupSplashSolidSeconds = 3.20f;
 constexpr float kStartupSplashFadeSeconds = 0.24f;
-constexpr float kStartupSplashMaximumSeconds = 8.00f;
+constexpr float kStartupSplashMaximumSeconds = 14.00f;
 
 constexpr size_t kMaxResidentMapTextures = 128;
 
@@ -971,7 +971,13 @@ struct UiState {
     std::uint64_t startup_hotdata_records = 0;
     std::uint64_t startup_hotdata_touched_bytes = 0;
     std::uint64_t startup_hotdata_latest_temporal_key = 0;
+    std::uint64_t startup_hotdata_gate_hits = 0;
+    std::uint64_t startup_hotdata_gate_bytes = 0;
+    std::uint64_t startup_hotdata_retained_map_bytes = 0;
     std::string startup_hotdata_status = "Caché caliente IXIPTLAH pendiente";
+    bool startup_first_visible_hotdata_ready = false;
+    std::uint64_t startup_first_visible_temporal_key = 0;
+    bool startup_timeline_aligned_to_latest_real_data = false;
     bool startup_tiles_ready = false;
     float startup_tile_coverage = 0.0f;
 
@@ -18829,30 +18835,115 @@ std::uint64_t tlalpowa_atmospheric_temporal_key_from_timeline(int64_t timeline_h
            static_cast<std::uint64_t>(safe_minute);
 }
 
+bool tlalpowa_timeline_from_atmospheric_temporal_key(std::uint64_t temporal_key, int64_t& out_hour, int& out_minute) {
+    const unsigned minute = static_cast<unsigned>(temporal_key % 100ull);
+    temporal_key /= 100ull;
+    const unsigned hour = static_cast<unsigned>(temporal_key % 100ull);
+    temporal_key /= 100ull;
+    const unsigned day = static_cast<unsigned>(temporal_key % 100ull);
+    temporal_key /= 100ull;
+    const unsigned month = static_cast<unsigned>(temporal_key % 100ull);
+    temporal_key /= 100ull;
+    const int year = static_cast<int>(temporal_key);
+    if (year < kTimelineMinCivilYear || year > kTimelineMaxCivilYear) return false;
+    if (month < 1u || month > 12u || day < 1u || day > timeline_navigation_days_in_month(year, month)) return false;
+    if (hour > 23u || minute > 59u) return false;
+    out_hour = clamp_timeline_navigation_hour(timeline_hour_from_civil(year, month, day, hour));
+    out_minute = static_cast<int>(minute);
+    return true;
+}
+
+std::uint64_t tlalpowa_best_latest_atmospheric_key(const TlalpowaHotDataStats& st) {
+    if (st.latest_contaminant_key != 0ull) return st.latest_contaminant_key;
+    if (st.latest_meteorology_key != 0ull) return st.latest_meteorology_key;
+    return st.latest_temporal_key;
+}
+
 void tlalpowa_hint_hotdata_temporal_window(UiState& ui) {
-    static std::atomic_bool hint_busy{false};
-    static std::atomic<int64_t> last_hint_hour{std::numeric_limits<int64_t>::min()};
-    static std::atomic<int> last_hint_minute{-1};
+    static std::atomic_bool background_busy{false};
+    static std::atomic<std::uint64_t> background_generation{0};
+    static std::atomic<std::uint64_t> last_active_atmosphere_key{0};
+    static std::atomic<std::uint64_t> last_active_epi_key{0};
     bool ready = false;
+    bool first_visible_ready = false;
     int64_t hour = 0;
     int minute = 0;
     {
         std::lock_guard<std::mutex> lock(ui.mu);
         ready = ui.startup_hotdata_ready;
+        first_visible_ready = ui.startup_first_visible_hotdata_ready;
         hour = ui.timeline_initialized ? ui.timeline_hour : current_local_timeline_hour();
         minute = ui.timeline_initialized ? ui.timeline_minute : current_local_timeline_minute();
     }
     if (!ready) return;
     hour = clamp_timeline_navigation_hour(hour);
     minute = std::clamp(minute, 0, 59);
-    if (last_hint_hour.load(std::memory_order_relaxed) == hour &&
-        last_hint_minute.load(std::memory_order_relaxed) == minute) return;
-    if (hint_busy.exchange(true, std::memory_order_acq_rel)) return;
-    last_hint_hour.store(hour, std::memory_order_relaxed);
-    last_hint_minute.store(minute, std::memory_order_relaxed);
     const std::uint64_t atmosphere_key = tlalpowa_atmospheric_temporal_key_from_timeline(hour, minute);
     const std::uint64_t epi_key = tlalpowa_epi_temporal_key_from_week_label(format_timeline_week_label(hour));
-    std::thread([atmosphere_key, epi_key]() {
+    const bool same_active = last_active_atmosphere_key.load(std::memory_order_relaxed) == atmosphere_key &&
+                             last_active_epi_key.load(std::memory_order_relaxed) == epi_key;
+    if (same_active && first_visible_ready) return;
+
+#ifdef _WIN32
+    const int old_priority = GetThreadPriority(GetCurrentThread());
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
+#endif
+    // CONTRATO FIJO DE FECHA ACTIVA: al mover la fecha/hora, esta ruta corre
+    // antes que cualquier barrido amplio. Sirve la llave activa o el registro
+    // fisico mas cercano en cache IXIPTLAH; los vecinos cronologicos se dejan
+    // para el hilo posterior. Asi la UI no espera 10 s tras desvanecerse.
+    TlalpowaHotDataStats stats_active_contaminant{};
+    TlalpowaHotDataStats stats_active_meteorology{};
+    TlalpowaHotDataStats stats_active_epidemiology{};
+    TlalpowaHotDataHit active_contaminant_hits[12]{};
+    TlalpowaHotDataHit active_meteorology_hits[8]{};
+    TlalpowaHotDataHit active_epidemiology_hits[12]{};
+    (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_CONTAMINANT,
+                                                        atmosphere_key,
+                                                        8u,
+                                                        192u * 1024u,
+                                                        0u,
+                                                        0u,
+                                                        active_contaminant_hits,
+                                                        &stats_active_contaminant);
+    (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_METEOROLOGY,
+                                                        atmosphere_key,
+                                                        6u,
+                                                        160u * 1024u,
+                                                        0u,
+                                                        0u,
+                                                        active_meteorology_hits,
+                                                        &stats_active_meteorology);
+    if (epi_key != 0ull) {
+        (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY,
+                                                            epi_key,
+                                                            8u,
+                                                            192u * 1024u,
+                                                            0u,
+                                                            0u,
+                                                            active_epidemiology_hits,
+                                                            &stats_active_epidemiology);
+    }
+#ifdef _WIN32
+    if (old_priority != THREAD_PRIORITY_ERROR_RETURN) SetThreadPriority(GetCurrentThread(), old_priority);
+#endif
+    last_active_atmosphere_key.store(atmosphere_key, std::memory_order_relaxed);
+    last_active_epi_key.store(epi_key, std::memory_order_relaxed);
+    const bool active_ready = (stats_active_contaminant.prepared_hits +
+                               stats_active_meteorology.prepared_hits +
+                               stats_active_epidemiology.prepared_hits) > 0ull;
+    if (active_ready) {
+        std::lock_guard<std::mutex> lock(ui.mu);
+        ui.startup_first_visible_hotdata_ready = true;
+        ui.startup_first_visible_temporal_key = atmosphere_key;
+        if (ui.status.find("No pude") == std::string::npos && ui.app_uptime < kStartupSplashMaximumSeconds) {
+            ui.status = "Primera fecha visible lista en IXIPTLAH; vecinos cronologicos siguen en segundo plano";
+        }
+    }
+
+    const std::uint64_t generation = background_generation.fetch_add(1ull, std::memory_order_acq_rel) + 1ull;
+    if (background_busy.exchange(true, std::memory_order_acq_rel)) return;
+    std::thread([atmosphere_key, epi_key, generation]() {
 #ifdef _WIN32
         SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
 #endif
@@ -18860,34 +18951,45 @@ void tlalpowa_hint_hotdata_temporal_window(UiState& ui) {
         TlalpowaHotDataStats stats_meteorology{};
         TlalpowaHotDataStats stats_epidemiology{};
         TlalpowaHotDataHit contaminant_hits[16]{};
-        TlalpowaHotDataHit meteorology_hits[8]{};
+        TlalpowaHotDataHit meteorology_hits[12]{};
         TlalpowaHotDataHit epidemiology_hits[16]{};
-        (void)tlalpowa_hotdata_prepare_temporal_view(TLALPOWA_HOTDATA_CORE_CONTAMINANT,
-                                                     atmosphere_key,
-                                                     16u,
-                                                     128u * 1024u,
-                                                     contaminant_hits,
-                                                     &stats_contaminant);
-        (void)tlalpowa_hotdata_prepare_temporal_view(TLALPOWA_HOTDATA_CORE_METEOROLOGY,
-                                                     atmosphere_key,
-                                                     8u,
-                                                     96u * 1024u,
-                                                     meteorology_hits,
-                                                     &stats_meteorology);
-        if (epi_key != 0ull) {
-            (void)tlalpowa_hotdata_prepare_temporal_view(TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY,
-                                                         epi_key,
-                                                         16u,
-                                                         128u * 1024u,
-                                                         epidemiology_hits,
-                                                         &stats_epidemiology);
+        if (background_generation.load(std::memory_order_acquire) == generation) {
+            (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_CONTAMINANT,
+                                                                atmosphere_key,
+                                                                0u,
+                                                                0u,
+                                                                12u,
+                                                                64u * 1024u,
+                                                                contaminant_hits,
+                                                                &stats_contaminant);
+        }
+        if (background_generation.load(std::memory_order_acquire) == generation) {
+            (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_METEOROLOGY,
+                                                                atmosphere_key,
+                                                                0u,
+                                                                0u,
+                                                                8u,
+                                                                64u * 1024u,
+                                                                meteorology_hits,
+                                                                &stats_meteorology);
+        }
+        if (epi_key != 0ull && background_generation.load(std::memory_order_acquire) == generation) {
+            (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY,
+                                                                epi_key,
+                                                                0u,
+                                                                0u,
+                                                                12u,
+                                                                64u * 1024u,
+                                                                epidemiology_hits,
+                                                                &stats_epidemiology);
         }
 #ifdef _WIN32
         SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_END);
 #endif
-        hint_busy.store(false, std::memory_order_release);
+        background_busy.store(false, std::memory_order_release);
     }).detach();
 }
+
 
 
 std::vector<std::string> tlalpowa_epidemiology_anchor_labels_locked(const UiState& ui) {
@@ -28198,6 +28300,7 @@ void draw_top_bar(UiState& ui) {
                                    !ui.pollutants.empty() &&
                                    ui.startup_recent_data_ready &&
                                    ui.startup_hotdata_ready &&
+                                   ui.startup_first_visible_hotdata_ready &&
                                    ui.map_assets_loaded && !ui.map_assets_loading &&
                                    ui.startup_tiles_ready;
     }
@@ -28207,8 +28310,9 @@ void draw_top_bar(UiState& ui) {
         std::lock_guard<std::mutex> lock(ui.mu);
         if (ui.startup_catalogs_loaded) startup_progress = 0.28f;
         if (ui.startup_recent_data_ready) startup_progress = 0.48f;
-        if (ui.startup_hotdata_ready) startup_progress = 0.62f;
-        if (ui.map_assets_loaded) startup_progress = 0.78f;
+        if (ui.startup_hotdata_ready) startup_progress = 0.60f;
+        if (ui.startup_first_visible_hotdata_ready) startup_progress = 0.72f;
+        if (ui.map_assets_loaded) startup_progress = 0.84f;
         if (ui.startup_tiles_ready) startup_progress = 1.0f;
     }
     startup_progress = std::min(startup_time_progress, std::clamp(startup_progress, 0.0f, 1.0f));
@@ -45966,6 +46070,7 @@ void draw_tlalpowa_startup_splash_overlay(UiState& ui, ImDrawList* dl,
                                 !ui.pollutants.empty() &&
                                 ui.startup_recent_data_ready &&
                                 ui.startup_hotdata_ready &&
+                                ui.startup_first_visible_hotdata_ready &&
                                 ui.map_assets_loaded && !ui.map_assets_loading &&
                                 ui.startup_tiles_ready;
     }
@@ -46009,8 +46114,10 @@ void draw_tlalpowa_startup_splash_overlay(UiState& ui, ImDrawList* dl,
     {
         std::lock_guard<std::mutex> lock(ui.mu);
         if (ui.startup_catalogs_loading) loading_lines.push_back("Cargando catalogos esenciales");
-        if (ui.startup_recent_data_loading) loading_lines.push_back("Cargando ultimas fechas reales disponibles");
-        if (ui.startup_hotdata_loading) loading_lines.push_back("Calentando ultimos IXIPTLAH y malla 3D");
+        if (ui.startup_recent_data_loading) loading_lines.push_back("Cargando fechas reales disponibles");
+        if (ui.startup_hotdata_loading) loading_lines.push_back("Cargando hotdata inicial: ultimos 10 IXIPTLAH por categoria");
+        if (!ui.startup_hotdata_loading && !ui.startup_hotdata_ready) loading_lines.push_back("Reteniendo bienvenida: faltan los ultimos 10 IXIPTLAH por categoria");
+        if (ui.startup_hotdata_ready && !ui.startup_first_visible_hotdata_ready) loading_lines.push_back("Preparando primera fecha visible antes de soltar la bienvenida");
         if (ui.map_assets_loading) loading_lines.push_back("Preparando geometria del mapa");
         if (ui.map_assets_loaded && !ui.startup_tiles_ready) loading_lines.push_back("Precargando imagenes y estaciones visibles");
         if (!ui.map_assets_loading && !ui.map_assets_loaded) loading_lines.push_back("Iniciando visor cartografico");
@@ -56445,49 +56552,170 @@ int run_tlalpowa_app() {
     const std::string hotdata_root_utf8 = path_utf8(datos_root());
     std::thread hotdata_loader([&ui, hotdata_root_utf8]() {
 #ifdef _WIN32
-        SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
+        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_NORMAL);
+        auto hotdata_foreground_running = std::make_shared<std::atomic_bool>(true);
+        std::thread([&ui, hotdata_foreground_running]() {
+            Sleep(2000);
+            if (!hotdata_foreground_running->load(std::memory_order_acquire)) return;
+            HANDLE process = GetCurrentProcess();
+            const DWORD previous_priority = GetPriorityClass(process);
+            bool raised = false;
+            if (previous_priority == IDLE_PRIORITY_CLASS ||
+                previous_priority == BELOW_NORMAL_PRIORITY_CLASS ||
+                previous_priority == NORMAL_PRIORITY_CLASS) {
+                raised = SetPriorityClass(process, ABOVE_NORMAL_PRIORITY_CLASS) != 0;
+            }
+            if (raised) {
+                std::lock_guard<std::mutex> lock(ui.mu);
+                if (ui.startup_hotdata_loading) {
+                    ui.startup_hotdata_status = "IXIPTLAH de primer plano lleva mas de 2 s: prioridad temporal Above Normal";
+                    if (ui.status.find("No pude") == std::string::npos) ui.status = ui.startup_hotdata_status;
+                }
+            }
+            while (hotdata_foreground_running->load(std::memory_order_acquire)) Sleep(25);
+            if (raised && previous_priority != 0) SetPriorityClass(process, previous_priority);
+        }).detach();
 #endif
         TlalpowaHotDataConfig cfg = tlalpowa_hotdata_default_config();
+        // REGLA FIJA DE BIENVENIDA: aqui se cargan los ULTIMOS DIEZ IXIPTLAH
+        // realmente disponibles por cada categoria fisica encontrada, no la
+        // fecha civil actual. Esa es la hotdata inicial y la pantalla puede
+        // durar mas para asegurarla; desde los 2 s Windows sube temporalmente
+        // a Above Normal y al terminar vuelve a prioridad previa. Al entrar,
+        // la fecha/hora activa toma prioridad absoluta. Los vecinos cronologicos
+        // quedan exclusivamente en segundo plano, del mas cercano al mas lejano.
         cfg.max_total_touch_bytes = static_cast<std::uint64_t>(env_int_clamped_app(
-            "TLALPOWA_HOTDATA_TOUCH_MB", 64, 8, 384)) * 1024ull * 1024ull;
+            "TLALPOWA_HOTDATA_STARTUP_TOUCH_MB", 320, 64, 384)) * 1024ull * 1024ull;
         cfg.max_payload_bytes_per_record = static_cast<std::uint32_t>(env_int_clamped_app(
-            "TLALPOWA_HOTDATA_RECORD_MB", 2, 1, 32)) * 1024u * 1024u;
-        cfg.enable_3d_touch = download_env_flag_enabled_local("TLALPOWA_HOTDATA_3D", true) ? 1u : 0u;
+            "TLALPOWA_HOTDATA_STARTUP_RECORD_KB", 512, 64, 4096)) * 1024u;
+        cfg.enable_3d_touch = download_env_flag_enabled_local("TLALPOWA_HOTDATA_STARTUP_3D", false) ? 1u : 0u;
         cfg.probe_bytes_per_record = static_cast<std::uint32_t>(env_int_clamped_app(
-            "TLALPOWA_HOTDATA_PROBE_KB", 4, 0, 64)) * 1024u;
-        cfg.progressive_neighbor_records = static_cast<std::uint32_t>(env_int_clamped_app(
-            "TLALPOWA_HOTDATA_NEIGHBORS", 16, 0, 128));
+            "TLALPOWA_HOTDATA_STARTUP_PROBE_KB", 0, 0, 8)) * 1024u;
+        cfg.progressive_neighbor_records = 0u;
         cfg.neighbor_bytes_per_record = static_cast<std::uint32_t>(env_int_clamped_app(
-            "TLALPOWA_HOTDATA_NEIGHBOR_KB", 256, 32, 4096)) * 1024u;
+            "TLALPOWA_HOTDATA_BACKGROUND_NEIGHBOR_KB", 64, 16, 512)) * 1024u;
         cfg.max_runtime_cache_bytes = static_cast<std::uint64_t>(env_int_clamped_app(
-            "TLALPOWA_HOTDATA_CACHE_MB", 32, 4, 128)) * 1024ull * 1024ull;
+            "TLALPOWA_HOTDATA_CACHE_MB", 128, 16, 256)) * 1024ull * 1024ull;
         cfg.runtime_cache_lines = static_cast<std::uint32_t>(env_int_clamped_app(
-            "TLALPOWA_HOTDATA_CACHE_LINES", 48, 8, 128));
+            "TLALPOWA_HOTDATA_CACHE_LINES", 4096, 512, 8192));
+        cfg.startup_gate_records_per_core = static_cast<std::uint32_t>(env_int_clamped_app(
+            "TLALPOWA_HOTDATA_STARTUP_GATE_RECORDS", 10, 10, 16));
+        cfg.startup_gate_bytes_per_record = static_cast<std::uint32_t>(env_int_clamped_app(
+            "TLALPOWA_HOTDATA_STARTUP_GATE_KB", 64, 32, 1024)) * 1024u;
+        cfg.startup_gate_category_limit = static_cast<std::uint32_t>(env_int_clamped_app(
+            "TLALPOWA_HOTDATA_STARTUP_CATEGORY_LIMIT", 512, 8, 512));
         cfg.keep_runtime_index = 1u;
         TlalpowaHotDataStats st{};
         const int ok = tlalpowa_hotdata_prewarm_root(hotdata_root_utf8.c_str(), &cfg, &st);
+        const bool hotdata_ready_now = ok && st.ixiptlah_files > 0ull && st.indexed_records > 0ull &&
+                                       st.startup_gate_expected_hits > 0ull &&
+                                       st.startup_gate_hits >= st.startup_gate_expected_hits;
+
+        std::uint64_t first_visible_key = hotdata_ready_now ? tlalpowa_best_latest_atmospheric_key(st) : 0ull;
+        bool first_visible_ready_now = false;
+        bool first_visible_key_parsed = false;
+        int64_t first_visible_hour = 0;
+        int first_visible_minute = 0;
+        if (hotdata_ready_now) {
+            TlalpowaHotDataStats first_con{};
+            TlalpowaHotDataStats first_met{};
+            TlalpowaHotDataStats first_epi{};
+            TlalpowaHotDataHit first_con_hits[16]{};
+            TlalpowaHotDataHit first_met_hits[12]{};
+            TlalpowaHotDataHit first_epi_hits[16]{};
+            const std::uint64_t con_key = st.latest_contaminant_key != 0ull ? st.latest_contaminant_key : first_visible_key;
+            const std::uint64_t met_key = st.latest_meteorology_key != 0ull ? st.latest_meteorology_key : first_visible_key;
+            if (con_key != 0ull) {
+                (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_CONTAMINANT,
+                                                                    con_key, 10u, 256u * 1024u,
+                                                                    0u, 0u, first_con_hits, &first_con);
+            }
+            if (met_key != 0ull) {
+                (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_METEOROLOGY,
+                                                                    met_key, 8u, 192u * 1024u,
+                                                                    0u, 0u, first_met_hits, &first_met);
+            }
+            if (st.latest_epidemiology_key != 0ull) {
+                (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY,
+                                                                    st.latest_epidemiology_key, 10u, 256u * 1024u,
+                                                                    0u, 0u, first_epi_hits, &first_epi);
+            }
+            first_visible_ready_now = (first_con.prepared_hits + first_met.prepared_hits + first_epi.prepared_hits) > 0ull;
+            first_visible_key_parsed = tlalpowa_timeline_from_atmospheric_temporal_key(first_visible_key, first_visible_hour, first_visible_minute);
+            if (!first_visible_key_parsed) {
+                first_visible_key = st.latest_meteorology_key != 0ull ? st.latest_meteorology_key : st.latest_contaminant_key;
+                first_visible_key_parsed = tlalpowa_timeline_from_atmospheric_temporal_key(first_visible_key, first_visible_hour, first_visible_minute);
+            }
+        }
+
         {
             std::lock_guard<std::mutex> lock(ui.mu);
+            if (hotdata_ready_now && first_visible_key != 0ull && first_visible_key_parsed && !ui.startup_timeline_aligned_to_latest_real_data) {
+                ui.timeline_hour = first_visible_hour;
+                ui.timeline_minute = std::clamp(first_visible_minute, 0, 59);
+                ui.timeline_initialized = true;
+                ui.timeline_max_hour = std::max<int64_t>(std::max<int64_t>(ui.timeline_max_hour, current_local_timeline_hour()), first_visible_hour);
+                ui.startup_timeline_aligned_to_latest_real_data = true;
+                refresh_timeline_input(ui);
+            }
+            ui.startup_first_visible_hotdata_ready = first_visible_ready_now;
+            ui.startup_first_visible_temporal_key = first_visible_key;
             ui.startup_hotdata_ixiptlah_files = st.ixiptlah_files;
             ui.startup_hotdata_records = st.ixiptlah_records;
             ui.startup_hotdata_touched_bytes = st.touched_bytes;
             ui.startup_hotdata_latest_temporal_key = st.latest_temporal_key;
+            ui.startup_hotdata_gate_hits = st.startup_gate_hits;
+            ui.startup_hotdata_gate_bytes = st.startup_gate_bytes;
+            ui.startup_hotdata_retained_map_bytes = st.retained_mapped_file_bytes;
             ui.startup_hotdata_loading = false;
-            ui.startup_hotdata_ready = true;
-            if (ok) {
-                ui.startup_hotdata_status = "Caché caliente C: " + std::to_string(st.ixiptlah_files) +
-                    " IXIPTLAH, " + std::to_string(st.indexed_records) +
-                    " registros indexados, " + std::to_string(st.record_probe_bytes / (1024ull * 1024ull)) +
-                    " MiB sondeados, " + std::to_string(st.touched_bytes / (1024ull * 1024ull)) +
-                    " MiB reales tocados, " + std::to_string(st.cache_bytes / (1024ull * 1024ull)) +
-                    " MiB en caché temporal";
+            ui.startup_hotdata_ready = hotdata_ready_now;
+            if (ui.startup_hotdata_ready) {
+                ui.startup_hotdata_status = "Hotdata inicial lista: ultimos 10 IXIPTLAH por categoria, " + std::to_string(st.startup_gate_hits) +
+                    " / " + std::to_string(st.startup_gate_expected_hits) +
+                    " hits en " + std::to_string(st.startup_gate_categories) +
+                    " categorias, " + std::to_string(st.startup_gate_bytes / 1024ull) +
+                    " KiB; primera fecha visible preparada antes del fade y vecinos cargan en segundo plano";
                 if (ui.status.find("No pude") == std::string::npos) ui.status = ui.startup_hotdata_status;
             } else {
-                ui.startup_hotdata_status = "Caché caliente omitida: no hay raíz de datos accesible";
+                ui.startup_hotdata_status = "Bienvenida retenida: faltan los ultimos 10 IXIPTLAH disponibles por categoria";
+                if (ui.status.find("No pude") == std::string::npos) ui.status = ui.startup_hotdata_status;
             }
         }
 #ifdef _WIN32
-        SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_END);
+        hotdata_foreground_running->store(false, std::memory_order_release);
+#endif
+        if (hotdata_ready_now) {
+            const std::uint64_t con_key = st.latest_contaminant_key;
+            const std::uint64_t met_key = st.latest_meteorology_key;
+            const std::uint64_t epi_key = st.latest_epidemiology_key;
+            const std::uint64_t any_key = st.latest_temporal_key;
+            const std::uint32_t bg_neighbors = static_cast<std::uint32_t>(env_int_clamped_app(
+                "TLALPOWA_HOTDATA_BACKGROUND_NEIGHBORS", 16, 0, 256));
+            const std::uint32_t bg_kb = static_cast<std::uint32_t>(env_int_clamped_app(
+                "TLALPOWA_HOTDATA_BACKGROUND_NEIGHBOR_KB", 64, 16, 512));
+            std::thread([con_key, met_key, epi_key, any_key, bg_neighbors, bg_kb]() {
+#ifdef _WIN32
+                SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
+                Sleep(450);
+#else
+                std::this_thread::sleep_for(std::chrono::milliseconds(450));
+#endif
+                const std::uint32_t bytes = bg_kb * 1024u;
+                TlalpowaHotDataStats st_con{};
+                TlalpowaHotDataStats st_met{};
+                TlalpowaHotDataStats st_epi{};
+                TlalpowaHotDataStats st_any{};
+                if (con_key != 0ull) (void)tlalpowa_hotdata_prefetch_temporal(TLALPOWA_HOTDATA_CORE_CONTAMINANT, con_key, bg_neighbors, bytes, &st_con);
+                if (met_key != 0ull) (void)tlalpowa_hotdata_prefetch_temporal(TLALPOWA_HOTDATA_CORE_METEOROLOGY, met_key, bg_neighbors, bytes, &st_met);
+                if (epi_key != 0ull) (void)tlalpowa_hotdata_prefetch_temporal(TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY, epi_key, bg_neighbors, bytes, &st_epi);
+                if (any_key != 0ull) (void)tlalpowa_hotdata_prefetch_temporal(TLALPOWA_HOTDATA_CORE_ANY, any_key, bg_neighbors / 2u, bytes, &st_any);
+#ifdef _WIN32
+                SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_END);
+#endif
+            }).detach();
+        }
+#ifdef _WIN32
+        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_NORMAL);
 #endif
     });
     std::thread catalog_loader([&ui]() {
@@ -56513,7 +56741,7 @@ int run_tlalpowa_app() {
                 publish_epidemiology_cache_to_ui(
                     ui, std::move(recent_cache), all_diseases,
                     disease_filter_signature(all_diseases),
-                    "Datos reales de las ultimas fechas disponibles listos", true, {}, false);
+                    "Datos reales iniciales disponibles listos", true, {}, false);
             }
 
             {

@@ -24,6 +24,9 @@ typedef struct TlalpowaHotDataConfig {
     uint32_t keep_runtime_index;
     uint64_t max_runtime_cache_bytes;
     uint32_t runtime_cache_lines;
+    uint32_t startup_gate_records_per_core;
+    uint32_t startup_gate_bytes_per_record;
+    uint32_t startup_gate_category_limit;
 } TlalpowaHotDataConfig;
 
 typedef struct TlalpowaHotDataStats {
@@ -50,6 +53,12 @@ typedef struct TlalpowaHotDataStats {
     uint64_t prepared_hits;
     uint64_t prepared_bytes;
     uint64_t exact_window_hits;
+    uint64_t retained_mapped_file_bytes;
+    uint64_t startup_gate_hits;
+    uint64_t startup_gate_bytes;
+    uint64_t startup_gate_exact_hits;
+    uint64_t startup_gate_categories;
+    uint64_t startup_gate_expected_hits;
 } TlalpowaHotDataStats;
 
 typedef struct TlalpowaHotDataHit {
@@ -88,6 +97,28 @@ uint64_t tlalpowa_hotdata_read_hit(const TlalpowaHotDataHit* hit,
                                    void* out_buffer,
                                    uint64_t out_capacity,
                                    uint64_t payload_relative_offset);
+
+/*
+Contrato fijo de hot data:
+- Bienvenida: no usa la fecha civil actual. Espera los ultimos DIEZ registros
+  IXIPTLAH realmente disponibles por cada categoria fisica encontrada
+  (nucleo/tipo/esquema/capa), dentro del limite de seguridad configurado.
+  Esa es la hotdata inicial; el fade solo debe iniciar cuando, ademas, la
+  primera fecha visible ya fue preparada para evitar espera posterior.
+- Despues de abrir la interfaz: cada temporal_key solicitado sirve primero, de
+  forma sincronica y prioritaria, la fecha/hora activa o su vecino fisico mas
+  cercano; solo despues precalienta vecinos cronologicos adelante/atras del mas
+  cercano al mas lejano.
+- Nunca sustituye payloads por resumenes, sidecars ni agregados.
+*/
+uint32_t tlalpowa_hotdata_prepare_active_temporal_view(uint32_t core_group,
+                                                       uint64_t temporal_key,
+                                                       uint32_t active_hits,
+                                                       uint32_t active_bytes_per_hit,
+                                                       uint32_t neighbor_hits,
+                                                       uint32_t neighbor_bytes_per_hit,
+                                                       TlalpowaHotDataHit* hits,
+                                                       TlalpowaHotDataStats* stats);
 
 uint32_t tlalpowa_hotdata_prepare_temporal_view(uint32_t core_group,
                                                 uint64_t temporal_key,
