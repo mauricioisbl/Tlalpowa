@@ -87,6 +87,7 @@
 #include <urlmon.h>
 #include <wininet.h>
 #include <tlhelp32.h>
+#include <bcrypt.h>
 
 #ifdef near
 #undef near
@@ -804,6 +805,7 @@ struct UiState {
     std::string ruoa_login_message;
 
     bool github_auto_update_enabled = false;
+    bool github_auto_update_preference_seen = false;
     bool github_import_data_enabled = true;
     bool github_import_data_preference_seen = false;
     bool github_update_checking = false;
@@ -3620,7 +3622,9 @@ void tlalpowa_apply_github_preference_defaults(UiState& ui) {
     // Politica de distribucion: las instalaciones descargadas reciben el nucleo
     // publicado automaticamente. El perfil del autor queda excluido para evitar
     // que su carpeta de desarrollo se reemplace con su propia publicacion.
-    ui.github_auto_update_enabled = !tlalpowa_profile_is_mauri(ui);
+    if (!ui.github_auto_update_preference_seen) {
+        ui.github_auto_update_enabled = !tlalpowa_profile_is_mauri(ui);
+    }
     if (!ui.github_import_data_preference_seen) {
         // El autor local no recibe sobrescritura de Datos por omision; todo otro perfil
         // parte en modo espejo completo para sostener instalaciones reproducibles.
@@ -3633,12 +3637,10 @@ void tlalpowa_apply_github_preference_defaults(UiState& ui) {
 
 
 void save_user_location_state(const UiState& ui) {
-
-
-    
-
-
+    static std::mutex state_file_mutex;
+    const std::lock_guard<std::mutex> state_file_lock(state_file_mutex);
     nlohmann::json j;
+    bool current_state_valid = false;
     try {
 
         const fs::path state = app_state_path();
@@ -3651,7 +3653,10 @@ void save_user_location_state(const UiState& ui) {
             const auto parsed = nlohmann::json::parse(read_text_file(state), nullptr, false);
 
 
-            if (!parsed.is_discarded() && parsed.is_object()) j = parsed;
+            if (!parsed.is_discarded() && parsed.is_object()) {
+                j = parsed;
+                current_state_valid = true;
+            }
         }
     } catch (...) {}
 
@@ -3672,6 +3677,7 @@ void save_user_location_state(const UiState& ui) {
     j["tonalli_visible"] = true;
     j["mapa_neblina_manual"] = ui.map_fog_manual;
     j["github_actualizacion_automatica"] = ui.github_auto_update_enabled;
+    j["github_actualizacion_automatica_preferencia_guardada"] = ui.github_auto_update_preference_seen;
     j["github_importar_datos"] = ui.github_import_data_enabled;
     j["github_importar_datos_preferencia_guardada"] = ui.github_import_data_preference_seen;
     if (!ui.github_latest_commit_sha.empty()) j["github_ultimo_commit_aplicado"] = ui.github_latest_commit_sha;
@@ -3730,7 +3736,15 @@ void save_user_location_state(const UiState& ui) {
     }
 
 
-    try { write_text_file_atomic(app_state_path(), j.dump(2) + "\n"); } catch (...) {}
+    try {
+        const fs::path state = app_state_path();
+        const fs::path backup = fs::path(state.wstring() + L".bak");
+        std::error_code ec;
+        if (current_state_valid && fs::exists(state, ec) && !ec) {
+            fs::copy_file(state, backup, fs::copy_options::overwrite_existing, ec);
+        }
+        (void)write_text_file_atomic(state, j.dump(2) + "\n");
+    } catch (...) {}
 }
 
 
@@ -3738,14 +3752,26 @@ void save_user_location_state(const UiState& ui) {
 void load_user_location_state(UiState& ui) {
     try {
 
-        const fs::path state = app_state_path();
+        fs::path state = app_state_path();
         std::error_code ec;
 
-        if (!fs::exists(state, ec) || ec) return;
+        if (!fs::exists(state, ec) || ec) {
+            ec.clear();
+            const fs::path backup = fs::path(state.wstring() + L".bak");
+            if (!fs::exists(backup, ec) || ec) return;
+            state = backup;
+        }
 
 
-        const auto j = nlohmann::json::parse(read_text_file(state), nullptr, false);
+        auto j = nlohmann::json::parse(read_text_file(state), nullptr, false);
 
+        if (j.is_discarded() || !j.is_object()) {
+            const fs::path backup = fs::path(app_state_path().wstring() + L".bak");
+            ec.clear();
+            if (state != backup && fs::exists(backup, ec) && !ec) {
+                j = nlohmann::json::parse(read_text_file(backup), nullptr, false);
+            }
+        }
         if (j.is_discarded() || !j.is_object()) return;
 
         if (j.contains("perfil_nombre") && j["perfil_nombre"].is_string()) {
@@ -3775,7 +3801,11 @@ void load_user_location_state(UiState& ui) {
         // el arranque frío de capas científicas. La lectura calendárica es local y constante.
         ui.timeline_show_tonalli = j.value("tonalli_visible", true);
         ui.map_fog_manual = std::clamp(j.value("mapa_neblina_manual", ui.map_fog_manual), -1.0f, 0.72f);
-        ui.github_auto_update_enabled = j.value("github_actualizacion_automatica", ui.github_auto_update_enabled);
+        if (j.contains("github_actualizacion_automatica")) {
+            ui.github_auto_update_enabled = j.value("github_actualizacion_automatica", ui.github_auto_update_enabled);
+            ui.github_auto_update_preference_seen =
+                j.value("github_actualizacion_automatica_preferencia_guardada", true);
+        }
         if (j.contains("github_importar_datos")) {
             ui.github_import_data_enabled = j.value("github_importar_datos", ui.github_import_data_enabled);
             ui.github_import_data_preference_seen = j.value("github_importar_datos_preferencia_guardada", true);
@@ -4343,9 +4373,8 @@ bool tlalpowa_write_apply_github_update_script(const fs::path& repo_root,
     cmd << "echo [Tlalpowa] SRC=%SRC%>>%LOG%\r\n";
     cmd << "echo [Tlalpowa] DST=%DST%>>%LOG%\r\n";
     cmd << "echo preparado>%STAGED_FLAG%\r\n";
-    cmd << "if not exist \"%SRC%\\Fuente\" (echo [error] Falta Fuente en snapshot>>%LOG% & exit /b 12)\r\n";
-    cmd << "if not exist \"%SRC%\\CMakeLists.txt\" (echo [error] Falta CMakeLists.txt en snapshot>>%LOG% & exit /b 13)\r\n";
-    cmd << "if exist \"%SRC%\\Tlalpowa.exe\" (echo [ok] Snapshot trae Tlalpowa.exe>>%LOG%) else (echo [aviso] Snapshot sin Tlalpowa.exe; se actualizaran fuentes y scripts>>%LOG%)\r\n";
+    cmd << "if not exist \"%SRC%\\tlalpowa_actualizacion_manifest.json\" (echo [error] Falta manifiesto incremental>>%LOG% & exit /b 12)\r\n";
+    cmd << "if exist \"%SRC%\\Tlalpowa.exe\" (echo [ok] Delta trae Tlalpowa.exe>>%LOG%) else (echo [ok] Tlalpowa.exe no cambio>>%LOG%)\r\n";
     cmd << "if not exist \"%DST%\" mkdir \"%DST%\" >nul 2>nul\r\n";
     cmd << "set /a WAIT=0\r\n";
     cmd << ":esperar_tlalpowa\r\n";
@@ -4356,15 +4385,16 @@ bool tlalpowa_write_apply_github_update_script(const fs::path& repo_root,
     cmd << "mkdir \"%BACKUP%\" >>%LOG% 2>&1\r\n";
     cmd << "for %%F in (Tlalpowa.exe CMakeLists.txt Compilar_Tlalpowa.cmd Procesar_Iconos_Tlalpowa.cmd Publicar_Tlalpowa.cmd Instalar_Dependencias_Globales_Tlalpowa.cmd) do if exist \"%DST%\\%%F\" copy /Y \"%DST%\\%%F\" \"%BACKUP%\\%%F\" >>%LOG% 2>&1\r\n";
     cmd << "if exist \"%DST%\\Fuente\" robocopy \"%DST%\\Fuente\" \"%BACKUP%\\Fuente\" /MIR /R:1 /W:1 /NFL /NDL /NP /NJH /NJS >>%LOG% 2>&1\r\n";
-    cmd << "echo [Tlalpowa] Copiando nucleo de aplicacion...>>%LOG%\r\n";
-    cmd << "robocopy \"%SRC%\" \"%DST%\" /E /R:5 /W:1 /COPY:DAT /DCOPY:DAT /XJ /XD .git Build .vs .idea .vscode __pycache__ Datos /XF *.user *.suo github_update_state.json ultimo_commit_aplicado.txt >>%LOG% 2>&1\r\n";
+    cmd << "if exist \"%SRC%\\tlalpowa_actualizacion_eliminados.txt\" for /F \"usebackq delims=\" %%R in (\"%SRC%\\tlalpowa_actualizacion_eliminados.txt\") do if exist \"%DST%\\%%R\" (for %%P in (\"%BACKUP%\\%%R\") do if not exist \"%%~dpP\" mkdir \"%%~dpP\" >nul 2>nul & copy /Y \"%DST%\\%%R\" \"%BACKUP%\\%%R\" >>%LOG% 2>&1)\r\n";
+    cmd << "echo [Tlalpowa] Copiando solo archivos modificados del nucleo...>>%LOG%\r\n";
+    cmd << "robocopy \"%SRC%\" \"%DST%\" /E /R:5 /W:1 /COPY:DAT /DCOPY:DAT /XJ /XD .git Build .vs .idea .vscode __pycache__ Datos /XF *.user *.suo github_update_state.json ultimo_commit_aplicado.txt tlalpowa_actualizacion_eliminados.txt >>%LOG% 2>&1\r\n";
     cmd << "set \"RC=%ERRORLEVEL%\"\r\n";
     cmd << "if %RC% GEQ 8 (echo [error] Robocopy nucleo RC=%RC%>>%LOG% & call :rollback & exit /b %RC%)\r\n";
     cmd << "for %%F in (\"%DST%\\*.ico\" \"%DST%\\*.png\") do if exist %%~fF (echo [Tlalpowa] Eliminando raster prohibido de base: %%~nxF>>%LOG% & del /F /Q %%~fF >>%LOG% 2>&1)\r\n";
     if (import_data) {
         cmd << "if not exist \"%SRC%\\Datos\" goto datos_snapshot_ausente\r\n";
-        cmd << "echo [Tlalpowa] Sincronizando Datos desde GitHub...>>%LOG%\r\n";
-        cmd << "robocopy \"%SRC%\\Datos\" \"%DST%\\Datos\" /MIR /R:5 /W:1 /COPY:DAT /DCOPY:DAT /XJ /NFL /NDL /NP /NJH /NJS >>%LOG% 2>&1\r\n";
+        cmd << "echo [Tlalpowa] Copiando solo archivos modificados de Datos...>>%LOG%\r\n";
+        cmd << "robocopy \"%SRC%\\Datos\" \"%DST%\\Datos\" /E /R:5 /W:1 /COPY:DAT /DCOPY:DAT /XJ /NFL /NDL /NP /NJH /NJS >>%LOG% 2>&1\r\n";
         cmd << "set \"RC=%ERRORLEVEL%\"\r\n";
         cmd << "if %RC% GEQ 8 (echo [error] Robocopy Datos RC=%RC%>>%LOG% & call :rollback & exit /b %RC%)\r\n";
         cmd << "goto datos_sincronizados\r\n";
@@ -4374,6 +4404,7 @@ bool tlalpowa_write_apply_github_update_script(const fs::path& repo_root,
     } else {
         cmd << "echo [Tlalpowa] Datos locales preservados por preferencia del usuario.>>%LOG%\r\n";
     }
+    cmd << "if exist \"%SRC%\\tlalpowa_actualizacion_eliminados.txt\" for /F \"usebackq delims=\" %%R in (\"%SRC%\\tlalpowa_actualizacion_eliminados.txt\") do if exist \"%DST%\\%%R\" (echo [Tlalpowa] Eliminando archivo retirado: %%R>>%LOG% & del /F /Q \"%DST%\\%%R\" >>%LOG% 2>&1)\r\n";
     cmd << "if exist \"%SRC%\\Tlalpowa.exe\" if not exist \"%DST%\\Tlalpowa.exe\" (echo [error] El exe nuevo no quedo en destino>>%LOG% & call :rollback & exit /b 41)\r\n";
     cmd << "if exist \"%DST%\\Tlalpowa.exe\" (assoc .ixiptlah=Tlalpowa.Ixiptlah >>%LOG% 2>&1 & ftype Tlalpowa.Ixiptlah=\"%DST%\\Tlalpowa.exe\" \"%%1\" >>%LOG% 2>&1)\r\n";
     cmd << "echo %SHA%>\"%UPD%\\ultimo_commit_aplicado.txt\"\r\n";
@@ -4383,14 +4414,128 @@ bool tlalpowa_write_apply_github_update_script(const fs::path& repo_root,
     cmd << "exit /b 0\r\n";
     cmd << ":rollback\r\n";
     cmd << "echo [Tlalpowa] Intentando rollback defensivo...>>%LOG%\r\n";
-    cmd << "if exist \"%BACKUP%\\Fuente\" robocopy \"%BACKUP%\\Fuente\" \"%DST%\\Fuente\" /MIR /R:1 /W:1 /NFL /NDL /NP /NJH /NJS >>%LOG% 2>&1\r\n";
-    cmd << "for %%F in (Tlalpowa.exe CMakeLists.txt Compilar_Tlalpowa.cmd Procesar_Iconos_Tlalpowa.cmd Publicar_Tlalpowa.cmd Instalar_Dependencias_Globales_Tlalpowa.cmd) do if exist \"%BACKUP%\\%%F\" copy /Y \"%BACKUP%\\%%F\" \"%DST%\\%%F\" >>%LOG% 2>&1\r\n";
+    cmd << "if exist \"%BACKUP%\" robocopy \"%BACKUP%\" \"%DST%\" /E /R:1 /W:1 /NFL /NDL /NP /NJH /NJS >>%LOG% 2>&1\r\n";
     cmd << "exit /b 0\r\n";
     return write_text_file_atomic(script_path, cmd.str());
 #else
     (void)repo_root; (void)base_root; (void)sha; (void)import_data; (void)script_path;
     return false;
 #endif
+}
+
+struct TlalpowaUpdateManifestEntry {
+    std::string path;
+    std::string sha256;
+    std::uintmax_t size = 0;
+    bool data = false;
+};
+
+bool tlalpowa_safe_update_relative_path(const std::string& value) {
+    if (value.empty() || value.front() == '/' || value.front() == '\\') return false;
+    const fs::path p = fs::path(widen_utf8(value)).lexically_normal();
+    if (p.is_absolute()) return false;
+    for (const auto& part : p) {
+        if (part == L"..") return false;
+    }
+    return true;
+}
+
+std::vector<TlalpowaUpdateManifestEntry> tlalpowa_read_update_manifest(const fs::path& path) {
+    std::vector<TlalpowaUpdateManifestEntry> out;
+    try {
+        const auto j = nlohmann::json::parse(read_text_file(path), nullptr, false);
+        if (j.is_discarded() || !j.is_object() || j.value("schema", 0) != 1) return out;
+        auto files = j.find("files");
+        if (files == j.end() || !files->is_array()) return out;
+        for (const auto& item : *files) {
+            if (!item.is_object()) continue;
+            TlalpowaUpdateManifestEntry entry;
+            entry.path = item.value("path", std::string{});
+            entry.sha256 = lowercase_ascii(item.value("sha256", std::string{}));
+            entry.size = item.value("size", static_cast<std::uintmax_t>(0));
+            entry.data = item.value("data", false);
+            if (!tlalpowa_safe_update_relative_path(entry.path) || entry.sha256.size() != 64) {
+                out.clear();
+                return out;
+            }
+            out.push_back(std::move(entry));
+        }
+    } catch (...) {
+        out.clear();
+    }
+    return out;
+}
+
+std::string tlalpowa_sha256_file(const fs::path& path) {
+#ifdef _WIN32
+    std::ifstream in(path, std::ios::binary);
+    if (!in) return {};
+    BCRYPT_ALG_HANDLE algorithm = nullptr;
+    BCRYPT_HASH_HANDLE hash = nullptr;
+    DWORD object_size = 0;
+    DWORD hash_size = 0;
+    DWORD result_size = 0;
+    std::vector<unsigned char> object;
+    std::vector<unsigned char> digest;
+    auto cleanup = [&]() {
+        if (hash) BCryptDestroyHash(hash);
+        if (algorithm) BCryptCloseAlgorithmProvider(algorithm, 0);
+    };
+    if (BCryptOpenAlgorithmProvider(&algorithm, BCRYPT_SHA256_ALGORITHM, nullptr, 0) < 0 ||
+        BCryptGetProperty(algorithm, BCRYPT_OBJECT_LENGTH, reinterpret_cast<PUCHAR>(&object_size),
+                          sizeof(object_size), &result_size, 0) < 0 ||
+        BCryptGetProperty(algorithm, BCRYPT_HASH_LENGTH, reinterpret_cast<PUCHAR>(&hash_size),
+                          sizeof(hash_size), &result_size, 0) < 0) {
+        cleanup();
+        return {};
+    }
+    object.resize(object_size);
+    digest.resize(hash_size);
+    if (BCryptCreateHash(algorithm, &hash, object.data(), object_size, nullptr, 0, 0) < 0) {
+        cleanup();
+        return {};
+    }
+    std::array<unsigned char, 1024 * 1024> buffer{};
+    while (in) {
+        in.read(reinterpret_cast<char*>(buffer.data()), static_cast<std::streamsize>(buffer.size()));
+        const std::streamsize got = in.gcount();
+        if (got > 0 && BCryptHashData(hash, buffer.data(), static_cast<ULONG>(got), 0) < 0) {
+            cleanup();
+            return {};
+        }
+    }
+    if (in.bad() || BCryptFinishHash(hash, digest.data(), hash_size, 0) < 0) {
+        cleanup();
+        return {};
+    }
+    cleanup();
+    static constexpr char hex[] = "0123456789abcdef";
+    std::string result;
+    result.reserve(digest.size() * 2);
+    for (unsigned char byte : digest) {
+        result.push_back(hex[byte >> 4]);
+        result.push_back(hex[byte & 0x0f]);
+    }
+    return result;
+#else
+    (void)path;
+    return {};
+#endif
+}
+
+std::string tlalpowa_github_raw_path_url(const std::string& ref, const std::string& relative_path) {
+    std::ostringstream out;
+    out << "https://raw.githubusercontent.com/mauricioisbl/Tlalpowa/" << ref << "/";
+    static constexpr char hex[] = "0123456789ABCDEF";
+    for (unsigned char c : relative_path) {
+        if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+            (c >= '0' && c <= '9') || c == '-' || c == '_' || c == '.' || c == '/') {
+            out << static_cast<char>(c);
+        } else {
+            out << '%' << hex[c >> 4] << hex[c & 0x0f];
+        }
+    }
+    return out.str();
 }
 
 bool tlalpowa_prepare_and_schedule_github_update(const std::string& sha,
@@ -4400,25 +4545,66 @@ bool tlalpowa_prepare_and_schedule_github_update(const std::string& sha,
     const fs::path upd = tlalpowa_github_update_root();
     ensure_dir(upd);
     const std::string ref = sha.empty() ? std::string("main") : sha;
-    const fs::path zip_path = upd / ("Tlalpowa_" + safe_filename(ref).substr(0, 16) + ".zip");
+    const fs::path remote_manifest = upd / ("manifest_" + safe_filename(ref).substr(0, 16) + ".json");
     std::error_code ec;
-    fs::remove(zip_path, ec);
-    if (!download_url_to_file(tlalpowa_github_repo_zip_url(ref), zip_path, 4096, 3, true) || !strong_zip_validation(zip_path, 4096)) {
-        status = "No pude descargar el ZIP de GitHub";
+    fs::remove(remote_manifest, ec);
+    if (!download_url_to_file(tlalpowa_github_raw_path_url(ref, "tlalpowa_actualizacion_manifest.json"),
+                              remote_manifest, 32, 3, false)) {
+        status = "No pude descargar el manifiesto incremental de GitHub";
         return false;
     }
-    const fs::path staging = upd / ("staging_" + safe_filename(ref).substr(0, 16));
-    if (!tlalpowa_extract_github_zip(zip_path, staging)) {
-        status = "No pude extraer el ZIP de GitHub";
+    const auto remote_entries = tlalpowa_read_update_manifest(remote_manifest);
+    if (remote_entries.empty()) {
+        status = "El manifiesto incremental de GitHub no es valido";
         return false;
     }
-    fs::path repo_root;
-    if (!tlalpowa_find_repo_root_after_extract(staging, repo_root)) {
-        status = "El ZIP de GitHub no contiene una raiz Tlalpowa valida";
+
+    const fs::path base = research_root();
+    const fs::path local_manifest = base / "tlalpowa_actualizacion_manifest.json";
+    const auto old_entries = tlalpowa_read_update_manifest(local_manifest);
+    std::unordered_map<std::string, TlalpowaUpdateManifestEntry> remote_by_path;
+    for (const auto& entry : remote_entries) remote_by_path[entry.path] = entry;
+
+    const fs::path staging = upd / ("delta_" + safe_filename(ref).substr(0, 16));
+    fs::remove_all(staging, ec);
+    ensure_dir(staging);
+    std::size_t changed_count = 0;
+    std::uintmax_t download_bytes = 0;
+    for (const auto& entry : remote_entries) {
+        if (entry.data && !import_data) continue;
+        const fs::path local = base / fs::path(widen_utf8(entry.path));
+        bool current = false;
+        ec.clear();
+        if (fs::exists(local, ec) && !ec && fs::is_regular_file(local, ec) && !ec &&
+            file_size_or_zero(local) == entry.size) {
+            current = tlalpowa_sha256_file(local) == entry.sha256;
+        }
+        if (current) continue;
+        const fs::path target = staging / fs::path(widen_utf8(entry.path));
+        ensure_dir(target.parent_path());
+        if (!download_url_to_file(tlalpowa_github_raw_path_url(ref, entry.path), target, 0, 3, false) ||
+            file_size_or_zero(target) != entry.size ||
+            tlalpowa_sha256_file(target) != entry.sha256) {
+            status = "Fallo la descarga o verificacion de: " + entry.path;
+            return false;
+        }
+        ++changed_count;
+        download_bytes += entry.size;
+    }
+
+    std::ostringstream deleted;
+    for (const auto& old : old_entries) {
+        if (old.data && !import_data) continue;
+        if (remote_by_path.find(old.path) == remote_by_path.end()) deleted << old.path << "\n";
+    }
+    (void)write_text_file_atomic(staging / "tlalpowa_actualizacion_eliminados.txt", deleted.str());
+    if (!copy_file_atomic(remote_manifest, staging / "tlalpowa_actualizacion_manifest.json")) {
+        status = "No pude preparar el manifiesto incremental local";
         return false;
     }
+
     fs::path script;
-    if (!tlalpowa_write_apply_github_update_script(repo_root, research_root(), ref, import_data, script)) {
+    if (!tlalpowa_write_apply_github_update_script(staging, base, ref, import_data, script)) {
         status = "No pude preparar el aplicador atomico de GitHub";
         return false;
     }
@@ -4427,9 +4613,9 @@ bool tlalpowa_prepare_and_schedule_github_update(const std::string& sha,
         status = "Actualizacion descargada, pero no pude lanzar el aplicador";
         return false;
     }
-    status = import_data
-        ? "Actualizacion GitHub preparada; al cerrar Tlalpowa se sustituiran programa y Datos para el proximo arranque"
-        : "Actualizacion GitHub preparada; al cerrar Tlalpowa se sustituira el programa y se preservaran tus Datos";
+    status = "Actualizacion incremental preparada: " + std::to_string(changed_count) +
+             " archivo(s), " + std::to_string(download_bytes) +
+             " bytes descargados; se aplicara al cerrar Tlalpowa";
     return true;
 #else
     (void)sha; (void)import_data;
@@ -37963,7 +38149,6 @@ void draw_user_profile_header_row(UiState& ui, const ImVec4& accent, bool light)
 
 void draw_user_configuration_content(UiState& ui, const ImVec4& accent) {
     tlalpowa_ensure_user_profile_defaults(ui);
-    tlalpowa_apply_github_preference_defaults(ui);
     const bool light = ui.light_theme;
     const float control_w = std::clamp(ImGui::GetContentRegionAvail().x * kGoldenN1, 260.0f, std::max(260.0f, ImGui::GetContentRegionAvail().x));
 
@@ -38045,14 +38230,21 @@ void draw_user_configuration_content(UiState& ui, const ImVec4& accent) {
     ImGui::Separator();
     golden_config_line_gap();
     ImGui::TextUnformatted("Actualizaciones GitHub");
-    ImGui::TextWrapped("Repositorio: mauricioisbl/Tlalpowa. La comprobacion descarga un snapshot ZIP y prepara un aplicador que sustituye archivos cuando Tlalpowa ya no esta en uso.");
+    ImGui::TextWrapped("Repositorio: mauricioisbl/Tlalpowa. La comprobacion compara el manifiesto SHA-256 y descarga solo los archivos modificados.");
     golden_config_line_gap();
 
     ImGui::TextUnformatted("Actualizacion automatica");
     const bool github_updates_blocked_for_author = tlalpowa_profile_is_mauri(ui);
-    ImGui::TextWrapped(github_updates_blocked_for_author
-        ? "Desactivada para el perfil del autor (mauri) para evitar ciclos sobre la carpeta de desarrollo."
-        : "Activada. Tlalpowa comprobara GitHub al arrancar y aplicara el nuevo nucleo despues de cerrar la app.");
+    if (draw_binary_slide_button("github-auto-update", "No", "Si", ui.github_auto_update_enabled, accent, light,
+                                 "Comprueba GitHub al arrancar y aplica solo los archivos publicados que hayan cambiado.")) {
+        ui.github_auto_update_preference_seen = true;
+        save_user_location_state(ui);
+    }
+    ImGui::TextWrapped(github_updates_blocked_for_author && !ui.github_auto_update_enabled
+        ? "Desactivada para este perfil. Puedes activarla explicitamente."
+        : (ui.github_auto_update_enabled
+            ? "Activada. Tlalpowa comprobara GitHub al arrancar y aplicara solo archivos modificados."
+            : "Desactivada. La comprobacion manual sigue disponible."));
     golden_config_line_gap();
 
     ImGui::TextUnformatted("Importar desde GitHub");
@@ -38070,7 +38262,7 @@ void draw_user_configuration_content(UiState& ui, const ImVec4& accent) {
     const float button_h = tlalpowa_import_control_height();
     const float check_w = golden_chrome_auto_width(ui.github_update_checking ? "Comprobando..." : "Comprobar ahora", button_h, false);
     const GoldenChromeResult gh_check_hit = draw_golden_button_template("settings-github-check-now", ui.github_update_checking ? "Comprobando..." : "Comprobar ahora", ImGui::GetCursorScreenPos(), check_w, button_h, accent, light, false, false, false);
-    if (!github_updates_blocked_for_author && !ui.github_update_checking && gh_check_hit.clicked) {
+    if (!ui.github_update_checking && gh_check_hit.clicked) {
         tlalpowa_start_github_update_check(ui, true);
     }
     golden_config_line_gap();
