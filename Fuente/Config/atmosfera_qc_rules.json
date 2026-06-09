@@ -1,0 +1,18 @@
+{
+  "schema_version": "0.1.0",
+  "rules": [
+    {"id": "time_parse", "severity": "fatal", "description": "fecha y hora deben convertirse a datetime local y UTC sin ambiguedad"},
+    {"id": "station_known", "severity": "quarantine", "description": "cve_station debe existir en catalogo o quedar como estacion pendiente de geocodificacion"},
+    {"id": "unit_known", "severity": "quarantine", "description": "unidad numerica/codigo debe mapearse a unidad canonica antes de fusion"},
+    {"id": "range_o3_ppb", "variable": "O3", "min": 0, "max": 500, "unit": "ppb", "severity": "suspect"},
+    {"id": "range_no2_ppb", "variable": "NO2", "min": 0, "max": 500, "unit": "ppb", "severity": "suspect"},
+    {"id": "range_co_ppm", "variable": "CO", "min": 0, "max": 60, "unit": "ppm", "severity": "suspect"},
+    {"id": "range_pm10_ugm3", "variable": "PM10", "min": 0, "max": 2000, "unit": "ug/m3", "severity": "suspect"},
+    {"id": "range_pm25_ugm3", "variable": "PM2.5", "min": 0, "max": 1000, "unit": "ug/m3", "severity": "suspect"},
+    {"id": "range_temperature_c", "variable": "temperatura", "min": -20, "max": 50, "unit": "degC", "severity": "suspect"},
+    {"id": "range_rh_percent", "variable": "humedad_relativa", "min": 0, "max": 100, "unit": "%", "severity": "suspect"},
+    {"id": "wind_direction_deg", "variable": "direccion_viento", "min": 0, "max": 360, "unit": "degree", "severity": "suspect"},
+    {"id": "persistence", "severity": "suspect", "description": "secuencias largas identicas por estacion-variable se marcan como posible congelamiento instrumental"},
+    {"id": "neighbor_consistency", "severity": "suspect", "description": "desviaciones extremas frente a estaciones cercanas requieren bandera de representatividad o cuarentena"}
+  ]
+}

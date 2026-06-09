@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "description": "Contrato local para integrar datos atmosfericos horarios o diarios a Tlalpowa.",
+  "jsonl_record": {
+    "datetime_local": "YYYY-MM-DDTHH:mm:ss",
+    "station_id": "codigo_estacion",
+    "station_name": "nombre_estacion",
+    "parameter_id": "o3|pm10|pm25|co|no2|so2|no|nox|pmco|tmp|rh|wsp|wdr|gr|uva|uvb",
+    "parameter_kind": "contaminante|meteorologico",
+    "value": 0.0,
+    "unit": "ppb|ppm|ug/m3",
+    "quality": "valid|estimated|missing",
+    "source": "aire.cdmx.gob.mx"
+  },
+  "planned_outputs": {
+    "jsonl": "web/data/atmosfera.jsonl",
+    "pollutants": "web/data/contaminantes.json",
+    "cloud_reconstruction": "web/data/nube_contaminantes.json"
+  }
+}

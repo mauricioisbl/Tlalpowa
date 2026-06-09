@@ -1,0 +1,3168 @@
+
+
+
+
+
+#include "AtmosphereModel.hpp"
+#include "TemporalBlocks.hpp"
+#include "core.h"
+#include "ruoa_pembu_bridge.h"
+
+#include <cmath>
+#include <cstdlib>
+#include <iomanip>
+#include <unordered_map>
+
+#include <nlohmann/json.hpp>
+
+
+
+namespace epi {
+
+
+namespace {
+
+
+
+
+std::string extension_norm(const fs::path& p) {
+
+
+    return lower_ascii(path_utf8(p.extension()));
+}
+
+
+
+fs::path atmosphere_runtime_dir() {
+
+    return project_root() / "Build" / "runtime" / "atmosfera";
+}
+
+
+
+
+std::string iso_ymd_string_atmosphere(int y, int m, int d) {
+    std::ostringstream os;
+
+    os << std::setw(4) << std::setfill('0') << y << '-'
+
+       << std::setw(2) << std::setfill('0') << m << '-'
+
+       << std::setw(2) << std::setfill('0') << d;
+
+
+    return os.str();
+}
+
+
+
+int year_from_any_text(const std::string& text) {
+
+    for (size_t i = 0; i + 3 < text.size(); ++i) {
+
+        if (!std::isdigit(static_cast<unsigned char>(text[i])) ||
+            !std::isdigit(static_cast<unsigned char>(text[i + 1])) ||
+            !std::isdigit(static_cast<unsigned char>(text[i + 2])) ||
+            !std::isdigit(static_cast<unsigned char>(text[i + 3]))) continue;
+        const int y = std::stoi(text.substr(i, 4));
+
+        if (y >= 1800 && y <= 2300) return y;
+    }
+
+    return 0;
+}
+
+
+
+
+bool is_supported_source(const fs::path& p) {
+    const std::string ext = extension_norm(p);
+
+
+
+
+    return ext == ".csv" || ext == ".tsv" || ext == ".txt" || ext == ".json" || ext == ".jsonl" || ext == ".geojson" ||
+           ext == ".nc" || ext == ".nc4" || ext == ".cdf" ||
+           ext == ".hdf" || ext == ".h5" || ext == ".hdf5" || ext == ".he5" || ext == ".he4" ||
+           ext == ".grib" || ext == ".grib2" || ext == ".grb" || ext == ".grb2" ||
+           ext == ".tif" || ext == ".tiff" || ext == ".geotiff" ||
+
+           ext == ".shp" || ext == ".shx" || ext == ".dbf" || ext == ".prj" || ext == ".cpg" ||
+
+           ext == ".gpkg" || ext == ".gdb" || ext == ".kml" || ext == ".kmz" ||
+           ext == ".zip" || ext == ".xlsx" || ext == ".xls" || ext == ".ods" ||
+           ext == ".parquet" || ext == ".feather" || ext == ".pbf" || ext == ".pdf";
+}
+
+bool is_atmosphere_inventory_only_source(const fs::path& p) {
+    const std::string name = normalize_key(path_utf8(p.filename()));
+    const std::string ext = extension_norm(p);
+
+    if (contains_norm(name, " coverage") || contains_norm(name, " catalog") ||
+        contains_norm(name, " granules ") || contains_norm(name, " manifest") ||
+        contains_norm(name, " audit")) {
+        return ext == ".csv" || ext == ".tsv" || ext == ".txt" ||
+               ext == ".json" || ext == ".jsonl" || ext == ".geojson";
+    }
+    return false;
+}
+
+bool is_satellite_coverage_table(const fs::path& p) {
+    const std::string ext = extension_norm(p);
+    if (ext != ".csv" && ext != ".tsv" && ext != ".txt") return false;
+
+    const std::string name = normalize_key(path_utf8(p.filename()));
+    if (!contains_norm(name, "coverage")) return false;
+
+    const std::string full = normalize_key(path_utf8(p));
+    return contains_norm(full, "satelital") || contains_norm(full, "satellite") ||
+           contains_norm(full, "sentinel") || contains_norm(full, "tropomi") ||
+           contains_norm(full, "modis") || contains_norm(full, "maiac") ||
+           contains_norm(full, "aura") || contains_norm(full, "omi") ||
+           contains_norm(full, "goes");
+}
+
+
+
+
+
+std::vector<std::string> split_guess_delimited(const std::string& line, char delimiter) {
+
+    std::vector<std::string> cols;
+    std::string cur;
+    bool quoted = false;
+
+    for (size_t i = 0; i < line.size(); ++i) {
+        const char c = line[i];
+
+        if (quoted) {
+
+            if (c == '"') {
+
+                if (i + 1 < line.size() && line[i + 1] == '"') { cur.push_back('"'); ++i; }
+                else quoted = false;
+
+            } else cur.push_back(c);
+        } else {
+
+            if (c == '"') quoted = true;
+
+
+            else if (c == delimiter) { cols.push_back(trim(cur)); cur.clear(); }
+
+            else cur.push_back(c);
+        }
+    }
+
+
+    cols.push_back(trim(cur));
+
+    return cols;
+}
+
+
+
+char infer_delimiter(const std::string& line) {
+
+    const std::array<char, 4> candidates{',', '\t', ';', '|'};
+    char best = ',';
+    size_t best_count = 0;
+
+    for (const char c : candidates) {
+        const size_t n = static_cast<size_t>(std::count(line.begin(), line.end(), c));
+
+        if (n > best_count) { best_count = n; best = c; }
+    }
+
+    return best;
+}
+
+
+
+std::string delimiter_name(char c) {
+
+    if (c == '\t') return "tab";
+
+    if (c == ';') return "semicolon";
+
+    if (c == '|') return "pipe";
+
+    return "comma";
+}
+
+
+bool env_flag_enabled_atmosphere(const char* name, bool fallback = false) {
+    const std::string raw = getenv_utf8_or_empty(name);
+
+    if (raw.empty()) return fallback;
+
+
+    std::string v = lower_ascii(trim(raw));
+
+    return v == "1" || v == "true" || v == "yes" || v == "si" || v == "on";
+}
+
+
+
+int env_int_clamped_atmosphere(const char* name, int fallback, int lo, int hi) {
+    const std::string raw = getenv_utf8_or_empty(name);
+
+    if (raw.empty()) return fallback;
+    try {
+
+
+        return std::clamp(std::stoi(trim(raw)), lo, hi);
+
+    } catch (...) {
+
+        return fallback;
+    }
+}
+
+
+
+
+std::string classify_provider(const std::string& norm_path) {
+
+    if (contains_norm(norm_path, "rama") || contains_norm(norm_path, "simat")) return "RAMA/SIMAT";
+
+    if (contains_norm(norm_path, "redmet")) return "REDMET";
+
+    if (contains_norm(norm_path, "redma")) return "REDMA";
+
+    if (contains_norm(norm_path, "ruoa")) return "RUOA";
+
+    if (contains_norm(norm_path, "pembu")) return "PEMBU";
+
+    if (contains_norm(norm_path, "sentinel 5p") || contains_norm(norm_path, "sentinel5p") ||
+
+        contains_norm(norm_path, "tropomi") || contains_norm(norm_path, "s5p")) return "Copernicus Sentinel-5P/TROPOMI";
+
+    if (contains_norm(norm_path, "omi") || contains_norm(norm_path, "aura") ||
+
+        contains_norm(norm_path, "omno2") || contains_norm(norm_path, "omaer") ||
+
+        contains_norm(norm_path, "omto3")) return "NASA Aura/OMI";
+
+
+    if (contains_norm(norm_path, "modis") || contains_norm(norm_path, "maiac") || contains_norm(norm_path, "mcd19")) return "NASA MODIS/MAIAC";
+
+    if (contains_norm(norm_path, "goes") || contains_norm(norm_path, "abi")) return "NOAA GOES-R/ABI";
+
+    if (contains_norm(norm_path, "viirs")) return "NOAA/NASA VIIRS";
+
+    if (contains_norm(norm_path, "era5") || contains_norm(norm_path, "copernicus")) return "Copernicus ERA5";
+
+    if (contains_norm(norm_path, "srtm") || contains_norm(norm_path, "dem") || contains_norm(norm_path, "relieve")) return "DEM/relieve";
+
+    return "desconocido";
+}
+
+
+
+std::string classify_kind(const std::string& norm_path) {
+
+
+
+    if (contains_norm(norm_path, "satelital") || contains_norm(norm_path, "satellite") ||
+
+        contains_norm(norm_path, "sentinel") || contains_norm(norm_path, "sentinel5p") ||
+
+        contains_norm(norm_path, "tropomi") || contains_norm(norm_path, "s5p") ||
+
+        contains_norm(norm_path, "omi") || contains_norm(norm_path, "aura") ||
+
+        contains_norm(norm_path, "modis") || contains_norm(norm_path, "maiac") ||
+
+        contains_norm(norm_path, "mcd19") || contains_norm(norm_path, "goes") ||
+
+        contains_norm(norm_path, "abi") || contains_norm(norm_path, "viirs") ||
+
+        contains_norm(norm_path, "aod") || contains_norm(norm_path, "hdf") ||
+
+        contains_norm(norm_path, "netcdf") || contains_norm(norm_path, "geotiff")) return "satelital";
+
+    if (contains_norm(norm_path, "contamin") || contains_norm(norm_path, "pm25") || contains_norm(norm_path, "pm2 5") ||
+
+        contains_norm(norm_path, "pm10") || contains_norm(norm_path, "ozono") || contains_norm(norm_path, "o3") ||
+
+
+        contains_norm(norm_path, "no2") || contains_norm(norm_path, "so2") || contains_norm(norm_path, "co ")) return "contaminante";
+
+    if (contains_norm(norm_path, "meteor") || contains_norm(norm_path, "temperatura") || contains_norm(norm_path, "viento") ||
+
+        contains_norm(norm_path, "humedad") || contains_norm(norm_path, "radiacion") || contains_norm(norm_path, "precipit")) return "meteorologico";
+
+    if (contains_norm(norm_path, "era5") || contains_norm(norm_path, "reanalis")) return "reanalisis";
+
+    if (contains_norm(norm_path, "emision") || contains_norm(norm_path, "inventario")) return "emisiones";
+
+    if (contains_norm(norm_path, "relieve") || contains_norm(norm_path, "srtm") || contains_norm(norm_path, "dem")) return "orografia";
+
+    return "desconocido";
+}
+
+
+
+
+std::string infer_variable_hint(const std::string& text) {
+
+
+    const std::string n = normalize_key(text);
+
+    if (contains_norm(n, "pm2 5") || contains_norm(n, "pm25")) return "PM2.5";
+
+    if (contains_norm(n, "pm10")) return "PM10";
+
+    if (contains_norm(n, "ozono") || contains_norm(n, " o3") || n == "o3") return "O3";
+
+    if (contains_norm(n, "no2")) return "NO2";
+
+    if (contains_norm(n, "so2")) return "SO2";
+
+    if (contains_norm(n, " monoxido") || contains_norm(n, " co") || n == "co") return "CO";
+
+    if (contains_norm(n, "temperatura") || contains_norm(n, " tmp") || contains_norm(n, "temp")) return "temperatura";
+
+    if (contains_norm(n, "viento") || contains_norm(n, "vel viento") || contains_norm(n, "dir viento")) return "viento";
+
+    if (contains_norm(n, "radiacion") || contains_norm(n, "uv") || contains_norm(n, "solar")) return "radiacion_solar";
+
+
+    if (contains_norm(n, "humedad")) return "humedad_relativa";
+
+    if (contains_norm(n, "presion")) return "presion";
+
+    if (contains_norm(n, "precipit")) return "precipitacion";
+
+    if (contains_norm(n, "aod") || contains_norm(n, "aerosol") || contains_norm(n, "aerosoles")) return "AOD/aerosoles";
+
+    if (contains_norm(n, "tropomi") || contains_norm(n, "sentinel") || contains_norm(n, "s5p")) return "columna_satelital_atmosferica";
+
+    if (contains_norm(n, "omi") || contains_norm(n, "aura")) return "columna_satelital_omi";
+
+    if (contains_norm(n, "goes") || contains_norm(n, "abi")) return "raster_satelital_auxiliar";
+
+    return "desconocida";
+}
+
+
+
+
+std::string temporal_hint_from_name(const std::string& text) {
+    std::smatch m;
+
+
+    if (std::regex_search(text, m, std::regex(R"(((?:19|20)[0-9]{2})[-_ ]?([0-1][0-9])?[-_ ]?([0-3][0-9])?)"))) {
+
+        return m[0].str();
+    }
+
+    return {};
+}
+
+
+
+std::string canonical_date_from_temporal_hint(const std::string& hint) {
+
+
+
+
+    const std::string n = normalize_key(hint);
+
+    std::smatch m;
+
+
+    if (std::regex_search(n, m, std::regex(R"(((?:19|20)[0-9]{2})[^0-9]?([0-1][0-9])[^0-9]?([0-3][0-9]))"))) {
+        int y = 0, mo = 1, d = 1;
+        try {
+            y = std::stoi(m[1].str());
+            mo = std::stoi(m[2].str());
+            d = std::stoi(m[3].str());
+        } catch (...) { return {}; }
+
+        if (y < 1800 || y > 2300 || mo < 1 || mo > 12 || d < 1 || d > 31) return {};
+
+        return iso_ymd_string_atmosphere(y, mo, d);
+    }
+
+
+    if (std::regex_search(n, m, std::regex(R"(((?:19|20)[0-9]{2})[^0-9]?([0-1][0-9]))"))) {
+        int y = 0, mo = 1;
+        try {
+            y = std::stoi(m[1].str());
+            mo = std::stoi(m[2].str());
+        } catch (...) { return {}; }
+
+        if (y < 1800 || y > 2300 || mo < 1 || mo > 12) return {};
+
+        return iso_ymd_string_atmosphere(y, mo, 1);
+    }
+
+
+    if (std::regex_search(n, m, std::regex(R"(((?:19|20)[0-9]{2}))"))) {
+        int y = 0;
+
+        try { y = std::stoi(m[1].str()); } catch (...) { return {}; }
+
+
+        if (y < 1800 || y > 2300) return {};
+
+        return iso_ymd_string_atmosphere(y, 1, 1);
+    }
+
+    return {};
+}
+
+
+
+
+long long file_time_tick(const fs::path& p) {
+    std::error_code ec;
+
+    const auto ft = fs::last_write_time(p, ec);
+
+    if (ec) return 0;
+
+    return static_cast<long long>(ft.time_since_epoch().count());
+}
+
+
+
+
+
+std::string compact_columns_json(const std::vector<std::string>& cols) {
+    std::ostringstream out;
+    out << '[';
+
+    for (size_t i = 0; i < cols.size(); ++i) {
+
+        if (i) out << ',';
+
+
+        out << '"' << json_escape(cols[i]) << '"';
+    }
+    out << ']';
+
+    return out.str();
+}
+
+
+
+struct StationMeta {
+    std::string id;
+
+    std::string name;
+
+    double lon = 0.0;
+
+    double lat = 0.0;
+    double alt = 0.0;
+    std::string entity_code;
+    std::string municipality_code;
+    std::string municipality_name;
+};
+
+
+std::string uppercase_code3(std::string value, const std::string& fallback = "ATM") {
+
+
+    value = trim(value);
+    std::string out;
+
+    out.reserve(3);
+
+    for (char c : value) {
+        const unsigned char uc = static_cast<unsigned char>(c);
+
+        if (std::isalnum(uc)) out.push_back(static_cast<char>(std::toupper(uc)));
+
+        if (out.size() == 3) break;
+    }
+    std::string fb = fallback;
+
+    for (char& c : fb) c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+
+    while (out.size() < 3 && out.size() < fb.size()) out.push_back(fb[out.size()]);
+
+
+    while (out.size() < 3) out.push_back('X');
+
+    return out;
+}
+
+
+
+void apply_station_territory_hint(StationMeta& s) {
+
+    struct T { const char* id; const char* ent; const char* mun; const char* name; };
+    static const T hints[] = {
+        {"ACO","MEX","ACO","Acolman"},{"AJU","CMX","TLP","Tlalpan"},{"AJM","CMX","TLP","Tlalpan"},{"ARA","CMX","GAM","Gustavo A. Madero"},
+        {"ATI","MEX","ATZ","Atizapán de Zaragoza"},{"AZC","CMX","AZC","Azcapotzalco"},{"BJU","CMX","BJU","Benito Juárez"},{"CAM","CMX","AZC","Azcapotzalco"},
+        {"CCA","CMX","COY","Coyoacán"},{"CES","CMX","IZP","Iztapalapa"},{"CFE","CMX","MIH","Miguel Hidalgo"},{"CHO","MEX","CHA","Chalco"},
+        {"COR","CMX","TLH","Tláhuac"},{"COY","CMX","COY","Coyoacán"},{"CUA","CMX","CUA","Cuajimalpa"},{"CUI","CMX","AZC","Azcapotzalco"},
+        {"CUT","MEX","CUT","Cuautitlán"},{"DIC","CMX","TLP","Tlalpan"},{"EAJ","CMX","TLP","Tlalpan"},{"EDL","CMX","CUA","Cuajimalpa"},
+
+        {"FAC","MEX","NAU","Naucalpan"},{"FAN","CMX","TLP","Tlalpan"},{"GAM","CMX","GAM","Gustavo A. Madero"},{"HAN","CMX","VCA","Venustiano Carranza"},
+        {"HGM","CMX","CUH","Cuauhtémoc"},{"IBM","CMX","MIH","Miguel Hidalgo"},{"IMP","CMX","GAM","Gustavo A. Madero"},{"INN","MEX","OCO","Ocoyoacac"},
+        {"IZT","CMX","IZC","Iztacalco"},{"LAA","CMX","GAM","Gustavo A. Madero"},{"LAG","CMX","CUH","Cuauhtémoc"},{"LLA","MEX","ECA","Ecatepec"},
+        {"LOM","CMX","MIH","Miguel Hidalgo"},{"LPR","MEX","TLA","Tlalnepantla"},{"LVI","CMX","GAM","Gustavo A. Madero"},{"MCM","CMX","CUH","Cuauhtémoc"},
+        {"MER","CMX","VCA","Venustiano Carranza"},{"MGH","CMX","MIH","Miguel Hidalgo"},{"MIN","CMX","CUH","Cuauhtémoc"},{"MON","MEX","TEX","Texcoco"},
+        {"MPA","CMX","MPA","Milpa Alta"},{"NET","MEX","NEZ","Nezahualcóyotl"},{"NEZ","MEX","NEZ","Nezahualcóyotl"},{"PED","CMX","COY","Coyoacán"},
+        {"PER","MEX","NEZ","Nezahualcóyotl"},{"PLA","CMX","AOB","Álvaro Obregón"},{"POT","CMX","BJU","Benito Juárez"},{"SAG","MEX","ECA","Ecatepec"},
+        {"SFE","CMX","CUA","Cuajimalpa"},{"SHA","CMX","MIH","Miguel Hidalgo"},{"SJA","CMX","GAM","Gustavo A. Madero"},{"SNT","CMX","MCO","Magdalena Contreras"},
+
+        {"SUR","CMX","COY","Coyoacán"},{"TAC","CMX","MIH","Miguel Hidalgo"},{"TAH","CMX","TLH","Tláhuac"},{"TAX","CMX","COY","Coyoacán"},
+        {"TEC","CMX","GAM","Gustavo A. Madero"},{"TLA","MEX","TLA","Tlalnepantla"},{"TLI","MEX","TLT","Tultitlán"},{"TPN","CMX","TLP","Tlalpan"},
+        {"UAX","CMX","XOC","Xochimilco"},{"UIZ","CMX","IZP","Iztapalapa"},{"UNM","CMX","UNM","Unidad móvil"},{"VAL","CMX","AZC","Azcapotzalco"},
+
+        {"VIF","MEX","COA","Coacalco"},{"XAL","MEX","ECA","Ecatepec"},{"XCH","CMX","XOC","Xochimilco"},{"FAR","MEX","NEZ","Nezahualcóyotl"},
+        {"SAC","CMX","IZP","Iztapalapa"}
+    };
+    const std::string id = uppercase_code3(s.id);
+
+    for (const auto& h : hints) {
+
+        if (id == h.id) {
+            s.entity_code = h.ent;
+            s.municipality_code = h.mun;
+            s.municipality_name = h.name;
+
+            return;
+        }
+    }
+
+    s.entity_code = s.lon < -99.35 || s.lon > -98.95 || s.lat > 19.60 ? "MEX" : "CMX";
+    s.municipality_code = id;
+    s.municipality_name = s.name;
+}
+
+
+
+void seed_builtin_station_catalog(std::map<std::string, StationMeta>& stations) {
+
+    struct R { const char* id; const char* name; double lon; double lat; double alt; };
+
+    static const R rows[] = {
+
+        {"ACO","Acolman",-98.912003,19.635501,2198},{"AJU","Ajusco",-99.162611,19.154286,2942},{"AJM","Ajusco Medio",-99.207744,19.272161,2548},
+        {"ARA","Aragón",-99.074549,19.470218,2200},{"ATI","Atizapan",-99.254133,19.576963,2341},{"AZC","Azcapotzalco",-99.198657,19.487728,2279},
+        {"BJU","Benito Juárez",-99.159596,19.370464,2249},{"CAM","Camarones",-99.169794,19.468404,2233},{"CCA","Centro de Indexacións de la Atmósfera",-99.176111,19.326111,2294},
+
+        {"CES","Cerro de la Estrella",-99.074678,19.334731,2219},{"CFE","Museo Tecnológico de la CFE",-99.194279,19.414393,2287},{"CHO","Chalco",-98.886088,19.266948,2253},
+        {"COR","CORENA",-99.02604,19.265346,2242},{"COY","Coyoacán",-99.157101,19.350258,2260},{"CUA","Cuajimalpa",-99.291705,19.365313,2704},
+        {"CUI","Cuitláhuac",-99.165849,19.469859,2255},{"CUT","Cuautitlán",-99.198602,19.722186,2263},{"DIC","Diconsa",-99.185774,19.298819,2305},
+        {"EAJ","Ecoguardas Ajusco",-99.203971,19.271222,2584},{"EDL","Exconv. Desierto Leones",-99.310635,19.313357,2980},{"FAC","FES Acatlán",-99.243524,19.482473,2299},
+        {"FAN","Felipe Ángeles",-99.17492,19.299126,2279},{"GAM","Gustavo A. Madero",-99.094517,19.4827,2227},{"HAN","Hangares",-99.083623,19.420518,2235},
+        {"HGM","Hospital General de México",-99.152207,19.411617,2234},{"IBM","Legaria",-99.21536,19.443319,2314},{"IMP","Inst. Mexicano del Petróleo",-99.147294,19.487561,2250},
+        {"INN","Investigaciones Nucleares",-99.38052,19.291968,3082},{"IZT","Iztacalco",-99.117641,19.384413,2238},{"LAA","Lab. de Analisis Ambiental",-99.147312,19.483781,2255},
+        {"LAG","Lagunilla",-99.135183,19.44242,2223},{"LLA","Los Laureles",-99.039644,19.578792,2230},{"LOM","Lomas",-99.242062,19.403,2434},
+        {"LPR","La Presa",-99.11772,19.534727,2302},{"LVI","La Villa",-99.117749,19.46789,2228},{"MCM","Museo de la Cd. de México",-99.131924,19.429071,2237},
+        {"MER","Merced",-99.119594,19.42461,2245},{"MGH","Mguel Hidalgo",-99.20266,19.40405,2327},{"MIN","Metro Insurgentes",-99.162885,19.42144,2231},
+        {"MON","Montecillo",-98.902853,19.460415,2252},{"MPA","Milpa Alta",-98.990189,19.1769,2594},{"NET","Netzahualcoyotl",-99.026119,19.42115,2230},
+
+        {"NEZ","Nezahualcóyotl",-99.028212,19.393734,2235},{"PED","Pedregal",-99.204136,19.325146,2326},{"PER","La Perla",-98.991858,19.38286,2237},
+
+        {"PLA","Plateros",-99.200109,19.365869,2345},{"POT","Portales",-99.145766,19.376494,2237},{"SAG","San Agustín",-99.030324,19.532968,2241},
+        {"SFE","Santa fe",-99.262865,19.357357,2599},{"SHA","Secretaría de Hacienda",-99.207868,19.446203,2272},{"SJA","San Juan Aragón",-99.086095,19.452592,2258},
+        {"SNT","San Nicolas Totolapan",-99.256462,19.250385,2946},{"SUR","Santa Ursula",-99.149994,19.31448,2279},{"TAC","Tacuba",-99.202455,19.453907,2275},
+
+        {"TAH","Tlahuac",-99.010564,19.246459,2297},{"TAX","Taxqueña",-99.123204,19.335689,2242},{"TEC","Cerro del Tepeyac",-99.114229,19.487227,2265},
+        {"TLA","Tlalnepantla",-99.204597,19.529077,2311},{"TLI","Tultitlán",-99.177173,19.602542,2313},{"TPN","Tlalpan",-99.184177,19.257041,2522},
+        {"UAX","UAM Xochimilco",-99.103629,19.304441,2246},{"UIZ","UAM Iztapalapa",-99.07388,19.360794,2221},{"UNM","Unidad Movil",-99.147137,19.482238,0},
+        {"VAL","Vallejo",-99.165702,19.522437,2248},{"VIF","Villa de las Flores",-99.09659,19.658223,2242},{"XAL","Xalostoc",-99.0824,19.525995,2160},
+        {"XCH","Xochimilco",-99.118252,19.267066,2243},{"FAR","FES Aragón",-99.046176,19.473692,2230},{"SAC","Santiago Acahualtepec",-99.009381,19.34561,2293}
+    };
+
+    for (const auto& r : rows) {
+
+        StationMeta s;
+
+        s.id = r.id; s.name = r.name; s.lon = r.lon; s.lat = r.lat; s.alt = r.alt;
+        apply_station_territory_hint(s);
+        stations[s.id] = std::move(s);
+    }
+}
+
+
+
+
+struct CloudAccumulator {
+    StationMeta station;
+    std::string pollutant;
+    std::string unit;
+
+    int year = 0;
+
+
+    int month = 0;
+    double sum = 0.0;
+    double min_v = std::numeric_limits<double>::infinity();
+    double max_v = -std::numeric_limits<double>::infinity();
+    int64_t count = 0;
+
+
+
+void add(double v) {
+        sum += v;
+        min_v = std::min(min_v, v);
+        max_v = std::max(max_v, v);
+        ++count;
+    }
+};
+
+
+
+
+
+
+
+
+std::string month_start_date(int year, int month) {
+    std::ostringstream os;
+
+    os << std::setw(4) << std::setfill('0') << year << '-'
+
+
+       << std::setw(2) << std::setfill('0') << std::clamp(month, 1, 12) << "-01";
+
+    return os.str();
+}
+
+
+
+struct PackedAtmosphereBatchBuilder {
+
+    int year = 0;
+
+
+    int month = 0;
+
+    std::vector<TemporalAtmospherePackedStation> stations;
+
+    std::vector<std::string> pollutants;
+
+    std::vector<std::string> units;
+
+
+    std::vector<TemporalAtmospherePackedSample> samples;
+
+    std::map<std::string, std::uint32_t> station_index;
+
+    std::map<std::string, std::uint32_t> pollutant_index;
+
+    std::map<std::string, std::uint32_t> unit_index;
+};
+
+
+std::uint32_t intern_packed_string(std::vector<std::string>& values,
+
+                                   std::map<std::string, std::uint32_t>& index,
+
+                                   const std::string& value) {
+    const auto it = index.find(value);
+
+    if (it != index.end()) return it->second;
+    const std::uint32_t id = static_cast<std::uint32_t>(values.size());
+
+    values.push_back(value);
+    index[value] = id;
+
+    return id;
+}
+
+
+
+std::uint32_t intern_packed_station(PackedAtmosphereBatchBuilder& batch, const StationMeta& station) {
+    const std::string id = uppercase_code3(station.id);
+    const auto it = batch.station_index.find(id);
+
+    if (it != batch.station_index.end()) return it->second;
+    const std::uint32_t idx = static_cast<std::uint32_t>(batch.stations.size());
+
+
+    TemporalAtmospherePackedStation packed;
+    packed.id = id;
+    packed.name = station.name;
+
+    packed.lon = station.lon;
+
+    packed.lat = station.lat;
+    packed.alt = station.alt;
+
+    batch.stations.push_back(std::move(packed));
+    batch.station_index[id] = idx;
+
+    return idx;
+}
+
+
+void add_packed_atmosphere_sample(std::map<std::string, PackedAtmosphereBatchBuilder>& batches,
+
+                                  int year,
+
+
+                                  int month,
+                                  int day,
+
+                                  int hour,
+
+                                  int minute,
+                                  const StationMeta& station,
+                                  const std::string& pollutant,
+                                  const std::string& unit,
+
+                                  double value) {
+
+
+    if (year <= 0 || month < 1 || month > 12 || day < 1 || day > 31) return;
+
+
+    const std::string key = std::to_string(year) + "|" + std::to_string(month);
+
+    auto& batch = batches[key];
+
+    if (batch.samples.empty()) {
+
+        batch.year = year;
+
+
+        batch.month = month;
+
+        batch.samples.reserve(4096);
+    }
+    const std::uint32_t station_idx = intern_packed_station(batch, station);
+    const std::uint32_t pollutant_idx = intern_packed_string(batch.pollutants, batch.pollutant_index, pollutant);
+    const std::uint32_t unit_idx = intern_packed_string(batch.units, batch.unit_index, unit);
+
+
+
+    TemporalAtmospherePackedSample sample;
+    sample.day = static_cast<std::uint8_t>(std::clamp(day, 1, 31));
+
+    sample.hour = static_cast<std::uint8_t>(std::clamp(hour, 0, 23));
+
+    sample.minute = static_cast<std::uint8_t>(std::clamp(minute, 0, 59));
+    sample.station_index = station_idx;
+    sample.pollutant_index = pollutant_idx;
+    sample.unit_index = unit_idx;
+
+    sample.value = value;
+
+    batch.samples.push_back(sample);
+}
+
+
+
+
+
+
+
+void push_unique_existing_dir(std::vector<fs::path>& roots, const fs::path& p) {
+
+    if (p.empty()) return;
+    std::error_code ec;
+
+    if (!fs::exists(p, ec) || ec || !fs::is_directory(p, ec) || ec) return;
+
+
+    const std::string key = normalize_key(path_utf8(fs::weakly_canonical(p, ec)));
+
+    for (const auto& existing : roots) {
+        std::error_code existing_ec;
+
+
+        if (normalize_key(path_utf8(fs::weakly_canonical(existing, existing_ec))) == key) return;
+    }
+
+    roots.push_back(p);
+}
+
+
+
+bool looks_like_atmospheric_dir(const fs::path& p) {
+
+
+    const std::string n = normalize_key(path_utf8(p.filename()));
+
+    return contains_norm(n, "meteorolog") || contains_norm(n, "contaminante") ||
+
+           contains_norm(n, "rama") || contains_norm(n, "simat") ||
+           contains_norm(n, "redmet") || contains_norm(n, "redma") || contains_norm(n, "ruoa") || contains_norm(n, "pembu");
+}
+
+
+
+
+std::vector<fs::path> atmospheric_scan_roots(const fs::path& source_root) {
+
+    std::vector<fs::path> roots;
+    std::error_code ec;
+
+
+    if (source_root.empty() || !fs::exists(source_root, ec) || ec) return roots;
+
+    const fs::path contaminantes = source_root / L"CONTAMINANTES";
+
+    const fs::path meteorologicos = source_root / L"METEOROL\u00d3GICOS";
+
+    const fs::path meteorologicos_ascii = source_root / L"METEOROLOGICOS";
+    /* La raíz elegida también puede contener los CSV mensuales oficiales
+       directamente. Mantenerla en el conjunto desde el inicio evita que RAMA
+       local quede invisible cuando además existen subcarpetas auxiliares. */
+    push_unique_existing_dir(roots, source_root);
+    push_unique_existing_dir(roots, contaminantes);
+    push_unique_existing_dir(roots, source_root / L"Contaminantes");
+
+    push_unique_existing_dir(roots, meteorologicos);
+    push_unique_existing_dir(roots, meteorologicos_ascii);
+    push_unique_existing_dir(roots, source_root / L"Meteorologicos");
+    push_unique_existing_dir(roots, source_root / L"REDMET");
+    push_unique_existing_dir(roots, source_root / L"REDMA");
+    push_unique_existing_dir(roots, source_root / L"RUOA");
+    push_unique_existing_dir(roots, source_root / L"PEMBU");
+
+    if (roots.empty()) {
+        push_unique_existing_dir(roots, source_root);
+
+        if (looks_like_atmospheric_dir(source_root)) {
+
+            const fs::path parent = source_root.parent_path();
+            push_unique_existing_dir(roots, parent / L"CONTAMINANTES");
+            push_unique_existing_dir(roots, parent / L"Contaminantes");
+            push_unique_existing_dir(roots, parent / L"METEOROL\u00d3GICOS");
+            push_unique_existing_dir(roots, parent / L"METEOROLOGICOS");
+
+            push_unique_existing_dir(roots, parent / L"Meteorologicos");
+            push_unique_existing_dir(roots, parent / L"REDMET");
+            push_unique_existing_dir(roots, parent / L"REDMA");
+            push_unique_existing_dir(roots, parent / L"RUOA");
+            push_unique_existing_dir(roots, parent / L"PEMBU");
+        }
+    }
+
+
+    return roots;
+}
+
+
+
+
+std::map<std::string, StationMeta> load_station_catalogs_for_cloud(const fs::path& source_root) {
+
+    std::map<std::string, StationMeta> stations;
+    seed_builtin_station_catalog(stations);
+
+    for (const auto& root : atmospheric_scan_roots(source_root)) {
+
+
+        const fs::path p = root / "cat_estacion.csv";
+
+        if (!fs::exists(p)) continue;
+
+
+        std::ifstream in(p, std::ios::binary);
+        std::string line;
+
+        while (std::getline(in, line)) {
+
+            const auto cols = split_guess_delimited(line, ',');
+
+
+            if (cols.size() < 4 || cols[0].empty() || cols[0] == "cve_estac" || contains_norm(normalize_key(cols[0]), "catalogo")) continue;
+            try {
+                StationMeta s;
+                s.id = uppercase_code3(cols[0]);
+                s.name = cols.size() > 1 ? cols[1] : cols[0];
+
+                s.lon = std::stod(cols[2]);
+
+                s.lat = std::stod(cols[3]);
+
+
+                if (cols.size() > 4 && !cols[4].empty()) s.alt = std::stod(cols[4]);
+
+                if (s.lon < -103.0 || s.lon > -96.0 || s.lat < 17.0 || s.lat > 22.0) continue;
+                apply_station_territory_hint(s);
+                stations[s.id] = std::move(s);
+            } catch (...) {}
+        }
+    }
+
+    return stations;
+}
+
+
+
+std::map<std::string, std::string> load_unit_catalogs_for_cloud(const fs::path& source_root) {
+
+    std::map<std::string, std::string> units;
+
+    for (const auto& root : atmospheric_scan_roots(source_root)) {
+
+
+        const fs::path p = root / "cat_unidades.csv";
+
+        if (!fs::exists(p)) continue;
+
+
+        std::ifstream in(p, std::ios::binary);
+        std::string line;
+
+        while (std::getline(in, line)) {
+
+            const auto cols = split_guess_delimited(line, ',');
+
+            if (cols.size() < 2) continue;
+
+            const std::string id = trim(cols[0]);
+
+
+            const std::string key = normalize_key(id);
+
+
+            if (id.empty() || key == "id unidad" || key == "catalogo") continue;
+
+
+            units[id] = trim(cols[1]);
+        }
+    }
+
+    return units;
+}
+
+
+
+std::string canonical_parameter_id(const std::string& value) {
+
+
+    const std::string n = normalize_key(value);
+
+    if (n == "pm2 5" || n == "pm25") return "pm25";
+
+    if (n == "pm10") return "pm10";
+
+    if (n == "pmco" || n == "pm10 2 5") return "pmco";
+
+    if (n == "o3" || n == "ozono") return "o3";
+
+    if (n == "co" || contains_norm(n, "monoxido de carbono")) return "co";
+
+    if (n == "no2" || contains_norm(n, "dioxido de nitrogeno")) return "no2";
+
+    if (n == "no") return "no";
+
+    if (n == "nox" || n == "no x") return "nox";
+
+    if (n == "so2" || contains_norm(n, "dioxido de azufre")) return "so2";
+
+    if (n == "h2s" || contains_norm(n, "acido sulfhidrico")) return "h2s";
+
+    if (n == "hcho" || contains_norm(n, "formaldehido") || contains_norm(n, "formaldehyde")) return "hcho";
+
+    if (n == "nh3" || contains_norm(n, "amoniaco") || contains_norm(n, "ammonia")) return "nh3";
+
+    if (n == "ben" || n == "benzene" || n == "benceno") return "ben";
+
+
+    if (n == "tol" || n == "toluene" || n == "tolueno") return "tol";
+
+    if (n == "xyl" || n == "xylene" || n == "xylenes" || n == "xileno" || n == "xilenos") return "xyl";
+
+    if (n == "ch4" || n == "methane" || n == "metano") return "ch4";
+
+    if (n == "co2" || contains_norm(n, "dioxido de carbono") || contains_norm(n, "carbon dioxide")) return "co2";
+
+    if (n == "so4" || n == "sulfate" || n == "sulfato") return "so4";
+
+    if (n == "no3" || n == "no3a" || n == "nitrate" || n == "nitrato") return "no3a";
+
+    if (n == "pb" || n == "lead" || n == "plomo") return "pb";
+
+    if (n == "cd" || n == "cadmium" || n == "cadmio") return "cd";
+
+    if (n == "as" || n == "arsenic" || n == "arsenico") return "as";
+
+    if (n == "ni" || n == "nickel" || n == "niquel") return "ni";
+
+    if (n == "hg" || n == "mercury" || n == "mercurio") return "hg";
+
+    if (n == "cr" || n == "chromium" || n == "cromo") return "cr";
+
+    if (n == "bc" || n == "black carbon" || contains_norm(n, "carbono negro")) return "bc";
+
+    if (n == "ec" || contains_norm(n, "carbono elemental")) return "ec";
+
+    if (n == "oc" || contains_norm(n, "carbono organico")) return "oc";
+
+    if (n == "aod" || contains_norm(n, "aerosol optical depth") || contains_norm(n, "profundidad optica")) return "aod";
+
+    if (n == "uvaerosolindex" || n == "aai" || contains_norm(n, "aerosol index")) return "uvai";
+
+    if (n == "frp" || contains_norm(n, "fire radiative power")) return "frp";
+
+    if (n == "fire_temperature" || contains_norm(n, "fire temperature") || contains_norm(n, "temperatura subpixel de fuego")) return "fire_temperature";
+
+    if (n == "fire_area" || contains_norm(n, "fire area") || contains_norm(n, "area subpixel de fuego")) return "fire_area";
+
+
+    if (n == "brightness" || n == "bright ti4" || n == "bright_ti4" || n == "bright ti5" || n == "bright_ti5" ||
+        n == "bright t31" || n == "bright_t31") return "brightness";
+
+    if (n == "cloud_fraction" || contains_norm(n, "cloud fraction") || contains_norm(n, "fraccion nubosa")) return "cloud_fraction";
+
+    if (n == "cloud_pressure" || contains_norm(n, "cloud pressure") || contains_norm(n, "presion de nube")) return "cloud_pressure";
+
+    if (n == "cloud_top_temperature" || contains_norm(n, "cloud top temperature") || contains_norm(n, "temperatura de tope de nube")) return "cloud_top_temperature";
+
+    if (n == "lst" || contains_norm(n, "land surface temperature") || contains_norm(n, "temperatura superficial")) return "lst";
+
+    if (n == "ndvi") return "ndvi";
+
+    if (n == "evi") return "evi";
+
+    if (n == "albedo") return "albedo";
+
+    if (n == "pblh" || contains_norm(n, "boundary layer") || contains_norm(n, "capa limite")) return "pblh";
+
+    if (n == "tmp" || n == "temp" || n == "temperatura" || contains_norm(n, "temperatura")) return "tmp";
+
+    if (n == "rh" || n == "hum rel" || n == "hum_rel" || contains_norm(n, "humedad")) return "rh";
+
+    if (n == "wsp" || n == "rapidez v sostenido" || n == "rapidez_v_sostenido" || contains_norm(n, "velocidad del viento")) return "wsp";
+
+    if (n == "wdr" || n == "dir v sostenido" || n == "dir_v_sostenido" || contains_norm(n, "direccion del viento")) return "wdr";
+
+    if (n == "u10" || n == "componente zonal del viento") return "u10";
+
+    if (n == "v10" || n == "v1" || n == "componente meridional del viento") return "v10";
+
+    if (n == "wgst" || n == "rapidez rachas" || n == "rapidez_rachas" || n == "wind gust" || n == "gust speed") return "wgst";
+
+    if (n == "wdr_gust" || n == "dir rachas" || n == "dir_rachas" || n == "gust direction") return "wdr_gust";
+
+    if (n == "pba" || n == "pa" || n == "presion bar" || n == "presion_bar" || contains_norm(n, "presion")) return "pa";
+
+    if (n == "pb" || contains_norm(n, "plomo")) return "pb";
+
+    if (n == "gr" || contains_norm(n, "radiacion global")) return "gr";
+
+    if (n == "uva") return "uva";
+
+    if (n == "uvb") return "uvb";
+
+    // Alias RUOA/PEMBU/Davis Vantage: los CSV del puente PEMBU pueden llegar
+    // con encabezados en ingles compactos o con espacios; estos mapeos evitan
+    // degradar la importacion a columnas desconocidas.
+    if (n == "timestamp" || n == "date time" || n == "datetime") return "timestamp";
+    if (n == "out temp" || n == "outside temp" || n == "temp out" || n == "temperature" || n == "temperature out" || n == "air temperature") return "tmp";
+    if (n == "hi temp" || n == "high temp" || n == "temp hi" || n == "max temp" || n == "temperature max") return "tmp";
+    if (n == "low temp" || n == "lo temp" || n == "temp low" || n == "min temp" || n == "temperature min") return "tmp";
+    if (n == "out hum" || n == "outside hum" || n == "humidity" || n == "relative humidity" || n == "hum out") return "rh";
+    if (n == "wind speed" || n == "wind spd" || n == "windspeed" || n == "10minavgwindspeed") return "wsp";
+    if (n == "wind dir" || n == "wind direction" || n == "winddir" || n == "hi wind dir") return "wdr";
+    if (n == "bar" || n == "barometer" || n == "barometric pressure" || n == "pressure") return "pa";
+    if (n == "rain" || n == "rainfall" || n == "rain rate" || n == "rainrate" || n == "precipitation" || n == "precipitacion" || n == "precipitación") return "pp";
+    if (n == "solar rad" || n == "solarrad" || n == "solar radiation" || n == "radiacion solar" || n == "rad solar" || n == "rad_solar") return "gr";
+    if (n == "uv" || n == "uv index" || n == "uvindex" || n == "indice uv" || n == "indice_uv") return "uv";
+    if (n == "dosis uv" || n == "dosis_uv") return "uv_dose";
+    if (n == "pm 2 5" || n == "pm2 5 ug m3" || n == "pm2 5_atm" || n == "pm2 5 cf1") return "pm25";
+
+    return lower_ascii(trim(value));
+}
+
+
+
+bool is_known_atmosphere_parameter(const std::string& value) {
+
+    static const std::set<std::string> ids = {
+
+        "co", "no", "no2", "nox", "o3", "pm10", "pm25", "pmco", "so2",
+        "tmp", "tmax", "tmin", "rh", "pa", "wsp", "wdr", "wgst", "wdr_gust", "u10", "v10", "gr", "uv", "uva", "uvb", "uvc", "pp", "pblh"
+    };
+
+    return ids.count(canonical_parameter_id(value)) > 0;
+}
+
+
+
+bool atmosphere_parameter_is_meteorological_key(const std::string& pollutant) {
+    const std::string p = canonical_parameter_id(pollutant);
+    static const std::set<std::string> ids = {
+        "tmp", "tmax", "tmin", "rh", "pa", "wsp", "wdr", "wgst", "wdr_gust", "u10", "v10", "gr", "uv", "uva", "uvb", "uvc", "pp", "pblh"
+    };
+    return ids.count(p) != 0;
+}
+
+bool atmosphere_source_accepts_parameter(const std::string& source_path, const std::string& pollutant) {
+    const std::string n = normalize_key(source_path);
+    const bool meteo = atmosphere_parameter_is_meteorological_key(pollutant);
+    if (contains_norm(n, "ruoa") || contains_norm(n, "pembu")) return meteo;
+    if (contains_norm(n, "redma") || contains_norm(n, "redmet") || contains_norm(n, "meteorolog") || contains_norm(n, "clima")) return meteo;
+    if (contains_norm(n, "rama") || contains_norm(n, "simat") || contains_norm(n, "contaminante")) return !meteo;
+    return true;
+}
+
+bool atmosphere_forced_family_accepts_parameter(int forced_source_family, const std::string& pollutant) {
+    if (forced_source_family <= 0) return true;
+    const bool meteo = atmosphere_parameter_is_meteorological_key(pollutant);
+    if (forced_source_family == TLAL_ATMOS_SOURCE_RAMA) return !meteo;
+    if (forced_source_family == TLAL_ATMOS_SOURCE_REDMA || forced_source_family == TLAL_ATMOS_SOURCE_RUOA) return meteo;
+    return true;
+}
+
+std::string default_unit_for_parameter(const std::string& pollutant) {
+
+    const std::string p = canonical_parameter_id(pollutant);
+
+    if (p == "co") return "ppm";
+
+    if (p == "pm10" || p == "pm25" || p == "pmco" || p == "pb" || p == "cd" || p == "as" || p == "ni" || p == "hg" || p == "cr" || p == "bc" || p == "ec" || p == "oc" || p == "so4" || p == "no3a") return "ug/m3";
+
+    if (p == "aod" || p == "uvai" || p == "uv" || p == "ndvi" || p == "evi" || p == "albedo") return "indice";
+
+    if (p == "pp") return "mm";
+
+    if (p == "uv_dose") return "mJ/cm2";
+
+    if (p == "frp") return "MW";
+
+    if (p == "fire_area") return "m2";
+
+    if (p == "cloud_fraction") return "1";
+
+    if (p == "cloud_pressure") return "hPa";
+
+    if (p == "brightness" || p == "fire_temperature" || p == "cloud_top_temperature" || p == "lst") return "K";
+
+    if (p == "pblh") return "m";
+
+    if (p == "tmp") return "C";
+
+    if (p == "rh") return "%";
+
+    if (p == "pa") return "hPa";
+
+    if (p == "wsp" || p == "wgst") return "m/s";
+
+    if (p == "wdr" || p == "wdr_gust") return "grados";
+
+
+    if (p == "gr" || p == "uva" || p == "uvb") return "W/m2";
+
+    if (p == "o3" || p == "no" || p == "no2" || p == "nox" || p == "so2" || p == "h2s" || p == "hcho" || p == "nh3" || p == "ben" || p == "tol" || p == "xyl" || p == "ch4" || p == "co2") return "ppb";
+
+    return {};
+}
+
+
+
+std::string recode_unit_code(std::string unit, const std::string& pollutant) {
+
+    unit = trim(unit);
+
+    if (unit == "1") return "ppb";
+
+    if (unit == "2") return "ug/m3";
+
+    if (unit == "3") return "m/s";
+
+    if (unit == "4") return "grados";
+
+    if (unit == "5") return "C";
+
+    if (unit == "6") return "%";
+
+    if (unit == "7") return "W/m2";
+
+    if (unit == "9") return "mmHg";
+
+    if (unit == "15") return "ppm";
+
+    if (unit == "17") return "mW/cm2";
+
+    if (unit.empty()) return default_unit_for_parameter(pollutant);
+
+    return unit;
+}
+
+
+
+StationMeta aggregate_station_for_source(const std::string& source_path) {
+
+
+    const std::string n = normalize_key(source_path);
+    StationMeta s;
+
+    struct RuoaStation { const char* code; const char* name; double lon; double lat; double alt; const char* ent; const char* mun; const char* mun_name; };
+    static const RuoaStation ruoa_stations[] = {
+        {"cca", "RUOA PEMBU CCA", -99.176111, 19.326111, 2294, "CMX", "COY", "Coyoacan"},
+        {"enp1", "RUOA PEMBU ENP1", -99.1039, 19.2533, 2240, "CMX", "XOC", "Xochimilco"},
+        {"enp2", "RUOA PEMBU ENP2", -99.0960, 19.3860, 2240, "CMX", "IZC", "Iztacalco"},
+        {"enp3", "RUOA PEMBU ENP3", -99.0980, 19.4830, 2240, "CMX", "GAM", "Gustavo A. Madero"},
+        {"enp4", "RUOA PEMBU ENP4", -99.1900, 19.4040, 2240, "CMX", "MIH", "Miguel Hidalgo"},
+        {"enp5", "RUOA PEMBU ENP5", -99.1670, 19.2840, 2280, "CMX", "TLP", "Tlalpan"},
+        {"enp6", "RUOA PEMBU ENP6", -99.1620, 19.3450, 2240, "CMX", "COY", "Coyoacan"},
+        {"enp7", "RUOA PEMBU ENP7", -99.1250, 19.3920, 2240, "CMX", "IZC", "Iztacalco"},
+        {"enp8", "RUOA PEMBU ENP8", -99.1860, 19.3710, 2240, "CMX", "AOB", "Alvaro Obregon"},
+        {"enp9", "RUOA PEMBU ENP9", -99.1290, 19.4940, 2240, "CMX", "GAM", "Gustavo A. Madero"},
+        {"ccha", "RUOA PEMBU CCH Azcapotzalco", -99.1880, 19.5020, 2240, "CMX", "AZC", "Azcapotzalco"},
+        {"ccho", "RUOA PEMBU CCH Oriente", -99.0450, 19.3820, 2240, "CMX", "IZP", "Iztapalapa"},
+        {"cchs", "RUOA PEMBU CCH Sur", -99.1950, 19.3150, 2290, "CMX", "COY", "Coyoacan"},
+        {"cchv", "RUOA PEMBU CCH Vallejo", -99.1530, 19.4860, 2240, "CMX", "GAM", "Gustavo A. Madero"},
+        {"cchn", "RUOA PEMBU CCH Naucalpan", -99.2310, 19.4750, 2300, "MEX", "NAU", "Naucalpan"}
+    };
+
+    for (const auto& r : ruoa_stations) {
+        const std::string key = std::string("pembu ") + r.code;
+        const std::string key2 = std::string("ruoa pembu ") + r.code;
+        const std::string key3 = std::string("/") + r.code + "/";
+        if (contains_norm(n, key) || contains_norm(n, key2) || n.find(key3) != std::string::npos || contains_norm(n, std::string("pembu_") + r.code)) {
+            std::string sid = r.code;
+            if (sid == "cca") sid = "CCA";
+            else if (sid.size() == 4 && sid.rfind("enp", 0) == 0) sid = std::string("E0") + sid.substr(3, 1);
+            else if (sid == "ccha") sid = "CHA";
+            else if (sid == "ccho") sid = "CHO";
+            else if (sid == "cchs") sid = "CHS";
+            else if (sid == "cchv") sid = "CHV";
+            else if (sid == "cchn") sid = "CHN";
+            s.id = uppercase_code3(sid);
+            s.name = r.name;
+            s.lon = r.lon;
+            s.lat = r.lat;
+            s.alt = r.alt;
+            s.entity_code = r.ent;
+            s.municipality_code = r.mun;
+            s.municipality_name = r.mun_name;
+            return s;
+        }
+    }
+
+    if (contains_norm(n, "meteorolog") || contains_norm(n, "redma")) {
+        s.id = "MET";
+        s.name = "REDMA promedio ZMVM";
+    } else {
+        s.id = "RMA";
+        s.name = "RAMA promedio ZMVM";
+    }
+
+    s.lon = -99.1332;
+
+    s.lat = 19.4326;
+    s.alt = 2240.0;
+    s.entity_code = "CMX";
+
+    s.municipality_code = "CUH";
+    s.municipality_name = "Cuauhtemoc";
+
+    return s;
+}
+
+
+
+
+
+struct ParsedAtmosDate {
+
+    int year = 0;
+
+
+    int month = 0;
+    int day = 0;
+
+    int hour = 0;
+
+    int minute = 0;
+    int second = 0;
+
+    std::string date;
+
+    std::string hour_text;
+    std::string key;
+};
+
+
+
+int expand_two_digit_year(int y) {
+
+    if (y >= 100) return y;
+
+    return y >= 70 ? 1900 + y : 2000 + y;
+}
+
+
+
+
+ParsedAtmosDate parsed_atmos_date_from_stamp(const TlalAtmStamp& st) {
+    ParsedAtmosDate out;
+    out.year = st.year;
+    out.month = st.month;
+    out.day = st.day;
+    out.hour = st.hour;
+    out.minute = st.minute;
+    out.second = st.second;
+
+    char dbuf[16];
+    char hbuf[16];
+    std::snprintf(dbuf, sizeof(dbuf), "%04d-%02d-%02d", out.year, out.month, out.day);
+    if (out.minute != 0 || out.second != 0) {
+        if (out.second != 0) std::snprintf(hbuf, sizeof(hbuf), "%02d:%02d:%02d", out.hour, out.minute, out.second);
+        else std::snprintf(hbuf, sizeof(hbuf), "%02d:%02d", out.hour, out.minute);
+    } else {
+        std::snprintf(hbuf, sizeof(hbuf), "%02d", out.hour);
+    }
+    out.date = dbuf;
+    out.hour_text = hbuf;
+    out.key = out.date + " " + out.hour_text;
+    return out;
+}
+
+std::optional<ParsedAtmosDate> parse_atmospheric_datetime_parts(const std::string& raw_date, const std::string& raw_time) {
+    TlalAtmStamp st;
+    const char* tp = raw_time.empty() ? nullptr : raw_time.data();
+    const size_t tn = raw_time.empty() ? 0u : raw_time.size();
+    if (!tlal_atm_parse_stamp(raw_date.data(), raw_date.size(), tp, tn, &st)) return std::nullopt;
+    return parsed_atmos_date_from_stamp(st);
+}
+
+std::optional<ParsedAtmosDate> parse_atmospheric_datetime(const std::string& raw) {
+    return parse_atmospheric_datetime_parts(raw, std::string{});
+}
+
+
+
+void add_render_accumulator_sample(std::map<std::string, CloudAccumulator>& render_accumulators,
+                                   const ParsedAtmosDate& dt,
+                                   const StationMeta& station,
+                                   const std::string& pollutant,
+                                   const std::string& unit,
+                                   double value) {
+    if (dt.year <= 0 || dt.month < 1 || dt.month > 12) return;
+    const std::string station_id_key = uppercase_code3(station.id);
+    const std::string key = std::to_string(dt.year) + "|" + std::to_string(dt.month) + "|" +
+                            station_id_key + "|" + pollutant + "|" + unit;
+    auto& acc = render_accumulators[key];
+    if (acc.count == 0) {
+        acc.station = station;
+        acc.station.id = station_id_key;
+        acc.pollutant = pollutant;
+        acc.unit = unit;
+        acc.year = dt.year;
+        acc.month = dt.month;
+    }
+    acc.add(value);
+}
+
+
+
+struct AtmosFastParseContext {
+    StationMeta default_station;
+    const std::map<std::string, StationMeta>* stations = nullptr;
+    std::map<std::string, CloudAccumulator>* render_accumulators = nullptr;
+    std::map<std::string, PackedAtmosphereBatchBuilder>* packed_batches = nullptr;
+    int* visible_rows = nullptr;
+    int64_t* rows_in_file = nullptr;
+    const AtmosphereFoundationOptions* options = nullptr;
+    int processed_files = 0;
+    int total_files = 0;
+    std::string current_file;
+    std::uint64_t* import_errors_total = nullptr;
+    std::uint64_t* external_errors_total = nullptr;
+
+    // Cache microresidente por archivo: RAMA/REDMET repite miles de veces las
+    // mismas claves de estación. Evita búsquedas logarítmicas y copias de
+    // metadatos por cada celda sin persistir estado ni tocar IXIPTLAH.
+    std::string hot_station_id;
+    StationMeta hot_station;
+    std::unordered_map<std::string, StationMeta> station_cache;
+};
+
+StationMeta station_for_fast_row(const TlalAtmosCsvRow* row, AtmosFastParseContext* ctx) {
+    StationMeta station = ctx ? ctx->default_station : StationMeta{};
+    const char* raw_id = row ? row->station_id : nullptr;
+    if (row && row->has_coordinates) {
+        station.id = raw_id && raw_id[0]
+            ? uppercase_code3(raw_id, station.id.empty() ? "SAT" : station.id)
+            : station.id;
+        if (station.id.empty()) station.id = "SAT";
+        station.name = raw_id && raw_id[0] ? raw_id : "Punto satelital";
+        station.lat = row->latitude;
+        station.lon = row->longitude;
+        station.alt = 0.0;
+        apply_station_territory_hint(station);
+        return station;
+    }
+    if (raw_id && raw_id[0]) {
+        const std::string id = uppercase_code3(raw_id, station.id.empty() ? "ATM" : station.id);
+        if (ctx) {
+            if (id == ctx->hot_station_id) return ctx->hot_station;
+            const auto cache_it = ctx->station_cache.find(id);
+            if (cache_it != ctx->station_cache.end()) {
+                ctx->hot_station_id = id;
+                ctx->hot_station = cache_it->second;
+                return ctx->hot_station;
+            }
+        }
+        if (ctx && ctx->stations) {
+            const auto it = ctx->stations->find(id);
+            if (it != ctx->stations->end()) {
+                station = it->second;
+                if (ctx->station_cache.size() < 4096u) ctx->station_cache.emplace(id, station);
+                ctx->hot_station_id = id;
+                ctx->hot_station = station;
+                return station;
+            }
+        }
+        station.id = id;
+        if (station.name.empty() || station.name == "RAMA promedio ZMVM" || station.name == "REDMA promedio ZMVM") {
+            station.name = "Estación atmosférica " + id;
+        }
+        apply_station_territory_hint(station);
+        if (ctx) {
+            if (ctx->station_cache.size() < 4096u) ctx->station_cache.emplace(id, station);
+            ctx->hot_station_id = id;
+            ctx->hot_station = station;
+        }
+    }
+    return station;
+}
+
+int atmos_fast_parse_callback(const TlalAtmosCsvRow* row, void* user) {
+    if (!row || !user) return 0;
+    auto* ctx = static_cast<AtmosFastParseContext*>(user);
+    if (!ctx->render_accumulators || !ctx->packed_batches || !ctx->visible_rows || !ctx->rows_in_file) return 0;
+    const ParsedAtmosDate dt = parsed_atmos_date_from_stamp(row->stamp);
+    const std::string pollutant = row->parameter_id ? row->parameter_id : "";
+    std::string unit = row->unit ? row->unit : default_unit_for_parameter(pollutant);
+    if (unit.empty()) unit = default_unit_for_parameter(pollutant);
+    unit = recode_unit_code(unit, pollutant);
+    if (pollutant.empty() || !std::isfinite(row->value)) return 1;
+    const StationMeta station = station_for_fast_row(row, ctx);
+    add_render_accumulator_sample(*ctx->render_accumulators, dt, station, pollutant, unit, row->value);
+    add_packed_atmosphere_sample(*ctx->packed_batches, dt.year, dt.month, dt.day, dt.hour, dt.minute, station, pollutant, unit, row->value);
+    ++(*ctx->visible_rows);
+    ++(*ctx->rows_in_file);
+    if (((*ctx->visible_rows) % 8192) == 0) temporal_flush_append_streams_if_due(600);
+    return 1;
+}
+int atmos_fast_parse_progress_callback(uint64_t physical_lines,
+                                       uint64_t data_lines,
+                                       uint64_t emitted_measurements,
+                                       uint64_t bytes_done,
+                                       uint64_t bytes_total,
+                                       void* user) {
+    auto* ctx = static_cast<AtmosFastParseContext*>(user);
+    if (!ctx || !ctx->options || !ctx->options->detail_progress_callback) return 1;
+    const int64_t rows = ctx->rows_in_file ? *ctx->rows_in_file : static_cast<int64_t>(emitted_measurements);
+    std::string phase = "IXv1 leyendo ";
+    phase += ctx->current_file.empty() ? "CSV atmosferico" : ctx->current_file;
+    phase += " · ";
+    phase += std::to_string(static_cast<unsigned long long>(physical_lines));
+    phase += " lineas fisicas · ";
+    phase += std::to_string(static_cast<unsigned long long>(emitted_measurements));
+    phase += " mediciones";
+    (void)data_lines;
+    try {
+        ctx->options->detail_progress_callback(ctx->processed_files, ctx->total_files, rows,
+                                               bytes_done, bytes_total, ctx->current_file, phase,
+                                               ctx->import_errors_total ? *ctx->import_errors_total : 0u,
+                                               ctx->external_errors_total ? *ctx->external_errors_total : 0u);
+    } catch (...) {
+        return 1;
+    }
+    return 1;
+}
+
+
+
+int year_from_row_date(const std::string& s) {
+
+
+    const auto parsed = parse_atmospheric_datetime(s);
+
+
+    return parsed ? parsed->year : 0;
+}
+
+
+
+
+
+std::optional<double> parse_cloud_value(const std::string& s) {
+    const std::string t = trim(s);
+
+
+    if (t.empty() || t == "NA" || t == "NaN" || t == "null") return std::nullopt;
+    char* end = nullptr;
+    const double v = std::strtod(t.c_str(), &end);
+
+    if (end == t.c_str() || !std::isfinite(v)) return std::nullopt;
+
+    return v;
+}
+
+
+
+int year_hint_from_filename(const fs::path& p) {
+
+    const std::string n = path_utf8(p.filename());
+
+    for (size_t i = 0; i + 3 < n.size(); ++i) {
+
+        if ((n[i] == '1' || n[i] == '2') &&
+            std::isdigit(static_cast<unsigned char>(n[i + 1])) &&
+            std::isdigit(static_cast<unsigned char>(n[i + 2])) &&
+
+            std::isdigit(static_cast<unsigned char>(n[i + 3]))) {
+            const int y = (n[i] - '0') * 1000 + (n[i + 1] - '0') * 100 + (n[i + 2] - '0') * 10 + (n[i + 3] - '0');
+
+            if (y >= 1980 && y <= 2100) return y;
+        }
+    }
+
+    return 0;
+}
+
+
+
+std::vector<fs::path> select_cloud_source_files(const AtmosphereFoundationOptions& options) {
+
+    std::vector<fs::path> files;
+    std::error_code ec;
+    std::set<std::string> seen_paths;
+
+
+    for (const auto& root : atmospheric_scan_roots(options.source_root)) {
+
+        for (fs::recursive_directory_iterator it(root, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec)) {
+
+            if (ec) { ec.clear(); continue; }
+            std::error_code item_ec;
+
+            if (!it->is_regular_file(item_ec) || item_ec) continue;
+
+
+            const std::string ext = lower_ascii(path_utf8(it->path().extension()));
+
+
+            if (ext != ".csv" && ext != ".tsv" && ext != ".txt") continue;
+
+
+            const std::string name = normalize_key(path_utf8(it->path().filename()));
+
+
+            const std::string full = normalize_key(path_utf8(it->path()));
+
+            if (name.rfind("cat ", 0) == 0 || contains_norm(name, "cat estacion") ||
+                contains_norm(name, "cat parametros") || contains_norm(name, "cat unidades")) continue;
+
+            /* La carpeta seleccionada por el usuario ya es el contrato de origen.
+               No exigir que cada CSV lleve RAMA/REDMET/RUOA en el nombre: muchos
+               paquetes oficiales vienen como 2024.csv, datos.csv o subcarpetas
+               neutras. Los catálogos ya se excluyeron arriba; el parser valida
+               columnas antes de escribir IXIPTLAH, por lo que aceptar el archivo
+               aquí desbloquea RAMA local sin contaminar el registro. */
+            const std::string stable = path_utf8(fs::weakly_canonical(it->path(), item_ec));
+            if (!seen_paths.insert(stable.empty() ? path_utf8(it->path()) : stable).second) continue;
+            files.push_back(it->path());
+        }
+    }
+
+    std::sort(files.begin(), files.end(), [](const fs::path& a, const fs::path& b) {
+
+        const int ya = year_hint_from_filename(a);
+
+        const int yb = year_hint_from_filename(b);
+
+        if (ya != yb) return ya < yb;
+
+
+        return path_utf8(a.filename()) < path_utf8(b.filename());
+    });
+
+    return files;
+}
+
+
+
+
+struct TerritoryHourAccumulator {
+    std::string entity_code;
+    std::string municipality_code;
+    std::string municipality_name;
+    std::string pollutant;
+
+    std::string unit;
+    double sum = 0.0;
+    int64_t count = 0;
+    void add(double v) { sum += v; ++count; }
+};
+
+
+
+void flush_territory_hour(const AtmosphereFoundationOptions& options,
+
+                          const std::string& date,
+
+                          const std::string& hour,
+
+                          int year,
+
+
+                          std::map<std::string, TerritoryHourAccumulator>& acc) {
+
+    for (const auto& [_, a] : acc) {
+
+
+        if (a.count <= 0) continue;
+        temporal_append_atmosphere_territory_average(options.output_root,
+
+                                                     date,
+
+                                                     hour,
+
+                                                     year,
+                                                     a.entity_code,
+                                                     a.municipality_code,
+                                                     a.municipality_name,
+                                                     a.pollutant,
+                                                     "promedio_horario_alcaldia_municipio",
+                                                     a.sum / static_cast<double>(a.count),
+
+                                                     a.unit,
+                                                     a.count);
+    }
+
+    acc.clear();
+}
+
+
+
+
+
+std::optional<double> json_number_field(const nlohmann::json& obj, std::initializer_list<const char*> keys) {
+
+    if (!obj.is_object()) return std::nullopt;
+
+    for (const char* key : keys) {
+
+        if (!obj.contains(key)) continue;
+
+        const auto& v = obj[key];
+
+        if (v.is_number()) return v.get<double>();
+
+        if (v.is_string()) {
+
+
+            if (auto parsed = parse_cloud_value(v.get<std::string>())) return parsed;
+        }
+    }
+
+    return std::nullopt;
+}
+
+
+
+
+std::string json_string_field(const nlohmann::json& obj, std::initializer_list<const char*> keys) {
+
+    if (!obj.is_object()) return std::string();
+
+    for (const char* key : keys) {
+
+        if (!obj.contains(key)) continue;
+        const auto& v = obj[key];
+
+        if (v.is_string()) return v.get<std::string>();
+
+        if (v.is_number_integer() || v.is_number_unsigned()) return std::to_string(v.get<long long>());
+
+        if (v.is_number_float()) {
+            std::ostringstream os;
+
+            os << std::setprecision(12) << v.get<double>();
+
+            return os.str();
+        }
+    }
+
+    return std::string();
+}
+
+
+
+
+bool json_first_coordinate_lonlat(const nlohmann::json& coordinates, double& lon, double& lat) {
+
+
+    if (!coordinates.is_array() || coordinates.empty()) return false;
+
+    if (coordinates.size() >= 2 && coordinates[0].is_number() && coordinates[1].is_number()) {
+
+        lon = coordinates[0].get<double>();
+
+        lat = coordinates[1].get<double>();
+
+        return std::isfinite(lon) && std::isfinite(lat);
+    }
+
+    for (const auto& child : coordinates) {
+
+
+        if (json_first_coordinate_lonlat(child, lon, lat)) return true;
+    }
+
+    return false;
+}
+
+
+
+
+bool json_geometry_lonlat(const nlohmann::json& obj, double& lon, double& lat) {
+
+
+
+    if (!obj.is_object()) return false;
+
+
+    if (auto la = json_number_field(obj, {"latitude", "latitud", "lat", "LAT", "Lat"})) {
+
+
+        if (auto lo = json_number_field(obj, {"longitude", "longitud", "lon", "lng", "LON", "Lon", "x"})) {
+
+            lat = *la;
+
+            lon = *lo;
+
+            return std::isfinite(lat) && std::isfinite(lon);
+        }
+    }
+
+
+    const nlohmann::json* geom = nullptr;
+
+    if (obj.contains("geometry") && obj["geometry"].is_object()) geom = &obj["geometry"];
+
+    else if (obj.contains("geometria") && obj["geometria"].is_object()) geom = &obj["geometria"];
+
+
+    else if (obj.contains("coordinates") && obj["coordinates"].is_array()) geom = &obj;
+
+
+    if (geom && geom->contains("coordinates")) return json_first_coordinate_lonlat((*geom)["coordinates"], lon, lat);
+
+    return false;
+}
+
+
+
+
+std::vector<std::pair<std::string, double>> json_atmosphere_metrics(const nlohmann::json& props) {
+
+    std::vector<std::pair<std::string, double>> out;
+
+    if (!props.is_object()) return out;
+
+    for (auto it = props.begin(); it != props.end(); ++it) {
+
+        const std::string key = canonical_parameter_id(it.key());
+
+        if (!is_known_atmosphere_parameter(key)) continue;
+
+        std::optional<double> value;
+
+        if (it.value().is_number()) value = it.value().get<double>();
+
+
+        else if (it.value().is_string()) value = parse_cloud_value(it.value().get<std::string>());
+
+        if (value && std::isfinite(*value)) out.push_back({key, *value});
+    }
+
+    return out;
+}
+
+
+
+int write_light_atmospheric_cloud(const AtmosphereFoundationOptions& options, const std::vector<fs::path>& only_files = {}) {
+
+    if (options.output_root.empty()) return 0;
+    const auto stations = load_station_catalogs_for_cloud(options.source_root);
+    const auto units = load_unit_catalogs_for_cloud(options.source_root);
+
+
+
+
+    const bool persist_legacy_string_records = env_flag_enabled_atmosphere("TLALPOWA_ATMOS_LEGACY_STRING_IXIPTLAH", false);
+
+    std::vector<fs::path> files = only_files.empty() ? select_cloud_source_files(options) : only_files;
+
+    std::sort(files.begin(), files.end(), [](const fs::path& a, const fs::path& b) {
+
+        const int ya = year_hint_from_filename(a);
+
+        const int yb = year_hint_from_filename(b);
+
+        if (ya != yb) return ya > yb;
+
+        return path_utf8(a) > path_utf8(b);
+    });
+
+    files.erase(std::unique(files.begin(), files.end()), files.end());
+
+
+    int visible_rows = 0;
+    int render_points = 0;
+
+
+    int processed_files = 0;
+    std::uint64_t import_errors_total = 0;
+    std::uint64_t external_errors_total = 0;
+    const int total_files = static_cast<int>(files.size());
+    if (options.detail_progress_callback) {
+        try {
+            options.detail_progress_callback(0, total_files, 0, 0, 0, std::string{},
+                                             "IXv1 preparando lectura atmosferica directa",
+                                             import_errors_total, external_errors_total);
+        } catch (...) {}
+    }
+
+    for (const auto& file : files) {
+
+
+        const std::string source_path = path_utf8(file);
+        const std::string source_file = path_utf8(file.filename());
+        const std::uint64_t source_bytes = static_cast<std::uint64_t>(file_size_or_zero(file));
+        if (options.detail_progress_callback) {
+            try {
+                options.detail_progress_callback(processed_files, total_files, 0, 0, source_bytes, source_file,
+                                                 "IXv1 abriendo " + source_file,
+                                                 import_errors_total, external_errors_total);
+            } catch (...) {}
+        }
+
+        std::ifstream in(file, std::ios::binary);
+
+        if (!in) {
+            ++external_errors_total;
+            if (options.detail_progress_callback) {
+                try {
+                    options.detail_progress_callback(processed_files, total_files, 0, 0, source_bytes, source_file,
+                                                     "IXv1 no pudo abrir " + source_file,
+                                                     import_errors_total, external_errors_total);
+                } catch (...) {}
+            }
+            continue;
+        }
+
+
+        const std::string source_id = simple_hash_hex(source_path + "|" + std::to_string(file_size_or_zero(file)) + "|" + std::to_string(file_time_tick(file)));
+
+        const auto source_accepts_pollutant = [&](const std::string& pollutant) -> bool {
+            if (options.forced_source_family > 0) return atmosphere_forced_family_accepts_parameter(options.forced_source_family, pollutant);
+            return atmosphere_source_accepts_parameter(source_path, pollutant);
+        };
+
+
+        const std::string domain = classify_kind(normalize_key(source_path));
+        std::string line;
+        bool header_seen = false;
+        bool wide_table = false;
+
+        bool geospatial_table = false;
+
+        bool geospatial_long_table = false;
+        char delim = ',';
+
+        int date_i = -1, time_i = -1, station_i = -1, param_i = -1, value_i = -1, unit_i = -1, lat_i = -1, lon_i = -1;
+
+        std::vector<std::pair<int, std::string>> wide_parameters;
+
+        std::string current_hour_key;
+
+        std::string current_date;
+
+        std::string current_hour;
+
+        int current_year = 0;
+
+        std::map<std::string, TerritoryHourAccumulator> territory_hour;
+
+        std::map<std::string, PackedAtmosphereBatchBuilder> packed_batches;
+
+        std::map<std::string, CloudAccumulator> render_accumulators;
+
+
+        const auto add_render_sample = [&](const ParsedAtmosDate& dt,
+                                           const StationMeta& station,
+                                           const std::string& pollutant,
+                                           const std::string& unit,
+                                           double value) {
+            add_render_accumulator_sample(render_accumulators, dt, station, pollutant, unit, value);
+        };
+
+        int64_t rows_in_file = 0;
+
+
+        bool non_tabular_materialized = false;
+
+
+        const std::string file_ext = extension_norm(file);
+
+
+        if (file_ext == ".json" || file_ext == ".jsonl" || file_ext == ".geojson") {
+
+
+
+
+            const std::uintmax_t max_json_bytes = static_cast<std::uintmax_t>(std::max(1024, env_int_clamped_atmosphere("TLALPOWA_ATMOS_JSON_VISUAL_MAX_BYTES", 32 * 1024 * 1024, 1024 * 1024, 512 * 1024 * 1024)));
+
+
+            if (file_size_or_zero(file) <= max_json_bytes) {
+
+                const std::string body = read_text_file(file);
+
+
+                auto parsed_json = nlohmann::json::parse(body, nullptr, false);
+
+
+
+
+                if (parsed_json.is_discarded() && file_ext == ".jsonl") {
+
+
+                    nlohmann::json arr = nlohmann::json::array();
+
+
+                    std::istringstream jsonl_in(body);
+
+
+                    std::string jsonl_line;
+
+
+                    std::size_t accepted_jsonl = 0;
+
+
+                    while (std::getline(jsonl_in, jsonl_line)) {
+
+
+                        jsonl_line = trim(jsonl_line);
+
+
+                        if (jsonl_line.empty()) continue;
+
+
+                        auto one = nlohmann::json::parse(jsonl_line, nullptr, false);
+
+                        if (!one.is_discarded()) {
+
+                            arr.push_back(std::move(one));
+
+
+                            if (++accepted_jsonl >= static_cast<std::size_t>(env_int_clamped_atmosphere("TLALPOWA_ATMOS_JSONL_VISUAL_MAX_RECORDS", 250000, 1000, 2000000))) break;
+                        }
+                    }
+
+
+                    if (!arr.empty()) parsed_json = std::move(arr);
+                }
+
+
+                if (!parsed_json.is_discarded()) {
+
+
+                    std::function<void(const nlohmann::json&)> visit_object;
+
+
+                    visit_object = [&](const nlohmann::json& obj) {
+
+                        if (obj.is_array()) {
+
+                            for (const auto& child : obj) visit_object(child);
+
+                            return;
+                        }
+
+                        if (!obj.is_object()) return;
+
+                        if (obj.contains("features") && obj["features"].is_array()) {
+
+                            for (const auto& f : obj["features"]) visit_object(f);
+
+                            return;
+                        }
+
+
+                        const nlohmann::json* props = &obj;
+
+                        if (obj.contains("properties") && obj["properties"].is_object()) props = &obj["properties"];
+
+                        double lon = 0.0, lat = 0.0;
+
+
+                        if (!json_geometry_lonlat(obj, lon, lat) && !json_geometry_lonlat(*props, lon, lat)) return;
+
+                        if (lat < -90.0 || lat > 90.0 || lon < -180.0 || lon > 180.0) return;
+
+
+                        std::string dt_text = json_string_field(*props, {"datetime", "date", "fecha", "acq_date", "start_date", "time_start", "timestamp", "fecha_hora"});
+
+
+                        const std::string time_text = json_string_field(*props, {"time", "hora", "acq_time"});
+
+
+                        if (!time_text.empty() && dt_text.find(':') == std::string::npos) dt_text += " " + time_text;
+
+                        if (dt_text.empty()) {
+
+                            const int y = year_from_any_text(source_path);
+
+                            if (y > 0) dt_text = std::to_string(y) + "-01-01 00:00";
+                        }
+
+
+                        const auto dt = parse_atmospheric_datetime(dt_text);
+
+                        if (!dt) return;
+
+
+                        const auto metrics = json_atmosphere_metrics(*props);
+
+                        if (metrics.empty()) return;
+                        StationMeta station;
+
+                        const std::string coord_key = simple_hash_hex(std::to_string(lat) + "," + std::to_string(lon)).substr(0, 8);
+                        station.id = "J" + coord_key.substr(0, 5);
+
+
+                        station.name = "Punto JSON/GeoJSON " + coord_key;
+
+                        station.lon = lon;
+
+                        station.lat = lat;
+                        station.alt = 0.0;
+                        apply_station_territory_hint(station);
+
+                        for (const auto& [pollutant, value] : metrics) {
+
+                            const std::string unit = default_unit_for_parameter(pollutant);
+
+                            if (!source_accepts_pollutant(pollutant)) continue;
+
+                            add_render_sample(*dt, station, pollutant, unit, value);
+
+
+                            add_packed_atmosphere_sample(packed_batches, dt->year, dt->month, dt->day, dt->hour, dt->minute, station, pollutant, unit, value);
+
+                            ++visible_rows;
+
+                            ++rows_in_file;
+                        }
+                    };
+
+
+                    visit_object(parsed_json);
+
+
+                    non_tabular_materialized = rows_in_file > 0;
+                }
+            }
+        }
+
+
+        /* Ruta crítica RAMA/REDMA/RUOA: todo el barrido tabular se resuelve en C puro
+           sobre una vista contigua del archivo; C++ sólo consume filas ya tipadas. */
+        if (!non_tabular_materialized && (file_ext == ".csv" || file_ext == ".tsv" || file_ext == ".txt")) {
+            AtmosFastParseContext fast_ctx;
+            fast_ctx.default_station = aggregate_station_for_source(source_path);
+            fast_ctx.stations = &stations;
+            fast_ctx.render_accumulators = &render_accumulators;
+            fast_ctx.packed_batches = &packed_batches;
+            fast_ctx.visible_rows = &visible_rows;
+            fast_ctx.rows_in_file = &rows_in_file;
+            fast_ctx.options = &options;
+            fast_ctx.processed_files = processed_files;
+            fast_ctx.total_files = total_files;
+            fast_ctx.current_file = source_file;
+            fast_ctx.import_errors_total = &import_errors_total;
+            fast_ctx.external_errors_total = &external_errors_total;
+            TlalAtmosCsvParseStats fast_stats;
+            const int fast_ok = tlal_atmos_csv_parse_file_utf8_for_family_progress(source_path.c_str(),
+                                                                                    options.forced_source_family,
+                                                                                    atmos_fast_parse_callback,
+                                                                                    &fast_ctx,
+                                                                                    atmos_fast_parse_progress_callback,
+                                                                                    &fast_ctx,
+                                                                                    &fast_stats);
+            if (fast_ok) import_errors_total += fast_stats.rejected_cells;
+            if (fast_ok && fast_stats.header_found && fast_stats.emitted_measurements > 0) {
+                /* El parser C sólo cierra la ruta cuando realmente emitió filas.
+                   Si una cabecera fue reconocida pero quedó en cero por catálogo,
+                   unidad o frontera de red, la ruta lenta intenta recuperar datos
+                   sin duplicar mediciones válidas. */
+                non_tabular_materialized = true;
+            } else if (!fast_ok || (fast_stats.header_found && fast_stats.data_lines > 0 && fast_stats.emitted_measurements == 0)) {
+                ++import_errors_total;
+            }
+        }
+
+
+
+        if (!non_tabular_materialized) while (std::getline(in, line)) {
+
+
+            if (trim(line).empty()) continue;
+
+            if (!header_seen) {
+
+
+                const std::string n = normalize_key(line);
+
+                const bool has_date = contains_norm(n, "date") || contains_norm(n, "fecha") || contains_norm(n, "timestamp") || contains_norm(n, "time stamp");
+
+                const bool has_station = contains_norm(n, "id station") || contains_norm(n, "cve station") || contains_norm(n, "cve estac") || contains_norm(n, "estacion");
+
+                const bool has_parameter = contains_norm(n, "id parameter") || contains_norm(n, "cve parameter") || contains_norm(n, "parametro") || contains_norm(n, "cve param");
+
+                if (has_date && has_station && has_parameter) {
+                    delim = infer_delimiter(line);
+
+                    const auto h = split_guess_delimited(line, delim);
+
+                    for (int i = 0; i < static_cast<int>(h.size()); ++i) {
+
+
+                        const std::string k = normalize_key(h[static_cast<size_t>(i)]);
+
+
+                        if (k == "date" || k == "fecha" || k == "timestamp" || k == "time stamp" || k == "date time" || k == "datetime") date_i = i;
+
+                        else if (k == "time" || k == "hora" || k == "hr" || k == "hour") time_i = i;
+
+                        else if (k == "id station" || k == "cve station" || k == "cve estac" || k == "estacion") station_i = i;
+
+                        else if (k == "id parameter" || k == "cve parameter" || k == "parametro" || k == "cve param") param_i = i;
+
+                        else if (k == "valor" || k == "value") value_i = i;
+
+                        else if (k == "unit" || k == "unidad") unit_i = i;
+                    }
+
+                    header_seen = date_i >= 0 && station_i >= 0 && param_i >= 0 && value_i >= 0;
+
+                } else if (has_date) {
+                    delim = infer_delimiter(line);
+
+                    const auto h = split_guess_delimited(line, delim);
+
+                    for (int i = 0; i < static_cast<int>(h.size()); ++i) {
+
+
+                        const std::string k = normalize_key(h[static_cast<size_t>(i)]);
+
+                        if (k == "date" || k == "fecha" || k == "fecha hora" || k == "fecha_hora" || k == "timestamp" || k == "time stamp" || k == "date time" || k == "datetime" || k == "acq date" || k == "acq_date") {
+
+                            date_i = i;
+                            continue;
+                        }
+
+                        if (k == "time" || k == "hora" || k == "acq time" || k == "acq_time") {
+
+                            time_i = i;
+                            continue;
+                        }
+
+                        if (k == "latitude" || k == "latitud" || k == "lat") {
+
+
+                            lat_i = i;
+                            continue;
+                        }
+
+                        if (k == "longitude" || k == "longitud" || k == "lon" || k == "lng" || k == "long") {
+
+                            lon_i = i;
+
+                            continue;
+                        }
+
+                        if (k == "parameter" || k == "param" || k == "pollutant" || k == "variable" || k == "contaminante" || k == "parametro" || k == "id parameter" || k == "cve parameter" || k == "cve param") {
+                            param_i = i;
+                            continue;
+                        }
+
+                        if (k == "value" || k == "valor" || k == "measurement" || k == "medicion" || k == "mean" || k == "concentration" || k == "concentracion") {
+                            value_i = i;
+                            continue;
+                        }
+
+                        if (k == "unit" || k == "units" || k == "unidad" || k == "unidades") {
+
+                            unit_i = i;
+                            continue;
+                        }
+
+                        if (!is_known_atmosphere_parameter(k)) continue;
+
+                        wide_parameters.push_back({i, canonical_parameter_id(k)});
+                    }
+
+
+
+                    geospatial_long_table = date_i >= 0 && lat_i >= 0 && lon_i >= 0 && param_i >= 0 && value_i >= 0;
+
+                    geospatial_table = !geospatial_long_table && date_i >= 0 && lat_i >= 0 && lon_i >= 0 && !wide_parameters.empty();
+
+
+                    wide_table = !geospatial_long_table && !geospatial_table && date_i >= 0 && !wide_parameters.empty();
+
+                    header_seen = wide_table || geospatial_table || geospatial_long_table;
+                }
+
+                continue;
+            }
+
+            const auto cols = split_guess_delimited(line, delim);
+
+            if (geospatial_long_table) {
+
+                const int need = std::max(std::max(date_i, time_i), std::max(std::max(lat_i, lon_i), std::max(param_i, value_i)));
+
+                if (need < 0 || static_cast<int>(cols.size()) <= need) continue;
+
+                std::string dt_text = cols[static_cast<size_t>(date_i)];
+
+                if (time_i >= 0 && static_cast<int>(cols.size()) > time_i) dt_text += " " + cols[static_cast<size_t>(time_i)];
+
+
+                const auto dt = parse_atmospheric_datetime(dt_text);
+
+                if (!dt) continue;
+
+
+                const auto lat_v = parse_cloud_value(cols[static_cast<size_t>(lat_i)]);
+
+
+                const auto lon_v = parse_cloud_value(cols[static_cast<size_t>(lon_i)]);
+
+                if (!lat_v || !lon_v || *lat_v < -90.0 || *lat_v > 90.0 || *lon_v < -180.0 || *lon_v > 180.0) continue;
+
+                const std::string pollutant = canonical_parameter_id(cols[static_cast<size_t>(param_i)]);
+
+                if (!is_known_atmosphere_parameter(pollutant)) continue;
+
+
+                const auto value = parse_cloud_value(cols[static_cast<size_t>(value_i)]);
+
+                if (!value) continue;
+
+                std::string unit = unit_i >= 0 && static_cast<int>(cols.size()) > unit_i ? trim(cols[static_cast<size_t>(unit_i)]) : std::string{};
+                unit = recode_unit_code(unit, pollutant);
+                StationMeta station;
+
+                const std::string coord_key = simple_hash_hex(std::to_string(*lat_v) + "," + std::to_string(*lon_v)).substr(0, 8);
+                station.id = "L" + coord_key.substr(0, 5);
+
+                station.name = "Punto geoespacial largo " + coord_key;
+
+                station.lon = *lon_v;
+
+                station.lat = *lat_v;
+                station.alt = 0.0;
+                apply_station_territory_hint(station);
+                if (!source_accepts_pollutant(pollutant)) continue;
+
+                add_render_sample(*dt, station, pollutant, unit, *value);
+
+
+                add_packed_atmosphere_sample(packed_batches, dt->year, dt->month, dt->day, dt->hour, dt->minute, station, pollutant, unit, *value);
+
+                ++visible_rows;
+
+                ++rows_in_file;
+
+
+                if ((visible_rows % 5000) == 0) temporal_flush_append_streams_if_due(800);
+                continue;
+            }
+
+            if (geospatial_table) {
+
+                if (date_i < 0 || lat_i < 0 || lon_i < 0 ||
+
+
+                    static_cast<int>(cols.size()) <= std::max(date_i, std::max(lat_i, lon_i))) continue;
+
+                std::string dt_text = cols[static_cast<size_t>(date_i)];
+
+                if (time_i >= 0 && static_cast<int>(cols.size()) > time_i) dt_text += " " + cols[static_cast<size_t>(time_i)];
+
+
+                const auto dt = parse_atmospheric_datetime(dt_text);
+
+                if (!dt) continue;
+
+
+                const auto lat_v = parse_cloud_value(cols[static_cast<size_t>(lat_i)]);
+
+
+                const auto lon_v = parse_cloud_value(cols[static_cast<size_t>(lon_i)]);
+
+                if (!lat_v || !lon_v || *lat_v < -90.0 || *lat_v > 90.0 || *lon_v < -180.0 || *lon_v > 180.0) continue;
+
+                StationMeta station;
+
+                const std::string coord_key = simple_hash_hex(std::to_string(*lat_v) + "," + std::to_string(*lon_v)).substr(0, 8);
+                station.id = "G" + coord_key.substr(0, 5);
+                station.name = "Punto geoespacial " + coord_key;
+
+                station.lon = *lon_v;
+
+                station.lat = *lat_v;
+                station.alt = 0.0;
+                apply_station_territory_hint(station);
+
+                for (const auto& [value_col, pollutant] : wide_parameters) {
+
+                    if (value_col < 0 || static_cast<int>(cols.size()) <= value_col) continue;
+
+
+                    const auto value = parse_cloud_value(cols[static_cast<size_t>(value_col)]);
+
+                    if (!value) continue;
+
+                    const std::string unit = default_unit_for_parameter(pollutant);
+                    if (!source_accepts_pollutant(pollutant)) continue;
+
+                    add_render_sample(*dt, station, pollutant, unit, *value);
+
+
+                    add_packed_atmosphere_sample(packed_batches, dt->year, dt->month, dt->day, dt->hour, dt->minute, station, pollutant, unit, *value);
+
+                    ++visible_rows;
+
+                    ++rows_in_file;
+                }
+
+
+                if ((visible_rows % 5000) == 0) temporal_flush_append_streams_if_due(800);
+                continue;
+            }
+
+            if (wide_table) {
+
+                if (date_i < 0 || static_cast<int>(cols.size()) <= date_i) continue;
+
+
+                const std::string row_time = (time_i >= 0 && static_cast<int>(cols.size()) > time_i) ? cols[static_cast<size_t>(time_i)] : std::string{};
+                const auto dt = parse_atmospheric_datetime_parts(cols[static_cast<size_t>(date_i)], row_time);
+
+                if (!dt) continue;
+
+                const StationMeta station = aggregate_station_for_source(source_path);
+
+                for (const auto& [value_col, pollutant] : wide_parameters) {
+
+                    if (value_col < 0 || static_cast<int>(cols.size()) <= value_col) continue;
+
+
+                    const auto value = parse_cloud_value(cols[static_cast<size_t>(value_col)]);
+
+                    if (!value) continue;
+
+
+                    const std::string unit = default_unit_for_parameter(pollutant);
+                    if (!source_accepts_pollutant(pollutant)) continue;
+
+                    add_render_sample(*dt, station, pollutant, unit, *value);
+
+
+                    add_packed_atmosphere_sample(packed_batches, dt->year, dt->month, dt->day, dt->hour, dt->minute, station, pollutant, unit, *value);
+
+                    if (persist_legacy_string_records) {
+                        temporal_append_atmosphere_measurement(options.output_root,
+
+                                                               dt->date,
+
+                                                               dt->hour_text,
+
+                                                               dt->year,
+                                                               domain.empty() ? "atmosfera" : domain,
+                                                               source_id,
+
+                                                               source_file,
+
+                                                               source_path,
+                                                               pollutant,
+                                                               station.id,
+
+                                                               station.name,
+
+                                                               station.lon,
+
+                                                               station.lat,
+                                                               station.alt,
+
+                                                               "promedio_red",
+                                                               *value,
+                                                               unit);
+                    }
+
+                    ++visible_rows;
+
+                    ++rows_in_file;
+                }
+
+
+                if ((visible_rows % 5000) == 0) temporal_flush_append_streams_if_due(800);
+
+                continue;
+            }
+
+            const int need = std::max(std::max(date_i, station_i), std::max(param_i, value_i));
+
+            if (static_cast<int>(cols.size()) <= need || stations.empty()) continue;
+            const std::string station_id = uppercase_code3(cols[static_cast<size_t>(station_i)]);
+            const auto sit = stations.find(station_id);
+
+            if (sit == stations.end()) continue;
+
+
+            const auto value = parse_cloud_value(cols[static_cast<size_t>(value_i)]);
+
+            if (!value) continue;
+
+
+            const std::string row_time = (time_i >= 0 && static_cast<int>(cols.size()) > time_i) ? cols[static_cast<size_t>(time_i)] : std::string{};
+            const auto dt = parse_atmospheric_datetime_parts(cols[static_cast<size_t>(date_i)], row_time);
+
+            if (!dt) continue;
+
+            const std::string pollutant = canonical_parameter_id(cols[static_cast<size_t>(param_i)]);
+
+            if (pollutant.empty()) continue;
+
+            std::string unit = unit_i >= 0 && static_cast<int>(cols.size()) > unit_i ? trim(cols[static_cast<size_t>(unit_i)]) : std::string{};
+
+
+            if (const auto uit = units.find(unit); uit != units.end()) unit = uit->second;
+            unit = recode_unit_code(unit, pollutant);
+
+            if (!source_accepts_pollutant(pollutant)) continue;
+
+            add_render_sample(*dt, sit->second, pollutant, unit, *value);
+
+
+            add_packed_atmosphere_sample(packed_batches, dt->year, dt->month, dt->day, dt->hour, dt->minute, sit->second, pollutant, unit, *value);
+
+            if (persist_legacy_string_records) {
+                temporal_append_atmosphere_measurement(options.output_root,
+
+                                                       dt->date,
+
+                                                       dt->hour_text,
+
+                                                       dt->year,
+                                                       domain.empty() ? "atmosfera" : domain,
+                                                       source_id,
+
+                                                       source_file,
+
+                                                       source_path,
+                                                       pollutant,
+                                                       station_id,
+                                                       sit->second.name,
+
+                                                       sit->second.lon,
+
+                                                       sit->second.lat,
+
+                                                       sit->second.alt,
+
+                                                       "medicion_horaria_estacion",
+                                                       *value,
+                                                       unit);
+            }
+
+            ++visible_rows;
+
+            ++rows_in_file;
+
+
+            if (current_hour_key.empty()) {
+
+                current_hour_key = dt->key;
+
+                current_date = dt->date;
+
+                current_hour = dt->hour_text;
+
+                current_year = dt->year;
+
+            } else if (dt->key != current_hour_key) {
+
+
+                if (persist_legacy_string_records) flush_territory_hour(options, current_date, current_hour, current_year, territory_hour);
+
+                current_hour_key = dt->key;
+
+                current_date = dt->date;
+
+                current_hour = dt->hour_text;
+
+                current_year = dt->year;
+            }
+
+            if (persist_legacy_string_records && !sit->second.municipality_code.empty()) {
+                const std::string territory_key = sit->second.entity_code + "|" + sit->second.municipality_code + "|" + pollutant + "|" + unit;
+
+
+                auto& ta = territory_hour[territory_key];
+
+                if (ta.count == 0) {
+                    ta.entity_code = sit->second.entity_code;
+
+                    ta.municipality_code = sit->second.municipality_code;
+                    ta.municipality_name = sit->second.municipality_name.empty() ? sit->second.name : sit->second.municipality_name;
+                    ta.pollutant = pollutant;
+                    ta.unit = unit;
+                }
+                ta.add(*value);
+            }
+
+
+            if ((visible_rows % 5000) == 0) temporal_flush_append_streams_if_due(800);
+        }
+
+
+        if (persist_legacy_string_records && !current_hour_key.empty()) flush_territory_hour(options, current_date, current_hour, current_year, territory_hour);
+
+        for (const auto& [_, acc] : render_accumulators) {
+
+            if (acc.count <= 0 || !std::isfinite(acc.sum) ||
+                !std::isfinite(acc.min_v) || !std::isfinite(acc.max_v)) continue;
+            temporal_append_atmosphere_render_summary(options.output_root,
+
+
+                                                      month_start_date(acc.year, acc.month),
+                                                      "",
+
+                                                      acc.year,
+                                                      acc.pollutant,
+
+                                                      acc.station.id,
+                                                      acc.station.name,
+
+                                                      acc.station.lon,
+
+                                                      acc.station.lat,
+
+                                                      acc.station.alt,
+                                                      acc.sum / static_cast<double>(acc.count),
+                                                      acc.min_v,
+                                                      acc.max_v,
+                                                      acc.unit,
+                                                      acc.count);
+            ++render_points;
+        }
+
+        for (const auto& [_, batch] : packed_batches) {
+            temporal_append_atmosphere_measurement_batch(options.output_root,
+                                                        source_id,
+
+                                                        source_file,
+
+                                                        source_path,
+                                                        domain.empty() ? "atmosfera" : domain,
+
+                                                        batch.year,
+
+
+                                                        batch.month,
+                                                        batch.stations,
+                                                        batch.pollutants,
+                                                        batch.units,
+                                                        batch.samples);
+        }
+
+        if (rows_in_file <= 0 && !non_tabular_materialized) ++import_errors_total;
+
+        temporal_flush_append_streams_if_due(250);
+
+
+        ++processed_files;
+
+        if (options.detail_progress_callback) {
+            try {
+                options.detail_progress_callback(processed_files, total_files, rows_in_file, source_bytes, source_bytes, source_file,
+                                                 "IXv1 cerrado " + source_file + " · " + std::to_string(rows_in_file) + " filas",
+                                                 import_errors_total, external_errors_total);
+            } catch (...) {}
+        }
+
+
+        if (options.progress_callback) {
+            const int py = year_from_any_text(source_path);
+            std::string phase = "IXv1 ";
+            if (py > 0) phase += std::to_string(py) + " ";
+            phase += source_file + " " + std::to_string(rows_in_file) + " filas";
+            // Mensaje final ultrabreve: sólo describe el archivo/año/líneas ya
+            // volcadas al IXIPTLAH elemental; no toca el formato del progreso.
+            try { options.progress_callback(processed_files, render_points, phase); } catch (...) {}
+        }
+
+        (void)rows_in_file;
+    }
+
+
+    temporal_flush_append_streams();
+
+
+    if (options.detail_progress_callback) {
+        try {
+            options.detail_progress_callback(processed_files, total_files, 0, 0, 0, std::string{},
+                                             "IXv1 cerrando indices temporales",
+                                             import_errors_total, external_errors_total);
+        } catch (...) {}
+    }
+
+    if (options.progress_callback) {
+        try { options.progress_callback(processed_files, render_points, "IXv1 listo datos directos"); } catch (...) {}
+    }
+
+    return render_points;
+
+}}
+
+
+
+
+std::set<std::string> AtmosphericReconstructionEngine::load_checkpoint_ids(const fs::path& checkpoint) {
+
+    std::set<std::string> ids;
+
+    if (!fs::exists(checkpoint)) return ids;
+
+
+
+    ixiptlah_read_records(checkpoint, [&](IxiptlahRecordType type, std::uint32_t schema, std::istream& in) {
+
+
+        if (type != IxiptlahRecordType::ProcessedPdf || schema != 1) return true;
+        std::string id;
+        std::string processed_utc;
+
+        std::string path;
+
+
+        if (!ixiptlah_read_string(in, id) ||
+
+
+            !ixiptlah_read_string(in, processed_utc) ||
+
+
+            !ixiptlah_read_string(in, path)) return false;
+
+        if (!id.empty()) ids.insert(id);
+
+        return true;
+    });
+
+    return ids;
+#if 0
+
+    std::istringstream in(read_text_file(checkpoint));
+    std::string line;
+
+    while (std::getline(in, line)) {
+
+
+        if (trim(line).empty() || line.find("file_id") == 0) continue;
+        const size_t tab = line.find('\t');
+        const std::string id = tab == std::string::npos ? trim(line) : trim(line.substr(0, tab));
+
+        if (!id.empty()) ids.insert(id);
+    }
+
+    return ids;
+#endif
+}
+
+
+
+void AtmosphericReconstructionEngine::append_checkpoint(const fs::path& checkpoint, const SourceFile& source) {
+
+
+    (void)ixiptlah_append_record(checkpoint, IxiptlahRecordType::ProcessedPdf, 1, [&](std::ostream& out) {
+
+
+        return ixiptlah_write_string(out, source.file_id) &&
+
+
+               ixiptlah_write_string(out, now_utc_iso()) &&
+
+
+               ixiptlah_write_string(out, path_utf8(source.path));
+    });
+
+    return;
+#if 0
+
+    const bool header = !fs::exists(checkpoint);
+
+    ensure_dir(checkpoint.parent_path());
+
+
+    std::ofstream out(checkpoint, std::ios::binary | std::ios::app);
+
+    if (!out) return;
+
+    if (header) out << "file_id\tindexed_utc\tkind\tprovider\tbytes\tmtime_tick\tpath\n";
+
+    out << source.file_id << '\t' << now_utc_iso() << '\t' << source.kind << '\t' << source.provider << '\t'
+
+
+        << static_cast<unsigned long long>(source.bytes) << '\t' << source.mtime_tick << '\t' << path_utf8(source.path) << '\n';
+#endif
+}
+
+
+
+
+AtmosphericReconstructionEngine::SourceFile AtmosphericReconstructionEngine::describe_source(const fs::path& path, const AtmosphereFoundationOptions& options) {
+    (void)options;
+
+    SourceFile s;
+
+    std::error_code canonical_ec;
+
+    const fs::path canonical_path = fs::weakly_canonical(path, canonical_ec);
+
+    s.path = canonical_ec ? path : canonical_path;
+
+
+    s.bytes = file_size_or_zero(path);
+
+    s.mtime_tick = file_time_tick(path);
+
+    const std::string path_text = path_utf8(s.path);
+
+
+    const std::string norm = normalize_key(path_text);
+
+    s.file_id = simple_hash_hex(path_text + "|" + std::to_string(s.bytes) + "|" + std::to_string(s.mtime_tick));
+
+
+    s.kind = options.forced_domain.empty() ? classify_kind(norm) : normalize_key(options.forced_domain);
+    s.provider = classify_provider(norm);
+
+    if (!options.forced_provider.empty() && (s.provider.empty() || s.provider == "desconocido")) {
+
+        s.provider = options.forced_provider;
+    }
+
+    s.temporal_hint = temporal_hint_from_name(path_text);
+
+
+    s.variable_hint = infer_variable_hint(path_text);
+
+
+
+    const std::string ext = extension_norm(path);
+
+
+    if (ext == ".csv" || ext == ".txt") {
+
+
+        std::ifstream in(path, std::ios::binary);
+        std::string line;
+        int lines = 0;
+
+        std::vector<std::string> fallback_cols;
+        std::string fallback_delimiter;
+
+        while (in && lines < options.sample_lines_per_file && std::getline(in, line)) {
+            ++lines;
+
+            line = trim(line);
+
+            if (line.empty()) continue;
+
+
+            const std::string norm_line = normalize_key(line);
+
+            if (contains_norm(norm_line, "simat") || contains_norm(norm_line, "aire df")) s.provider = "RAMA/SIMAT";
+            const char delimiter = infer_delimiter(line);
+
+            auto cols = split_guess_delimited(line, delimiter);
+
+            if (cols.size() < 2) continue;
+
+            if (fallback_cols.empty()) {
+
+                fallback_cols = cols;
+
+                fallback_delimiter = delimiter_name(delimiter);
+            }
+
+            const bool has_date = contains_norm(norm_line, "date") || contains_norm(norm_line, "fecha");
+            const bool has_station = contains_norm(norm_line, "id station") || contains_norm(norm_line, "cve station") || contains_norm(norm_line, "cve estac") || contains_norm(norm_line, "estacion");
+
+            const bool has_parameter = contains_norm(norm_line, "id parameter") || contains_norm(norm_line, "cve parameter") || contains_norm(norm_line, "parametro") || contains_norm(norm_line, "cve param");
+
+            if (has_date && has_station && has_parameter) {
+                s.delimiter = delimiter_name(delimiter);
+
+                s.columns = std::move(cols);
+                break;
+            }
+        }
+
+        if (s.columns.empty()) {
+
+            s.columns = std::move(fallback_cols);
+            s.delimiter = fallback_delimiter;
+        }
+
+        if (!s.columns.empty()) {
+
+            std::string joined;
+
+
+            for (const auto& c : s.columns) joined += " " + c;
+            const std::string variable_from_header = infer_variable_hint(joined);
+
+            if (s.variable_hint == "desconocida" && variable_from_header != "desconocida") s.variable_hint = variable_from_header;
+        }
+    }
+
+    return s;
+}
+
+
+
+
+
+std::vector<AtmosphericReconstructionEngine::SourceFile> AtmosphericReconstructionEngine::discover_sources(const AtmosphereFoundationOptions& options) {
+
+    std::vector<SourceFile> rows;
+
+    if (options.source_root.empty() || !fs::exists(options.source_root)) return rows;
+    std::error_code ec;
+
+    std::set<std::string> seen_paths;
+    for (const auto& root : atmospheric_scan_roots(options.source_root)) {
+
+        for (fs::recursive_directory_iterator it(root, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec)) {
+
+            if (ec) { ec.clear(); continue; }
+
+            if (options.max_files > 0 && static_cast<int>(rows.size()) >= options.max_files) break;
+            std::error_code item_ec;
+
+            if (!it->is_regular_file(item_ec) || item_ec) continue;
+
+            if (!is_supported_source(it->path())) continue;
+
+            const std::string stable = path_utf8(fs::weakly_canonical(it->path(), item_ec));
+            if (!seen_paths.insert(stable.empty() ? path_utf8(it->path()) : stable).second) continue;
+
+            rows.push_back(describe_source(it->path(), options));
+        }
+
+        if (options.max_files > 0 && static_cast<int>(rows.size()) >= options.max_files) break;
+    }
+
+
+    std::sort(rows.begin(), rows.end(), [](const SourceFile& a, const SourceFile& b) {
+
+        if (a.kind != b.kind) return a.kind < b.kind;
+
+        return path_utf8(a.path) < path_utf8(b.path);
+    });
+
+    return rows;
+}
+
+
+
+
+
+void AtmosphericReconstructionEngine::append_manifest_rows(const AtmosphereFoundationOptions& options, const std::vector<SourceFile>& rows) {
+    ensure_dir(options.output_root);
+
+    for (const auto& r : rows) {
+
+        const int year = year_from_any_text(r.temporal_hint + " " + path_utf8(r.path));
+        std::ostringstream payload;
+        payload << "provider=" << r.provider
+                << ";delimiter=" << r.delimiter
+
+                << ";bytes=" << static_cast<unsigned long long>(r.bytes)
+
+                << ";mtime_tick=" << r.mtime_tick
+
+                << ";columns=";
+
+        for (size_t i = 0; i < r.columns.size(); ++i) {
+
+            if (i) payload << '|';
+
+            payload << r.columns[i];
+        }
+
+        std::map<std::string, std::string> fields;
+
+
+
+
+        const std::string forced_domain_norm = normalize_key(options.forced_domain);
+
+        if (forced_domain_norm == "satelital" || r.kind == "satelital") {
+
+            fields["record_type"] = "atmosfera_satelital_fuente";
+        } else if (!forced_domain_norm.empty() &&
+
+                   forced_domain_norm != "atmosfera" &&
+                   forced_domain_norm != "meteorologico" &&
+
+                   forced_domain_norm != "contaminante") {
+
+            fields["record_type"] = "catalogo_fuente_datos";
+        } else {
+
+            fields["record_type"] = "atmosfera_fuente";
+        }
+
+        const std::string canonical_date = canonical_date_from_temporal_hint(r.temporal_hint + " " + path_utf8(r.path));
+
+        fields["date"] = !canonical_date.empty() ? canonical_date : (year > 0 ? (std::to_string(year) + "-01-01") : "0000-01-01");
+
+        fields["hour"] = "00";
+
+        fields["year"] = std::to_string(year);
+
+        fields["domain"] = r.kind.empty() ? "atmosfera" : r.kind;
+
+        fields["provider"] = r.provider;
+
+        fields["source_id"] = r.file_id;
+
+        fields["source_file"] = path_utf8(r.path.filename());
+
+        fields["source_path"] = path_utf8(r.path);
+
+        fields["metric"] = r.variable_hint;
+
+        fields["value_text"] = r.temporal_hint;
+
+        fields["payload"] = payload.str();
+
+
+        temporal_append_source_inventory_record(options.output_root, fields);
+    }
+}
+
+
+
+
+void AtmosphericReconstructionEngine::write_model_base(const fs::path& out) {
+    (void)out;
+
+    return;
+#if 0
+
+    ensure_dir(out.parent_path());
+    std::ostringstream j;
+    j << "{\n"
+
+
+      << "  \"schema_version\": \"0.2.0-foundation\",\n"
+      << "  \"purpose\": \"base robusta para reconstruccion atmosferica espaciotemporal ZMVM\",\n"
+      << "  \"principles\": [\n"
+      << "    \"nunca bloquear la UI: ingesta por presupuestos, checkpoints y archivos append-only\",\n"
+
+
+      << "    \"nunca sobrescribir datos crudos: bronce/raw, plata/QC, oro/fusion-modelo\",\n"
+      << "    \"cada campo atmosferico debe portar linaje, unidades, incertidumbre, resolucion, fuente y regla de calidad\",\n"
+
+
+      << "    \"la reconstruccion exportara formatos interoperables: NetCDF-CF, GeoTIFF/COG, Zarr, GeoParquet, GeoPackage, CSV largo, JSONL y STAC\"\n"
+
+      << "  ],\n"
+      << "  \"target_domain\": {\n"
+      << "    \"name\": \"ZMVM + 50 km\",\n"
+
+
+      << "    \"horizontal_resolution_candidates_m\": [250, 500, 1000],\n"
+      << "    \"vertical_layers_agl_m\": [2, 10, 30, 60, 120, 250, 500, 1000, 1500, 3000],\n"
+
+      << "    \"time_step_candidates_min\": [5, 10, 60],\n"
+      << "    \"crs_analysis\": \"EPSG:6372 o equivalente metrico local; exportacion EPSG:4326 adicional\"\n"
+      << "  },\n"
+      << "  \"data_layers\": {\n"
+      << "    \"surface_networks\": [\"RAMA/SIMAT contaminantes\", \"RAMA meteorologia\", \"RUOA\", \"PEMBU\"],\n"
+      << "    \"remote_sensing\": [\"Sentinel-5P NO2/SO2/CO/O3/aerosoles\", \"MODIS/MAIAC AOD\", \"VIIRS nubosidad/focos/calidad aerosol\", \"GOES radiacion y nubes\"],\n"
+
+      << "    \"drivers\": [\"ERA5 reanalysis\", \"DEM SRTM/Copernicus\", \"uso de suelo\", \"inventarios de emisiones\", \"red vial y movilidad si esta disponible\"],\n"
+
+      << "    \"models\": [\"WRF/WRF-Chem para meteorologia-quimica online\", \"CMAQ para transporte-quimica multipolutante\", \"HYSPLIT para trayectorias y dispersion diagnostica\"]\n"
+      << "  },\n"
+      << "  \"quality_control\": {\n"
+      << "    \"range_checks\": \"rangos fisicamente posibles por variable/unidad\",\n"
+      << "    \"persistence_checks\": \"valores congelados, saltos imposibles, relojes duplicados\",\n"
+      << "    \"cross_sensor_checks\": \"comparacion entre estaciones cercanas, satelite y reanalisis\",\n"
+
+      << "    \"uncertainty\": \"error instrumental + representatividad espacial + error de fusion/modelo\"\n"
+      << "  },\n"
+      << "  \"fusion_sequence\": [\n"
+
+      << "    \"1_normalizacion_unidades_tiempo_estacion\",\n"
+
+      << "    \"2_qc_y_cuarentena_no_destructiva\",\n"
+      << "    \"3_interpolacion_orografica_anisotropica_con_viento\",\n"
+      << "    \"4_asimilacion_satelital_y_reanalisis\",\n"
+
+      << "    \"5_modelo_fisico_wrf_cmaq_hysplit\",\n"
+      << "    \"6_ensamble_bayesiano_con_incertidumbre_por_celda\",\n"
+      << "    \"7_exportacion_interoperable_y_auditoria_reproducible\"\n"
+      << "  ]\n"
+      << "}\n";
+
+    write_text_file(out, j.str());
+#endif
+}
+
+
+
+
+AtmosphereFoundationReport AtmosphericReconstructionEngine::prepare_foundation(const AtmosphereFoundationOptions& options) {
+
+    AtmosphereFoundationReport report;
+
+    if (options.output_root.empty()) return report;
+    ensure_dir(options.output_root);
+
+
+    report.manifest_jsonl = atmosphere_runtime_dir() / "atmosfera_fuentes.ixiptlah";
+
+
+    report.stac_items_jsonl = atmosphere_runtime_dir() / "atmosfera_stac.ixiptlah";
+
+
+    report.model_base_json = atmosphere_runtime_dir() / "modelo_base_atmosferico.ixiptlah";
+
+
+    report.cloud_jsonl = atmosphere_runtime_dir() / "atmosfera_nube.ixiptlah";
+
+
+
+    const std::string checkpoint_scope = path_utf8(options.output_root) + "|" + path_utf8(options.source_root) + "|ixiptlah_atmos_raw_measurement_batch_v4_visual_textual_longtable";
+    const std::string output_key = simple_hash_hex(checkpoint_scope).substr(0, 12);
+
+
+    const fs::path checkpoint = atmosphere_runtime_dir() / ("checkpoints_atmosfera_" + output_key + ".ixiptlah");
+
+    const auto done = options.resume ? load_checkpoint_ids(checkpoint) : std::set<std::string>{};
+
+    auto rows = discover_sources(options);
+
+    if (options.year_start > 0 || options.year_end > 0) {
+
+        const int ys = options.year_start > 0 ? options.year_start : options.year_end;
+
+        const int ye = options.year_end > 0 ? options.year_end : options.year_start;
+        const int lo = std::min(ys, ye);
+        const int hi = std::max(ys, ye);
+
+        rows.erase(std::remove_if(rows.begin(), rows.end(), [&](const SourceFile& r) {
+
+            const int y = year_from_any_text(r.temporal_hint + " " + path_utf8(r.path));
+
+            return y > 0 && (y < lo || y > hi);
+
+        }), rows.end());
+    }
+
+    report.discovered_files = static_cast<int>(rows.size());
+    if (options.detail_progress_callback) {
+        try {
+            options.detail_progress_callback(0, report.discovered_files, 0, 0, 0, std::string{},
+                                             "IXv1 detecto " + std::to_string(report.discovered_files) + " archivos atmosfericos",
+                                             0u, 0u);
+        } catch (...) {}
+    }
+
+
+    std::vector<SourceFile> new_rows;
+
+    for (const auto& r : rows) {
+
+
+        if (done.count(r.file_id) > 0) { ++report.skipped_by_checkpoint; continue; }
+
+        new_rows.push_back(r);
+    }
+
+    append_manifest_rows(options, new_rows);
+    if (options.detail_progress_callback) {
+        try {
+            options.detail_progress_callback(0, static_cast<int>(new_rows.size()), 0, 0, 0, std::string{},
+                                             "IXv1 manifesto tecnico escrito; iniciando parser RAMA/REDMET",
+                                             0u, 0u);
+        } catch (...) {}
+    }
+
+    std::vector<fs::path> visualizable_rows;
+
+    visualizable_rows.reserve(new_rows.size());
+
+    for (const auto& r : new_rows) {
+
+        const std::string ext = extension_norm(r.path);
+
+        if ((!is_atmosphere_inventory_only_source(r.path) || is_satellite_coverage_table(r.path)) &&
+            (ext == ".csv" || ext == ".tsv" || ext == ".txt" ||
+             ext == ".json" || ext == ".jsonl" || ext == ".geojson")) {
+
+            visualizable_rows.push_back(r.path);
+        }
+    }
+
+
+    write_model_base(report.model_base_json);
+
+    if (!options.inventory_only && !visualizable_rows.empty()) {
+
+        report.cloud_points = write_light_atmospheric_cloud(options, visualizable_rows);
+
+    } else if (!options.inventory_only && !options.resume && new_rows.empty()) {
+
+        report.cloud_points = write_light_atmospheric_cloud(options);
+    }
+
+    for (const auto& r : new_rows) append_checkpoint(checkpoint, r);
+
+    temporal_close_append_streams();
+
+    if (options.detail_progress_callback) {
+        try {
+            options.detail_progress_callback(static_cast<int>(new_rows.size()), static_cast<int>(new_rows.size()), 0, 0, 0, std::string{},
+                                             "IXv1 compactando indices mensuales",
+                                             0u, 0u);
+        } catch (...) {}
+    }
+
+
+    temporal_rebuild_all_json_indexes(options.output_root);
+
+    report.indexed_files = static_cast<int>(new_rows.size());
+
+
+    report.sampled_files = static_cast<int>(new_rows.size());
+
+    return report;
+}
+
+}

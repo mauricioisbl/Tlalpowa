@@ -1,0 +1,822 @@
+
+
+
+#include "Pipeline.hpp"
+#include "Tlalpowa.h"
+#include "main.h"
+#include "historical_mesh.h"
+#include "AtmosphereModel.hpp"
+#include "TemporalBlocks.hpp"
+
+#include "Ixiptlah.hpp"
+
+#include <csignal>
+#include <cstdint>
+#include <exception>
+#include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <map>
+#include <set>
+#include <sstream>
+#include <system_error>
+#include <vector>
+
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#else
+#include <sys/resource.h>
+#endif
+
+
+using namespace epi;
+
+
+
+namespace epi {
+int run_interactive_launcher();
+int run_gui_launcher();
+
+
+}
+
+#ifdef _WIN32
+
+
+static fs::path exe_log_dir() {
+    std::wstring buffer(32768, L'\0');
+
+    const DWORD len = GetModuleFileNameW(nullptr, buffer.data(), static_cast<DWORD>(buffer.size()));
+
+    if (len > 0 && len < buffer.size()) {
+
+        buffer.resize(len);
+
+        return fs::path(buffer).parent_path();
+    }
+
+    return fs::current_path();
+}
+#else
+
+
+static fs::path exe_log_dir() {
+
+    return fs::current_path();
+}
+#endif
+
+
+
+
+
+static void append_crash_log(const std::string& message) noexcept {
+    try {
+        ensure_dir(exe_log_dir());
+
+
+        std::ofstream out(exe_log_dir() / "Tlalpowa.log", std::ios::binary | std::ios::app);
+        out << now_utc_iso() << " " << message << "\n";
+    } catch (...) {}
+}
+
+
+
+
+static void signal_handler(int sig) {
+    append_crash_log("senal capturada: " + std::to_string(sig));
+    std::_Exit(128 + sig);
+}
+
+
+
+
+static void install_crash_guards() {
+
+    static bool installed = false;
+
+    if (installed) return;
+
+    installed = true;
+#ifdef _WIN32
+    SetConsoleCP(CP_UTF8);
+    SetConsoleOutputCP(CP_UTF8);
+#endif
+
+
+    std::set_terminate([]() {
+        append_crash_log("std::terminate capturado; salida controlada");
+        std::_Exit(3);
+    });
+    std::signal(SIGABRT, signal_handler);
+    std::signal(SIGFPE, signal_handler);
+    std::signal(SIGILL, signal_handler);
+    std::signal(SIGSEGV, signal_handler);
+#ifdef _WIN32
+
+
+    SetUnhandledExceptionFilter([](EXCEPTION_POINTERS* e) -> LONG {
+
+        DWORD code = e && e->ExceptionRecord ? e->ExceptionRecord->ExceptionCode : 0;
+        const auto address = e && e->ExceptionRecord ?
+            reinterpret_cast<std::uintptr_t>(e->ExceptionRecord->ExceptionAddress) : 0u;
+        const auto flags = e && e->ExceptionRecord ? e->ExceptionRecord->ExceptionFlags : 0u;
+        std::ostringstream os;
+        os << "excepcion Win32 no controlada: 0x" << std::hex << code
+           << " direccion=0x" << address
+           << " banderas=0x" << flags;
+        if (e && e->ExceptionRecord) {
+            os << " parametros=" << std::dec << e->ExceptionRecord->NumberParameters;
+            for (DWORD i = 0; i < e->ExceptionRecord->NumberParameters && i < EXCEPTION_MAXIMUM_PARAMETERS; ++i) {
+                os << " p" << i << "=0x" << std::hex
+                   << static_cast<std::uintptr_t>(e->ExceptionRecord->ExceptionInformation[i]);
+            }
+        }
+        append_crash_log(os.str());
+
+        return EXCEPTION_EXECUTE_HANDLER;
+
+    });
+#endif
+}
+
+
+
+
+/* raise_process_priority: eleva prioridad del proceso. */
+static void raise_process_priority() noexcept {
+    try {
+#ifdef _WIN32
+
+        SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
+
+
+        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
+#else
+        setpriority(PRIO_PROCESS, 0, -4);
+#endif
+    } catch (...) {}
+}
+
+
+
+static void print_help() {
+    std::cout <<
+R"HELP(Tlalpowa
+
+Uso:
+  "Tlalpowa.exe" run --input <dir> --output <dir> --config <dir> --pdftotext <exe> --pdftoppm <exe> [--tesseract <exe>] [--geojson <file>] [--runtime <dir>] [--no-dashboard] [--no-resume|--reprocess-epidemiology] [--limit-pdfs N] [--skip-front-pages N] [--skip-back-pages N] [--max-pages N]
+  "Tlalpowa.exe" atmosphere --input <dir> [--output <dir>] [--no-resume] [--max-files N]
+  "Tlalpowa.exe" atmosphere-web --source meteorologia|contaminantes --years AAAA-AAAA [--no-overwrite]
+  "Tlalpowa.exe" epi-web --source cdmx|edomex|all [--years AAAA-AAAA]
+  "Tlalpowa.exe" external-smoke --input <dir> --output <dir> [--years AAAA-AAAA] [--inventory-only]
+  "Tlalpowa.exe" satellite-web --source sentinel5p|omi|modis|goes --output <dir> [--years AAAA-AAAA]
+  "Tlalpowa.exe" epi-audit --input <dir> [--top N]
+  "Tlalpowa.exe" selftest
+  "Tlalpowa.exe" launcher
+
+Contrato de seguridad:
+  1. Nunca usa coordenadas manuales.
+  2. Toda celda procede de intersección fila-columna reconstruida desde cajas PDF.
+  3. Lee encabezados fusionados por bloques Sem/Acum/M/F/anio anterior y guarda CIE-10 cuando existe.
+  4. Total se usa solo como corroboracion o imputacion unica; no elimina datos aceptables.
+  5. Las incidencias son Sem; M/F y anio anterior se conservan como acumulados.
+
+)HELP";
+}
+
+
+
+static std::string arg_value(int& i, int argc, char** argv) {
+
+    if (i + 1 >= argc) throw std::runtime_error(std::string("Falta valor para ") + argv[i]);
+
+    return argv[++i];
+}
+
+
+
+static fs::path arg_path(int& i, int argc, char** argv) {
+
+    const std::string value = clean_user_path_string(arg_value(i, argc, argv));
+#ifdef _WIN32
+
+    return fs::path(widen_utf8(value));
+#else
+
+
+    return fs::path(value);
+#endif
+}
+
+
+
+
+/* parse_options: decodifica entrada. */
+static AppOptions parse_options(int argc, char** argv) {
+    AppOptions o;
+
+    for (int i = 2; i < argc; ++i) {
+        const std::string a = argv[i];
+
+        if (a == "--input") o.input_dir = arg_path(i, argc, argv);
+
+        else if (a == "--output") o.output_dir = arg_path(i, argc, argv);
+
+        else if (a == "--config") o.config_dir = arg_path(i, argc, argv);
+
+        else if (a == "--runtime") o.runtime_dir = arg_path(i, argc, argv);
+
+
+        else if (a == "--pdftotext") o.pdftotext = arg_path(i, argc, argv);
+
+
+        else if (a == "--pdftoppm") o.pdftoppm = arg_path(i, argc, argv);
+
+        else if (a == "--tesseract") o.tesseract = arg_path(i, argc, argv);
+
+
+        else if (a == "--geojson") o.geojson = arg_path(i, argc, argv);
+
+
+        else if (a == "--limit-pdfs") o.limit_pdfs = std::stoi(arg_value(i, argc, argv));
+
+        else if (a == "--skip-front-pages") o.skip_front_pages = std::max(0, std::stoi(arg_value(i, argc, argv)));
+
+        else if (a == "--skip-back-pages") o.skip_back_pages = std::max(0, std::stoi(arg_value(i, argc, argv)));
+
+
+        else if (a == "--max-pages") o.max_pages_per_pdf = std::stoi(arg_value(i, argc, argv));
+
+        else if (a == "--dpi") o.render_dpi = std::stoi(arg_value(i, argc, argv));
+
+        else if (a == "--no-dashboard") o.dashboard = false;
+
+        else if (a == "--no-render") o.render_pages = false;
+
+        else if (a == "--no-resume" || a == "--reprocess-epidemiology" || a == "--rewrite-epidemiology" || a == "--reset-epidemiology") o.resume = false;
+
+
+        else if (a == "--stop-on-error") o.stop_on_error = true;
+
+        else if (a == "--help" || a == "-h") { print_help(); std::exit(0); }
+
+        else throw std::runtime_error("Argumento desconocido: " + a);
+    }
+
+    return o;
+}
+
+
+
+
+static int selftest() {
+
+    try {
+
+
+        if (!parse_epi_int("1,234").has_value() || *parse_epi_int("1,234") != 1234) throw std::runtime_error("parse 1,234");
+
+
+        if (!parse_epi_int("-").has_value() || *parse_epi_int("-") != 0) throw std::runtime_error("parse hyphen");
+
+
+        if (normalize_key("Álvaro Obregón") != "alvaro obregon") throw std::runtime_error("normalize accents");
+        Config cfg;
+        cfg.load(config_root());
+
+
+        if (!cfg.match_jurisdiction_line(normalize_key("Álvaro Obregón - - 1"))) throw std::runtime_error("jurisdiction match");
+
+
+        if (!cfg.match_disease_text(normalize_key("Hepatitis vírica A B15"))) throw std::runtime_error("disease match");
+
+        const fs::path mesh_path = fs::temp_directory_path() / "tlalpowa_selftest_mesh.t3d";
+        std::vector<unsigned char> mesh_bytes(64u + 36u, 0u);
+        std::memcpy(mesh_bytes.data(), "TLP3D002", 8u);
+        const auto put_u32 = [&](std::size_t offset, std::uint32_t value) {
+            mesh_bytes[offset + 0u] = static_cast<unsigned char>(value);
+            mesh_bytes[offset + 1u] = static_cast<unsigned char>(value >> 8u);
+            mesh_bytes[offset + 2u] = static_cast<unsigned char>(value >> 16u);
+            mesh_bytes[offset + 3u] = static_cast<unsigned char>(value >> 24u);
+        };
+        const auto put_f32 = [&](std::size_t offset, float value) {
+            std::uint32_t bits = 0u;
+            std::memcpy(&bits, &value, sizeof(bits));
+            put_u32(offset, bits);
+        };
+        put_u32(8u, 3u);
+        put_u32(12u, 1u);
+        put_f32(16u, -99.15f);
+        put_f32(20u, 19.42f);
+        put_f32(24u, -99.14f);
+        put_f32(28u, 19.43f);
+        put_f32(32u, 0.0f);
+        put_f32(36u, 10.0f);
+        put_u32(40u, 12u);
+        put_u32(48u, 1u);
+        put_u32(52u, 1u);
+        put_f32(56u, 1.0f);
+        for (std::size_t vertex = 0u; vertex < 3u; ++vertex) {
+            const std::size_t offset = 64u + vertex * 12u;
+            mesh_bytes[offset + 0u] = static_cast<unsigned char>(vertex * 127u);
+            mesh_bytes[offset + 2u] = static_cast<unsigned char>(vertex * 127u);
+            mesh_bytes[offset + 4u] = static_cast<unsigned char>(vertex == 2u ? 255u : 0u);
+            mesh_bytes[offset + 8u] = 127u;
+            mesh_bytes[offset + 9u] = 180u;
+            mesh_bytes[offset + 10u] = 140u;
+            mesh_bytes[offset + 11u] = 110u;
+        }
+        {
+            std::ofstream mesh_file(mesh_path, std::ios::binary | std::ios::trunc);
+            mesh_file.write(reinterpret_cast<const char*>(mesh_bytes.data()),
+                            static_cast<std::streamsize>(mesh_bytes.size()));
+            if (!mesh_file) throw std::runtime_error("temporary native mesh write");
+        }
+
+        TlalHistoricalNativeMesh mesh{};
+        if (!tlal_historical_native_mesh_load_utf8(path_utf8(mesh_path).c_str(), &mesh)) {
+            std::error_code remove_ec;
+            fs::remove(mesh_path, remove_ec);
+            throw std::runtime_error("tenochtitlan native mesh load");
+        }
+        const bool mesh_valid = mesh.format_version == 2u &&
+                                mesh.vertex_count == 3u &&
+                                mesh.triangle_count == 1u &&
+                                mesh.source_triangle_count == 1u &&
+                                mesh.vertices != nullptr &&
+                                mesh.lon_max > mesh.lon_min &&
+                                mesh.lat_max > mesh.lat_min &&
+                                mesh.height_max_m > mesh.height_min_m;
+        tlal_historical_native_mesh_release(&mesh);
+        {
+            std::error_code remove_ec;
+            fs::remove(mesh_path, remove_ec);
+        }
+        if (!mesh_valid) throw std::runtime_error("tenochtitlan native mesh integrity");
+        if (!tlalpowa_tlalpowa3d_regeoref_selftest()) {
+            throw std::runtime_error("tlalpowa3d fast regeoreference");
+        }
+
+        std::cout << "SELFTEST OK\n";
+
+        return 0;
+
+    } catch (const std::exception& e) {
+
+        std::cerr << "SELFTEST FAIL: " << e.what() << "\n";
+
+        return 3;
+    }
+}
+
+
+
+static int run_atmosphere_prepare_cli(int argc, char** argv) {
+
+
+    fs::path input = external_data_root();
+
+    fs::path output = internal_data_root();
+    bool resume = true;
+
+
+    int max_files = 2000;
+
+    for (int i = 2; i < argc; ++i) {
+        const std::string a = argv[i];
+
+        if (a == "--input") input = arg_path(i, argc, argv);
+
+        else if (a == "--output") output = arg_path(i, argc, argv);
+
+        else if (a == "--no-resume" || a == "--reprocess-epidemiology" || a == "--rewrite-epidemiology" || a == "--reset-epidemiology") resume = false;
+
+        else if (a == "--max-files") max_files = std::max(1, std::stoi(arg_value(i, argc, argv)));
+
+        else if (a == "--help" || a == "-h") { print_help(); return 0; }
+
+        else throw std::runtime_error("Argumento atmosphere desconocido: " + a);
+    }
+    AtmosphereFoundationOptions options;
+    options.source_root = input;
+    options.output_root = output;
+    options.resume = resume;
+
+    options.max_files = max_files;
+
+    options.sample_lines_per_file = 40;
+    const AtmosphereFoundationReport report = AtmosphericReconstructionEngine::prepare_foundation(options);
+    std::cout << "ATMOSPHERE OK\n"
+
+              << "input=" << path_utf8(input) << "\n"
+
+              << "output=" << path_utf8(output) << "\n"
+
+              << "discovered_files=" << report.discovered_files << "\n"
+
+              << "indexed_files=" << report.indexed_files << "\n"
+              << "skipped_by_checkpoint=" << report.skipped_by_checkpoint << "\n"
+
+
+              << "visible_rows=" << report.cloud_points << "\n"
+
+              << "output_folder=" << path_utf8(output) << "\n";
+
+    return (report.discovered_files > 0 || report.indexed_files > 0 || report.skipped_by_checkpoint > 0) ? 0 : 4;
+}
+
+
+
+static int run_atmosphere_web_cli(int argc, char** argv) {
+    int source = 0;
+
+    int year_start = 2026;
+
+    int year_end = 2026;
+
+    bool overwrite = true;
+
+    for (int i = 2; i < argc; ++i) {
+        const std::string a = argv[i];
+
+        if (a == "--source") {
+
+
+            const std::string value = normalize_key(arg_value(i, argc, argv));
+
+            if (value == "contaminantes" || value == "contaminante" || value == "rama") source = 1;
+
+            else if (value == "meteorologia" || value == "meteorologico" || value == "redma") source = 0;
+
+            else throw std::runtime_error("Fuente atmosferica desconocida: " + value);
+
+        } else if (a == "--years") {
+            const std::string value = arg_value(i, argc, argv);
+            const size_t dash = value.find('-');
+
+            if (dash == std::string::npos) {
+
+                year_start = year_end = std::stoi(value);
+            } else {
+
+                year_start = std::stoi(value.substr(0, dash));
+
+
+                year_end = std::stoi(value.substr(dash + 1));
+            }
+
+        } else if (a == "--year-start") {
+
+            year_start = std::stoi(arg_value(i, argc, argv));
+
+        } else if (a == "--year-end") {
+
+            year_end = std::stoi(arg_value(i, argc, argv));
+
+        } else if (a == "--no-overwrite") {
+
+            overwrite = false;
+
+        } else if (a == "--overwrite") {
+
+            overwrite = true;
+
+        } else if (a == "--help" || a == "-h") {
+            print_help();
+
+            return 0;
+        } else {
+
+            throw std::runtime_error("Argumento atmosphere-web desconocido: " + a);
+        }
+    }
+
+
+    return epi::run_atmosphere_web_import_cli(source, year_start, year_end, overwrite);
+}
+
+static void parse_cli_year_range(const std::string& value, int& year_start, int& year_end) {
+    const size_t dash = value.find('-');
+    if (dash == std::string::npos) {
+        year_start = year_end = std::stoi(value);
+    } else {
+        year_start = std::stoi(value.substr(0, dash));
+        year_end = std::stoi(value.substr(dash + 1));
+    }
+}
+
+static int run_epi_web_cli(int argc, char** argv) {
+    bool cdmx = true;
+    bool edomex = true;
+    int year_start = 2019;
+    int year_end = 2026;
+    for (int i = 2; i < argc; ++i) {
+        const std::string a = argv[i];
+        if (a == "--source") {
+            const std::string source = normalize_key(arg_value(i, argc, argv));
+            if (source == "cdmx" || source.find("ciudad") != std::string::npos) {
+                cdmx = true;
+                edomex = false;
+            } else if (source == "edomex" || source.find("estado") != std::string::npos) {
+                cdmx = false;
+                edomex = true;
+            } else if (source == "all" || source == "todo" || source == "todos") {
+                cdmx = true;
+                edomex = true;
+            } else {
+                throw std::runtime_error("Fuente epi-web desconocida: " + source);
+            }
+        } else if (a == "--years") {
+            parse_cli_year_range(arg_value(i, argc, argv), year_start, year_end);
+        } else if (a == "--year-start") {
+            year_start = std::stoi(arg_value(i, argc, argv));
+        } else if (a == "--year-end") {
+            year_end = std::stoi(arg_value(i, argc, argv));
+        } else if (a == "--help" || a == "-h") {
+            print_help();
+            return 0;
+        } else {
+            throw std::runtime_error("Argumento epi-web desconocido: " + a);
+        }
+    }
+    return epi::run_epidemiology_web_download_cli(cdmx, edomex, year_start, year_end);
+}
+
+static int run_external_smoke_cli(int argc, char** argv) {
+    fs::path input;
+    fs::path output;
+    int year_start = 2026;
+    int year_end = 2026;
+    bool inventory_only = false;
+    for (int i = 2; i < argc; ++i) {
+        const std::string a = argv[i];
+        if (a == "--input") {
+            input = arg_path(i, argc, argv);
+        } else if (a == "--output") {
+            output = arg_path(i, argc, argv);
+        } else if (a == "--years") {
+            parse_cli_year_range(arg_value(i, argc, argv), year_start, year_end);
+        } else if (a == "--year-start") {
+            year_start = std::stoi(arg_value(i, argc, argv));
+        } else if (a == "--year-end") {
+            year_end = std::stoi(arg_value(i, argc, argv));
+        } else if (a == "--inventory-only") {
+            inventory_only = true;
+        } else if (a == "--materialize") {
+            inventory_only = false;
+        } else if (a == "--help" || a == "-h") {
+            print_help();
+            return 0;
+        } else {
+            throw std::runtime_error("Argumento external-smoke desconocido: " + a);
+        }
+    }
+    if (input.empty()) throw std::runtime_error("Uso: Tlalpowa.exe external-smoke --input <dir> --output <dir> [--years AAAA-AAAA]");
+    if (output.empty()) output = fs::current_path() / "Build" / "test_imports" / "external_smoke_out";
+    return epi::run_external_import_smoke_cli(input, output, year_start, year_end, inventory_only);
+}
+
+static int satellite_source_from_cli_value(const std::string& value) {
+    const std::string key = normalize_key(value);
+    if (key == "0" || key.find("sentinel") != std::string::npos || key.find("tropomi") != std::string::npos) return 0;
+    if (key == "1" || key == "omi" || key.find("aura") != std::string::npos) return 1;
+    if (key == "2" || key.find("modis") != std::string::npos || key.find("maiac") != std::string::npos) return 2;
+    if (key == "3" || key.find("goes") != std::string::npos || key.find("abi") != std::string::npos) return 3;
+    throw std::runtime_error("Fuente satelital desconocida: " + value);
+}
+
+static int run_satellite_web_cli(int argc, char** argv) {
+    int source = 2;
+    fs::path output;
+    int year_start = 2026;
+    int year_end = 2026;
+    for (int i = 2; i < argc; ++i) {
+        const std::string a = argv[i];
+        if (a == "--source") {
+            source = satellite_source_from_cli_value(arg_value(i, argc, argv));
+        } else if (a == "--output") {
+            output = arg_path(i, argc, argv);
+        } else if (a == "--years") {
+            parse_cli_year_range(arg_value(i, argc, argv), year_start, year_end);
+        } else if (a == "--year-start") {
+            year_start = std::stoi(arg_value(i, argc, argv));
+        } else if (a == "--year-end") {
+            year_end = std::stoi(arg_value(i, argc, argv));
+        } else if (a == "--help" || a == "-h") {
+            print_help();
+            return 0;
+        } else {
+            throw std::runtime_error("Argumento satellite-web desconocido: " + a);
+        }
+    }
+    return epi::run_satellite_web_import_cli(source, output, year_start, year_end);
+}
+
+static int run_epi_audit_cli(int argc, char** argv) {
+    fs::path input;
+    fs::path report_path;
+    int top = 30;
+    for (int i = 2; i < argc; ++i) {
+        const std::string a = argv[i];
+        if (a == "--input") {
+            input = arg_path(i, argc, argv);
+        } else if (a == "--report") {
+            report_path = arg_path(i, argc, argv);
+        } else if (a == "--top") {
+            top = std::max(1, std::stoi(arg_value(i, argc, argv)));
+        } else if (a == "--help" || a == "-h") {
+            print_help();
+            return 0;
+        } else {
+            throw std::runtime_error("Argumento epi-audit desconocido: " + a);
+        }
+    }
+    if (input.empty()) throw std::runtime_error("Uso: Tlalpowa.exe epi-audit --input <dir> [--top N]");
+
+    int64_t records = 0;
+    int64_t missing_disease = 0;
+    int64_t missing_cie10 = 0;
+    int64_t synthetic_disease = 0;
+    int64_t total_value = 0;
+    std::map<std::string, int64_t> by_disease;
+    std::map<std::string, int64_t> by_cie10;
+    std::map<std::string, int64_t> by_period;
+    std::map<std::string, int64_t> by_sex;
+    std::map<int, int64_t> by_year;
+    std::set<std::string> jurisdictions;
+    std::set<int> years;
+    std::set<int> weeks;
+
+    epi::temporal_read_epidemiology_records(input, [&](const epi::TemporalEpidemiologyRecord& rec) {
+        ++records;
+        total_value += rec.value;
+        const std::string disease = trim(rec.disease);
+        const std::string cie10 = trim(rec.cie10);
+        if (disease.empty()) ++missing_disease;
+        else {
+            by_disease[disease] += rec.value;
+            const std::string disease_norm = normalize_key(disease);
+            if (disease_norm.rfind("enfermedad no catalogada", 0) == 0 ||
+                disease_norm.rfind("auto_", 0) == 0 ||
+                disease_norm.find("cuadro_detectado") != std::string::npos) {
+                ++synthetic_disease;
+            }
+        }
+        if (cie10.empty()) ++missing_cie10;
+        else by_cie10[cie10] += rec.value;
+        by_period[rec.period.empty() ? "(vacio)" : rec.period] += 1;
+        by_sex[rec.sex.empty() ? "(vacio)" : rec.sex] += 1;
+        if (rec.year > 0) by_year[rec.year] += 1;
+        if (!rec.jurisdiction.empty()) jurisdictions.insert(rec.jurisdiction);
+        if (rec.year > 0) years.insert(rec.year);
+        if (rec.epi_week > 0) weeks.insert(rec.epi_week);
+        return true;
+    });
+
+    std::vector<std::pair<std::string, int64_t>> disease_rank(by_disease.begin(), by_disease.end());
+    std::sort(disease_rank.begin(), disease_rank.end(), [](const auto& a, const auto& b) {
+        if (a.second != b.second) return a.second > b.second;
+        return a.first < b.first;
+    });
+
+    std::ostringstream audit;
+    audit << "EPI AUDIT\n"
+          << "input=" << path_utf8(input) << "\n"
+          << "records=" << records << "\n"
+          << "total_value=" << total_value << "\n"
+          << "unique_diseases=" << by_disease.size() << "\n"
+          << "unique_cie10=" << by_cie10.size() << "\n"
+          << "jurisdictions=" << jurisdictions.size() << "\n"
+          << "years=" << years.size() << "\n"
+          << "weeks=" << weeks.size() << "\n"
+          << "missing_disease=" << missing_disease << "\n"
+          << "missing_cie10=" << missing_cie10 << "\n"
+          << "synthetic_disease=" << synthetic_disease << "\n";
+    audit << "periods:\n";
+    for (const auto& kv : by_period) audit << "  " << kv.first << "=" << kv.second << "\n";
+    audit << "sexes:\n";
+    for (const auto& kv : by_sex) audit << "  " << kv.first << "=" << kv.second << "\n";
+    audit << "records_by_year:\n";
+    for (const auto& kv : by_year) audit << "  " << kv.first << "=" << kv.second << "\n";
+    audit << "top_diseases:\n";
+    const int limit = std::min(top, static_cast<int>(disease_rank.size()));
+    for (int i = 0; i < limit; ++i) {
+        audit << "  " << disease_rank[static_cast<size_t>(i)].first
+              << "=" << disease_rank[static_cast<size_t>(i)].second << "\n";
+    }
+    const std::string audit_text = audit.str();
+    std::cout << audit_text;
+    if (report_path.empty()) report_path = fs::current_path() / "Build" / "epi_audit_last.txt";
+    try {
+        ensure_dir(report_path.parent_path());
+        std::ofstream out(report_path, std::ios::binary | std::ios::trunc);
+        out << audit_text;
+        out.flush();
+    } catch (...) {
+    }
+    if (records == 0) return 31;
+    if (missing_disease > 0) return 32;
+    if (synthetic_disease > 0) return 33;
+    return 0;
+}
+
+
+
+
+static int run_ixiptlah_purge_epi_file_cli(int argc, char** argv) {
+
+
+    if (argc < 3) throw std::runtime_error("Uso: Tlalpowa.exe ixiptlah-purge-epi-file <archivo.ixiptlah>");
+
+    fs::path file = fs::path(widen_utf8(clean_user_path_string(argv[2])));
+
+
+    const IxiptlahRewriteStats stats = ixiptlah_rewrite_without_records(file,
+
+
+        [](IxiptlahRecordType type, std::uint32_t schema) {
+
+
+            return schema == 1 &&
+
+
+                (type == IxiptlahRecordType::EpidemiologyObservation ||
+
+
+                 type == IxiptlahRecordType::MonthlyEpidemiologyBatch);
+        });
+
+
+    std::cout << "IXIPTLAH_PURGE_EPI_FILE\n"
+
+              << "file=" << path_utf8(file) << "\n"
+              << "kept=" << stats.kept << "\n"
+              << "removed=" << stats.removed << "\n"
+
+              << "unreadable=" << stats.unreadable << "\n"
+              << "rewritten=" << (stats.rewritten ? 1 : 0) << "\n";
+
+    return stats.rewritten ? 0 : 2;
+}
+
+
+
+
+extern "C" int tlalpowa_execute_command(TlalpowaCommand command, int argc, char** argv) {
+    install_crash_guards();
+
+    raise_process_priority();
+    try {
+        switch (command) {
+        case TLALPOWA_COMMAND_DEFAULT: {
+            const int modern = epi::run_tlalpowa_app();
+            if (modern == 0) return 0;
+            return epi::run_gui_launcher();
+        }
+        case TLALPOWA_COMMAND_SELFTEST:
+            return selftest();
+        case TLALPOWA_COMMAND_ATMOSPHERE:
+            return run_atmosphere_prepare_cli(argc, argv);
+        case TLALPOWA_COMMAND_ATMOSPHERE_WEB:
+            return run_atmosphere_web_cli(argc, argv);
+        case TLALPOWA_COMMAND_EPI_WEB:
+            return run_epi_web_cli(argc, argv);
+        case TLALPOWA_COMMAND_EXTERNAL_SMOKE:
+            return run_external_smoke_cli(argc, argv);
+        case TLALPOWA_COMMAND_SATELLITE_WEB:
+            return run_satellite_web_cli(argc, argv);
+        case TLALPOWA_COMMAND_EPI_AUDIT:
+            return run_epi_audit_cli(argc, argv);
+        case TLALPOWA_COMMAND_IXIPTLAH_PURGE_EPI_FILE:
+            return run_ixiptlah_purge_epi_file_cli(argc, argv);
+        case TLALPOWA_COMMAND_LAUNCHER:
+            return epi::run_interactive_launcher();
+        case TLALPOWA_COMMAND_GUI:
+            return epi::run_gui_launcher();
+        case TLALPOWA_COMMAND_APP:
+            return epi::run_tlalpowa_app();
+        case TLALPOWA_COMMAND_RUN: {
+#ifdef _WIN32
+            SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+            SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+#endif
+            auto options = parse_options(argc, argv);
+            Pipeline p(options);
+            return p.run();
+        }
+        case TLALPOWA_COMMAND_UNKNOWN:
+        default:
+            print_help();
+            return 1;
+        }
+
+    } catch (const std::exception& e) {
+        std::cerr << "ERROR: " << e.what() << "\n";
+
+        return 2;
+    }
+}

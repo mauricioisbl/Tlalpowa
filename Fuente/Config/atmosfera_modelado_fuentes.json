@@ -1,0 +1,93 @@
+{
+  "schema_version": "0.3.0-foundation",
+  "domain": {
+    "name": "ZMVM + 50 km",
+    "target_resolutions_m": [250, 500, 1000],
+    "default_resolution_m": 500,
+    "vertical_layers_agl_m": [2, 10, 30, 60, 120, 250, 500, 1000, 1500, 3000],
+    "time_steps_min": [5, 10, 60],
+    "analysis_crs_candidates": ["EPSG:6372", "local_equal_area_or_metric"],
+    "export_crs": "EPSG:4326"
+  },
+  "surface_networks": [
+    {
+      "id": "simat_rama_contaminantes",
+      "name": "RAMA/SIMAT contaminantes",
+      "priority": 1,
+      "variables": ["O3", "NO2", "SO2", "CO", "PM10", "PM2.5"],
+      "temporal_resolution": "hourly_or_subhourly_when_available",
+      "role": "observacion urbana primaria para calibracion y validacion"
+    },
+    {
+      "id": "simat_rama_meteorologia",
+      "name": "RAMA/SIMAT meteorologia",
+      "priority": 1,
+      "variables": ["temperatura", "humedad_relativa", "velocidad_viento", "direccion_viento", "radiacion", "precipitacion", "presion"],
+      "role": "forzamiento superficial urbano"
+    },
+    {
+      "id": "ruoa",
+      "name": "Red Universitaria de Observatorios Atmosfericos",
+      "priority": 1,
+      "variables": ["meteorologia", "radiacion", "aerosoles", "gases_traza_si_disponibles"],
+      "role": "observacion universitaria para contraste instrumental y alta calidad"
+    },
+    {
+      "id": "pembu",
+      "name": "Programa de Estaciones Meteorologicas del Bachillerato Universitario",
+      "priority": 2,
+      "variables": ["temperatura", "humedad", "viento", "presion", "lluvia", "radiacion_si_disponible"],
+      "role": "densificacion meteorologica local"
+    }
+  ],
+  "remote_sensing": [
+    {
+      "id": "sentinel_5p_tropomi",
+      "variables": ["NO2_column", "SO2_column", "CO_column", "O3_column", "HCHO_column", "aerosol_index"],
+      "role": "restriccion espacial de columnas atmosfericas y patrones regionales"
+    },
+    {
+      "id": "modis_maiac",
+      "variables": ["AOD", "cloud_mask", "surface_reflectance"],
+      "role": "aerosoles y nubosidad a resolucion fina"
+    },
+    {
+      "id": "viirs_goes",
+      "variables": ["clouds", "fire_hotspots", "radiation_proxy"],
+      "role": "evolucion diurna, nubosidad y eventos regionales"
+    }
+  ],
+  "physical_drivers": [
+    "ERA5 hourly reanalysis",
+    "DEM and terrain derivatives",
+    "land use and imperviousness",
+    "emission inventory by sector",
+    "road network and mobility proxies when legally available",
+    "population and health aggregation geometries"
+  ],
+  "model_chain": {
+    "diagnostic_level_0": "station_qc_and_inventory",
+    "diagnostic_level_1": "orographic_wind_guided_interpolation",
+    "diagnostic_level_2": "satellite_reanalysis_assisted_fusion",
+    "physics_level_3": ["WRF", "WRF-Chem", "CMAQ", "HYSPLIT"],
+    "ensemble_level_4": "bayesian_or_weighted_ensemble_with_uncertainty"
+  },
+  "export_formats": [
+    "NetCDF-CF",
+    "GeoTIFF/COG",
+    "Zarr",
+    "GeoParquet",
+    "GeoPackage",
+    "CSV-long",
+    "JSONL",
+    "STAC"
+  ],
+  "qc_flags": {
+    "0": "raw_unchecked",
+    "1": "passed_basic_qc",
+    "2": "corrected_unit_or_timezone",
+    "3": "suspect_but_retained",
+    "4": "quarantine_missing_or_inconsistent",
+    "9": "rejected_not_used_in_fusion"
+  }
+}

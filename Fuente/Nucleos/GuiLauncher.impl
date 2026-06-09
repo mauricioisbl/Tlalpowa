@@ -1,0 +1,20 @@
+
+
+
+#include "EpiTypes.hpp"
+
+
+
+namespace epi {
+
+int run_interactive_launcher();
+
+
+
+
+int run_gui_launcher() {
+
+    return run_interactive_launcher();
+}
+
+}

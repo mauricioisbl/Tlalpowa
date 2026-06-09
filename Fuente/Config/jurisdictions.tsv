@@ -1,0 +1,41 @@
+# id	canonical	aliases_pipe
+
+gustavo_a_madero	Gustavo A. Madero	Gustavo A. Madero|Gustavo A Madero|GAM
+azcapotzalco	Azcapotzalco	Azcapotzalco
+iztacalco	Iztacalco	Iztacalco
+coyoacan	Coyoacán	Coyoacán|Coyoacan
+alvaro_obregon	Álvaro Obregón	Álvaro Obregón|Alvaro Obregón|Alvaro Obregon
+magdalena_contreras	Magdalena Contreras	Magdalena Contreras|La Magdalena Contreras
+cuajimalpa	Cuajimalpa	Cuajimalpa|Cuajimalpa de Morelos
+tlalpan	Tlalpan	Tlalpan
+iztapalapa	Iztapalapa	Iztapalapa
+xochimilco	Xochimilco	Xochimilco
+milpa_alta	Milpa Alta	Milpa Alta
+tlahuac	Tláhuac	Tláhuac|Tlahuac
+miguel_hidalgo	Miguel Hidalgo	Miguel Hidalgo
+benito_juarez	Benito Juárez	Benito Juárez|Benito Juarez
+cuauhtemoc	Cuauhtémoc	Cuauhtémoc|Cuauhtemoc
+venustiano_carranza	Venustiano Carranza	Venustiano Carranza
+total	Total	Total
+
+# Jurisdicciones sanitarias del Estado de México (boletines ISEM/SINAVE). Se separan con prefijo edomex_ para no colisionar con municipios/alcaldías homónimas.
+edomex_atlacomulco	Atlacomulco	ATLACOMULCO|Atlacomulco
+edomex_ixtlahuaca	Ixtlahuaca	IXTLAHUACA|Ixtlahuaca
+edomex_jilotepec	Jilotepec	JILOTEPEC|Jilotepec
+edomex_tenango_del_valle	Tenango del Valle	TENANGO DEL VALLE|Tenango del Valle
+edomex_toluca	Toluca	TOLUCA|Toluca
+edomex_xonacatlan	Xonacatlán	XONACATLAN|Xonacatlán|Xonacatlan
+edomex_tejupilco	Tejupilco	TEJUPILCO|Tejupilco
+edomex_tenancingo	Tenancingo	TENANCINGO|Tenancingo
+edomex_valle_de_bravo	Valle de Bravo	VALLE DE BRAVO|Valle de Bravo
+edomex_atizapan	Atizapán	ATIZAPAN|Atizapán|Atizapan
+edomex_cuautitlan	Cuautitlán	CUAUTITLAN|Cuautitlán|Cuautitlan
+edomex_naucalpan	Naucalpan	NAUCALPAN|Naucalpan
+edomex_teotihuacan	Teotihuacán	TEOTIHUACAN|Teotihuacán|Teotihuacan
+edomex_tlalnepantla	Tlalnepantla	TLALNEPANTLA|Tlalnepantla
+edomex_zumpango	Zumpango	ZUMPANGO|Zumpango
+edomex_amecameca	Amecameca	AMECAMECA|Amecameca
+edomex_ecatepec	Ecatepec	ECATEPEC|Ecatepec
+edomex_nezahualcoyotl	Nezahualcóyotl	NEZAHUALCOYOTL|Nezahualcóyotl|Nezahualcoyotl|Nezahualcóyotl
+edomex_texcoco	Texcoco	TEXCOCO|Texcoco
+edomex_total	Edo. Méx.	EDO. MEX.|Edo. Mex.|Edo. Méx.|Estado de México|Estado de Mexico

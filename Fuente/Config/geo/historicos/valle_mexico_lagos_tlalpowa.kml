@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+  <name>Tlalpowa - reconstruccion lacustre historica del Valle de Mexico</name>
+  <description>Geometria integrada estable temprana: cuerpos lacustres aproximados por epoca, huella maxima y remanentes historicos; sin superficies activas despues de 1999. No sustituye cartografia academica definitiva.</description>
+  <Placemark><name>Lago de Texcoco 1500-1700</name><ExtendedData><Data name="year_start"><value>1500</value></Data><Data name="year_end"><value>1700</value></Data></ExtendedData><Polygon><outerBoundaryIs><LinearRing><coordinates>-99.191,19.596,0 -99.137,19.672,0 -99.035,19.712,0 -98.925,19.690,0 -98.842,19.594,0 -98.815,19.480,0 -98.864,19.365,0 -98.960,19.295,0 -99.065,19.287,0 -99.139,19.342,0 -99.178,19.435,0 -99.196,19.520,0 -99.191,19.596,0</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>
+  <Placemark><name>Lago Nabor Carrillo y vaso regulador 1975-1999</name><ExtendedData><Data name="year_start"><value>1975</value></Data><Data name="year_end"><value>1999</value></Data></ExtendedData><Polygon><outerBoundaryIs><LinearRing><coordinates>-99.012,19.493,0 -98.970,19.522,0 -98.925,19.501,0 -98.917,19.454,0 -98.958,19.429,0 -99.002,19.449,0 -99.012,19.493,0</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>
+  <Placemark><name>Canales y humedal de Xochimilco 1975-1999</name><ExtendedData><Data name="year_start"><value>1975</value></Data><Data name="year_end"><value>1999</value></Data></ExtendedData><Polygon><outerBoundaryIs><LinearRing><coordinates>-99.123,19.294,0 -99.093,19.304,0 -99.075,19.288,0 -99.088,19.263,0 -99.125,19.266,0 -99.123,19.294,0</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>
+</Document>
+</kml>

@@ -1,0 +1,18 @@
+# id	canonical	group	cie10_pipe	aliases_pipe
+neumococo_invasiva	Enfermedad invasiva por neumococo	prevenibles_vacunacion	A40.3|G00.1|J13	Enfermedad invasiva por neumococo|Enfermedad Invasiva por Neumococo|neumococo
+rotavirus_enteritis	Enteritis debida a rotavirus	prevenibles_vacunacion	A08.0	Enteritis debida a rotavirus|Enteritis debida a Rotavirus|rotavirus
+hepatitis_a	Hepatitis vírica A	prevenibles_vacunacion	B15	Hepatitis vírica A|Hepatitis virica A|Hepatitis A
+hepatitis_b	Hepatitis vírica B	prevenibles_vacunacion	B16	Hepatitis vírica B|Hepatitis virica B|Hepatitis B
+vph	Infección por virus del papiloma humano	transmision_sexual	B97.7	Infección por virus del papiloma humano|Infeccion por virus del papiloma humano|papiloma humano
+haemophilus_influenzae_invasiva	Infecciones invasivas por Haemophilus influenzae	prevenibles_vacunacion	A41.3|G00.0|J14	Infecciones invasivas por Haemophilus Influenzae|haemophilus influenzae
+influenza	Influenza	respiratorias	J09|J10|J11	Influenza
+meningitis_meningococica	Meningitis meningocócica	prevenibles_vacunacion	A39.0	Meningitis meningocócica|Meningitis meningococica
+meningitis_tuberculosa	Meningitis tuberculosa	prevenibles_vacunacion	A17.0	Meningitis tuberculosa
+iras	Infecciones respiratorias agudas	respiratorias	J00-J06	Infecciones respiratorias agudas|IRAS
+neumonias_bronconeumonias	Neumonías y bronconeumonías	respiratorias	J12-J18	Neumonías y bronconeumonías|Neumonias y bronconeumonias
+covid_19	Covid-19	respiratorias	U07.1|U07.2	Covid - 19|Covid-19|COVID 19
+asma	Asma y estado asmático	no_transmisibles	J45|J46	Asma y estado asmático|Asma y estado asmatico
+hipertension	Hipertensión arterial	no_transmisibles	I10-I15	Hipertensión arterial|Hipertension arterial
+diabetes_tipo_2	Diabetes mellitus no insulinodependiente (Tipo II)	no_transmisibles	E11	Diabetes mellitus no insulinodependiente|Diabetes mellitus tipo II|Tipo II
+efectos_calor_luz	Efectos del calor y de la luz	no_transmisibles	T67	Efectos del Calor y de La Luz|Efectos del calor y de la luz
+toxoplasmosis	Toxoplasmosis	otras_transmisibles	B58	Toxoplasmosis

@@ -1,0 +1,1005 @@
+
+
+
+
+
+
+#include "PdfExtractor.hpp"
+#include "core.h"
+
+
+#include <atomic>
+#include <cstring>
+#include <future>
+
+#include <mutex>
+#include <thread>
+
+
+
+namespace epi {
+
+
+
+namespace {
+
+
+
+
+
+int env_int_clamped_pdf(const char* name, int fallback, int lo, int hi) {
+    const std::string raw = getenv_utf8_or_empty(name);
+
+
+    if (raw.empty()) return std::clamp(fallback, lo, hi);
+    try { return std::clamp(std::stoi(raw), lo, hi); } catch (...) { return std::clamp(fallback, lo, hi); }
+}
+
+bool keep_bbox_debug_html_pdf() {
+    static const bool keep =
+        env_int_clamped_pdf("TLALPOWA_KEEP_BBOX_HTML", 0, 0, 1) != 0 ||
+        env_int_clamped_pdf("TLALPOWA_DEBUG_BBOX_HTML", 0, 0, 1) != 0;
+    return keep;
+}
+
+void cleanup_bbox_debug_html_pdf(const fs::path& html) {
+    if (keep_bbox_debug_html_pdf()) return;
+    std::error_code ec;
+    fs::remove(html, ec);
+}
+
+
+
+
+
+PageText placeholder_page(int page_no) {
+    PageText p;
+    p.page = page_no;
+
+    p.width = 612.0;
+
+
+    p.height = 792.0;
+
+
+    return p;
+}
+
+
+
+
+size_t count_page_tokens_pdf(const std::vector<PageText>& pages) {
+    size_t n = 0;
+
+
+    for (const auto& pg : pages) n += pg.tokens.size();
+
+
+    return n;
+}
+
+}
+
+
+
+
+
+PdfDocument PdfTextExtractor::extract(const fs::path& pdf, const fs::path& work_dir) const {
+    PdfDocument doc;
+
+
+    doc.pdf_path = pdf;
+
+
+    doc.file_name = path_utf8(pdf.filename());
+
+
+    doc.stable_id = simple_hash_hex(path_utf8(pdf) + "|" + std::to_string(file_size_or_zero(pdf)));
+    const int total_pages = tools_.pdf_page_count(pdf);
+    const int configured_front_skip = std::max(0, tools_.options().skip_front_pages);
+
+    const int configured_back_skip = std::max(0, tools_.options().skip_back_pages);
+
+
+
+    const bool total_pages_known = total_pages > 0;
+    int first_page = total_pages_known ? configured_front_skip + 1 : 1;
+    int last_page = total_pages_known ? total_pages - configured_back_skip : 0;
+
+    doc.source_page_count = total_pages;
+    doc.first_extracted_page = first_page;
+
+
+    doc.last_extracted_page = last_page;
+
+
+
+    if (!total_pages_known) {
+
+
+        log_.warn("No se obtuvo conteo pdfinfo para " + path_utf8(pdf.filename()) + "; se enviara el PDF completo a pdftotext y el filtrado se hara despues, evitando rangos vacios.");
+    }
+
+
+
+
+    if (total_pages_known && first_page > last_page) {
+        log_.warn("El boletin tiene " + std::to_string(total_pages) + " paginas; el salto configurado lo dejaria vacio. Se procesara desde la pagina 1 hasta la penultima disponible.");
+        first_page = 1;
+
+        last_page = std::max(1, total_pages - configured_back_skip);
+        doc.first_extracted_page = first_page;
+        doc.last_extracted_page = last_page;
+    }
+
+
+
+
+    if (last_page >= first_page && total_pages > 0) {
+
+
+
+
+        const int chunk_pages = env_int_clamped_pdf("TLALPOWA_BBOX_CHUNK_PAGES", 6, 1, 24);
+
+
+        const unsigned hw = std::max(1u, std::thread::hardware_concurrency());
+        const int auto_workers = static_cast<int>(std::clamp<unsigned>(hw <= 4 ? 2u : (hw / 2u), 2u, 6u));
+
+
+        const int bbox_workers = env_int_clamped_pdf("TLALPOWA_BBOX_WORKERS", auto_workers, 1, 16);
+
+
+        struct ChunkJob { int first = 0; int last = 0; };
+
+
+        struct ChunkResult { int first = 0; int last = 0; std::vector<PageText> pages; std::string error; };
+
+
+        std::vector<ChunkJob> jobs;
+
+
+        for (int f = first_page; f <= last_page; f += chunk_pages) jobs.push_back({f, std::min(last_page, f + chunk_pages - 1)});
+
+
+        std::vector<ChunkResult> results(jobs.size());
+
+
+        std::atomic<size_t> next_job{0};
+
+
+        std::vector<std::thread> workers;
+
+
+        workers.reserve(static_cast<size_t>(bbox_workers));
+
+
+        for (int wi = 0; wi < bbox_workers; ++wi) {
+
+
+            workers.emplace_back([&, wi]() {
+                (void)wi;
+
+
+                for (;;) {
+                    const size_t k = next_job.fetch_add(1);
+
+
+                    if (k >= jobs.size()) break;
+                    const int f = jobs[k].first;
+                    const int l = jobs[k].last;
+
+                    ChunkResult cr;
+
+
+                    cr.first = f;
+                    cr.last = l;
+
+
+                    const fs::path html = work_dir / (safe_filename(doc.stable_id + "_bbox_f" + std::to_string(f) + "_l" + std::to_string(l)) + ".html");
+
+
+                    auto parse_or_throw = [&](int pf, int pl, const fs::path& target_html) -> std::vector<PageText> {
+
+
+                        const bool cached_bbox_ready = fs::exists(target_html) && file_size_or_zero(target_html) > 256;
+
+
+                        if (!cached_bbox_ready) {
+
+
+                            auto pr = tools_.run_pdftotext_bbox(pdf, target_html, pf, pl);
+
+
+                            if (pr.exit_code != 0) throw std::runtime_error("pdftotext fragmento " + std::to_string(pf) + "-" + std::to_string(pl) + " codigo " + std::to_string(pr.exit_code) + ": " + pr.command_for_log);
+                        }
+
+
+                        auto parsed_pages = parse_bbox_layout(target_html, pf - 1);
+                        cleanup_bbox_debug_html_pdf(target_html);
+                        return parsed_pages;
+                    };
+
+
+                    try {
+
+
+                        cr.pages = parse_or_throw(f, l, html);
+
+
+                    } catch (const std::exception& e) {
+                        cr.error = e.what();
+
+
+
+
+                        if (f < l) {
+
+
+                            std::vector<std::string> page_errors;
+
+
+                            for (int pno = f; pno <= l; ++pno) {
+
+
+                                const fs::path page_html = work_dir / (safe_filename(doc.stable_id + "_bbox_p" + std::to_string(pno)) + ".html");
+                                try {
+
+
+                                    auto one = parse_or_throw(pno, pno, page_html);
+
+
+                                    for (auto& recovered_page : one) cr.pages.push_back(std::move(recovered_page));
+
+
+                                } catch (const std::exception& pe) {
+
+
+                                    page_errors.push_back(std::to_string(pno) + ":" + pe.what());
+                                }
+                            }
+
+
+                            if (!page_errors.empty()) {
+                                cr.error += " | recuperacion pagina-a-pagina con fallos=" + std::to_string(page_errors.size());
+                            }
+                        }
+                    }
+
+
+
+
+                    std::map<int, PageText> by_page;
+
+
+                    for (auto& pg : cr.pages) by_page[pg.page] = std::move(pg);
+
+
+                    cr.pages.clear();
+
+
+                    for (int pno = f; pno <= l; ++pno) {
+                        auto it = by_page.find(pno);
+
+
+                        if (it != by_page.end()) cr.pages.push_back(std::move(it->second));
+
+
+                        else cr.pages.push_back(placeholder_page(pno));
+                    }
+                    results[k] = std::move(cr);
+                }
+
+            });
+        }
+
+
+        for (auto& w : workers) if (w.joinable()) w.join();
+
+
+        for (const auto& r : results) {
+
+
+            if (!r.error.empty()) log_.warn("Fragmento bbox degradado " + std::to_string(r.first) + "-" + std::to_string(r.last) + ": " + r.error);
+
+
+            for (const auto& pg : r.pages) doc.pages.push_back(pg);
+        }
+        std::sort(doc.pages.begin(), doc.pages.end(), [](const PageText& a, const PageText& b){ return a.page < b.page; });
+
+    } else {
+
+
+
+        std::string full_error;
+
+
+        const fs::path html = work_dir / (safe_filename(doc.stable_id + "_bbox_full_no_pdfinfo") + ".html");
+        try {
+
+
+            const bool cached_bbox_ready = fs::exists(html) && file_size_or_zero(html) > 256;
+
+
+            if (cached_bbox_ready) {
+
+
+                log_.info("XHTML bbox completo reutilizado desde cache de trabajo: " + path_utf8(html));
+            } else {
+
+
+                auto pr = tools_.run_pdftotext_bbox(pdf, html, 1, 0);
+
+
+                if (pr.exit_code != 0) {
+
+
+                    throw std::runtime_error("pdftotext completo codigo " + std::to_string(pr.exit_code) + ": " + pr.command_for_log);
+                }
+            }
+
+
+            doc.pages = parse_bbox_layout(html, 0);
+            cleanup_bbox_debug_html_pdf(html);
+
+
+        } catch (const std::exception& e) {
+            full_error = e.what();
+
+
+            doc.pages.clear();
+        }
+
+
+
+        if (doc.pages.empty() || count_page_tokens_pdf(doc.pages) == 0) {
+
+
+            if (!full_error.empty()) {
+
+
+                log_.warn("pdftotext completo sin pdfinfo no produjo paginas utiles para " + path_utf8(pdf.filename()) + ": " + full_error + "; se activara sondeo por pagina.");
+            } else {
+
+
+                log_.warn("pdftotext completo sin pdfinfo produjo XHTML sin tokens para " + path_utf8(pdf.filename()) + "; se activara sondeo por pagina.");
+            }
+
+
+
+            std::vector<PageText> probed_pages;
+            const int probe_max = env_int_clamped_pdf("TLALPOWA_UNKNOWN_PDF_PROBE_MAX_PAGES", 90, 8, 260);
+            const int miss_limit = env_int_clamped_pdf("TLALPOWA_UNKNOWN_PDF_PROBE_CONSECUTIVE_MISSES", 4, 2, 12);
+
+            int consecutive_misses = 0;
+
+
+            for (int pno = 1; pno <= probe_max; ++pno) {
+
+
+                const fs::path page_html = work_dir / (safe_filename(doc.stable_id + "_bbox_probe_p" + std::to_string(pno)) + ".html");
+                try {
+
+
+                    const bool cached_page_ready = fs::exists(page_html) && file_size_or_zero(page_html) > 128;
+
+
+                    if (!cached_page_ready) {
+
+
+                        auto pr = tools_.run_pdftotext_bbox(pdf, page_html, pno, pno);
+
+
+                        if (pr.exit_code != 0) throw std::runtime_error("codigo " + std::to_string(pr.exit_code) + ": " + pr.command_for_log);
+                    }
+
+
+                    auto one = parse_bbox_layout(page_html, pno - 1);
+                    cleanup_bbox_debug_html_pdf(page_html);
+
+
+                    if (one.empty()) {
+                        ++consecutive_misses;
+
+
+                    } else {
+                        consecutive_misses = 0;
+
+
+                        for (auto& pg : one) {
+
+
+                            if (pg.page <= 0) pg.page = pno;
+
+
+                            probed_pages.push_back(std::move(pg));
+                        }
+                    }
+
+
+                } catch (const std::exception& e) {
+                    ++consecutive_misses;
+
+
+                    if (pno <= 3) log_.warn("Sondeo bbox pagina " + std::to_string(pno) + " fallo en " + path_utf8(pdf.filename()) + ": " + e.what());
+                }
+
+
+                if (!probed_pages.empty() && consecutive_misses >= miss_limit) break;
+            }
+
+
+            if (!probed_pages.empty()) {
+                std::sort(probed_pages.begin(), probed_pages.end(), [](const PageText& a, const PageText& b){ return a.page < b.page; });
+                doc.pages = std::move(probed_pages);
+
+                doc.last_extracted_page = doc.pages.empty() ? 0 : doc.pages.back().page;
+
+
+                log_.info("Sondeo por pagina recupero " + std::to_string(doc.pages.size()) + " paginas bbox para " + path_utf8(pdf.filename()));
+
+
+            } else if (!full_error.empty()) {
+
+
+                log_.warn("pdftotext bbox no produjo paginas parseables ni en modo completo ni por sondeo para " + path_utf8(pdf.filename()) + ": " + full_error + "; se intentara respaldo textual -layout antes de declarar el PDF sin paginas.");
+            }
+        }
+    }
+
+
+
+    if (total_pages_known && !doc.pages.empty() && count_page_tokens_pdf(doc.pages) == 0) {
+
+
+
+        try {
+
+
+            const fs::path full_html = work_dir / (safe_filename(doc.stable_id + "_bbox_full_retry_known_pages") + ".html");
+
+
+            if (!fs::exists(full_html) || file_size_or_zero(full_html) <= 256) {
+
+
+                auto pr = tools_.run_pdftotext_bbox(pdf, full_html, 1, 0);
+
+
+                if (pr.exit_code != 0) throw std::runtime_error("codigo " + std::to_string(pr.exit_code) + ": " + pr.command_for_log);
+            }
+
+
+            auto full_pages = parse_bbox_layout(full_html, 0);
+            cleanup_bbox_debug_html_pdf(full_html);
+
+
+            if (!full_pages.empty() && count_page_tokens_pdf(full_pages) > 0) {
+                doc.pages = std::move(full_pages);
+
+
+                doc.first_extracted_page = 1;
+                doc.last_extracted_page = doc.pages.empty() ? 0 : doc.pages.back().page;
+
+
+                log_.info("Pasada bbox completa rescato tokens despues de fragmentos vacios: " + path_utf8(pdf.filename()));
+            }
+
+
+        } catch (const std::exception& e) {
+
+
+            log_.warn("Pasada bbox completa de rescate fallo en " + path_utf8(pdf.filename()) + ": " + e.what());
+        }
+    }
+
+
+
+    if (doc.pages.empty() || count_page_tokens_pdf(doc.pages) == 0) {
+
+
+
+        try {
+            const int layout_first = total_pages_known ? std::max(1, first_page) : 1;
+
+
+            const int layout_last = (total_pages_known && last_page >= layout_first) ? last_page : 0;
+
+
+            const fs::path layout_txt = work_dir / (safe_filename(doc.stable_id + "_layout_f" + std::to_string(layout_first) + "_l" + std::to_string(layout_last)) + ".txt");
+
+
+            if (!fs::exists(layout_txt) || file_size_or_zero(layout_txt) == 0) {
+                auto pr = tools_.run_pdftotext_layout(pdf, layout_txt, layout_first, layout_last);
+
+
+                if (pr.exit_code != 0) throw std::runtime_error("pdftotext -layout codigo " + std::to_string(pr.exit_code) + ": " + pr.command_for_log);
+            }
+
+
+            auto layout_pages = parse_plain_layout_text(layout_txt, layout_first - 1);
+
+
+            if (!layout_pages.empty() && count_page_tokens_pdf(layout_pages) > 0) {
+                doc.pages = std::move(layout_pages);
+                doc.first_extracted_page = doc.pages.front().page;
+
+                doc.last_extracted_page = doc.pages.back().page;
+
+
+                log_.warn("Respaldo textual -layout activo: " + path_utf8(pdf.filename()) + " entro al conversor con " + std::to_string(doc.pages.size()) + " paginas sinteticas por monoespaciado.");
+            } else {
+
+
+                log_.warn("Respaldo textual -layout tampoco produjo tokens para " + path_utf8(pdf.filename()));
+            }
+
+
+        } catch (const std::exception& e) {
+
+
+            log_.warn("Respaldo textual -layout fallo en " + path_utf8(pdf.filename()) + ": " + e.what());
+        }
+    }
+
+
+
+    if (configured_front_skip > 0 || configured_back_skip > 0) {
+        log_.info("Filtro Poppler aplicado: primeras " + std::to_string(configured_front_skip) + " paginas omitidas" +
+                  (total_pages > 0 ? ", ultima(s) " + std::to_string(configured_back_skip) + " omitida(s), total=" + std::to_string(total_pages) : ", sin pdfinfo para contar total; la ultima se omitira en el pipeline si fue necesario"));
+    }
+
+
+    auto [year, week] = infer_year_week(pdf, doc.pages);
+
+
+    doc.bulletin_year = year;
+
+
+    doc.bulletin_week = week;
+
+
+    return doc;
+}
+
+
+
+
+
+static std::optional<double> attr_double_range(const std::string& s, size_t begin, size_t end, const char* name) {
+    double value = 0.0;
+
+
+    if (ozmvm_attr_double_span(s.data(), begin, end, name, &value)) return value;
+
+
+    return std::nullopt;
+}
+
+
+
+
+
+std::vector<PageText> PdfTextExtractor::parse_bbox_layout(const fs::path& html, int page_number_offset) const {
+
+
+    const std::string s = read_text_file(html);
+
+
+    std::vector<PageText> pages;
+    size_t pos = 0;
+    int page_no = 0;
+
+
+    while (true) {
+        const size_t p0 = s.find("<page", pos);
+
+
+        if (p0 == std::string::npos) break;
+        const size_t tag_end = s.find('>', p0);
+
+
+        if (tag_end == std::string::npos) break;
+        const size_t p1 = s.find("</page>", tag_end);
+
+
+        if (p1 == std::string::npos) break;
+        ++page_no;
+        const int logical_page = page_number_offset + page_no;
+
+        PageText page;
+        page.page = logical_page;
+        page.width = attr_double_range(s, p0, tag_end, "width").value_or(0.0);
+
+        page.height = attr_double_range(s, p0, tag_end, "height").value_or(0.0);
+        size_t wpos = tag_end + 1;
+
+
+        while (true) {
+            const size_t w0 = s.find("<word", wpos);
+
+
+            if (w0 == std::string::npos || w0 >= p1) break;
+
+
+            const size_t wtag_end = s.find('>', w0);
+
+
+            if (wtag_end == std::string::npos || wtag_end >= p1) break;
+            const size_t w1 = s.find("</word>", wtag_end);
+
+
+            if (w1 == std::string::npos || w1 > p1) break;
+            Token t;
+            t.page = logical_page;
+
+            auto x0 = attr_double_range(s, w0, wtag_end, "xMin");
+            auto y0 = attr_double_range(s, w0, wtag_end, "yMin");
+            auto x1 = attr_double_range(s, w0, wtag_end, "xMax");
+
+            auto y1 = attr_double_range(s, w0, wtag_end, "yMax");
+
+
+            if (x0 && y0 && x1 && y1) {
+
+
+                t.box = {*x0, *y0, *x1, *y1};
+                t.text = html_unescape(s.substr(wtag_end + 1, w1 - wtag_end - 1));
+                t.text = trim(t.text);
+
+
+                if (!t.text.empty()) {
+
+
+                    t.norm = normalize_key(t.text);
+
+
+                    page.tokens.push_back(std::move(t));
+                }
+            }
+
+            wpos = w1 + 7;
+        }
+
+
+        std::sort(page.tokens.begin(), page.tokens.end(), [](const Token& a, const Token& b) {
+
+
+            if (std::abs(a.box.cy() - b.box.cy()) > 2.0) return a.box.cy() < b.box.cy();
+
+
+            return a.box.cx() < b.box.cx();
+        });
+
+
+        pages.push_back(std::move(page));
+        pos = p1 + 7;
+    }
+
+
+    if (pages.empty()) log_.warn("El XHTML de pdftotext no contiene páginas parseables: " + path_utf8(html));
+
+
+    return pages;
+}
+
+
+
+
+
+std::vector<PageText> PdfTextExtractor::parse_plain_layout_text(const fs::path& text_file, int page_number_offset) const {
+
+
+    const std::string raw = read_text_file(text_file);
+
+
+    std::vector<PageText> pages;
+
+
+    if (raw.empty()) return pages;
+
+
+
+
+    std::vector<std::string> page_chunks;
+    std::string cur;
+
+
+    cur.reserve(raw.size());
+
+
+    for (char ch : raw) {
+
+
+        if (ch == '\f') {
+
+
+            page_chunks.push_back(cur);
+
+
+            cur.clear();
+
+
+        } else if (ch != '\r') {
+
+
+            cur.push_back(ch);
+        }
+    }
+
+
+    page_chunks.push_back(cur);
+
+    const double left = 24.0;
+
+    const double top = 24.0;
+    const double char_w = 4.85;
+    const double line_h = 10.75;
+
+    int logical_index = 0;
+
+
+    for (const std::string& chunk : page_chunks) {
+        ++logical_index;
+        PageText page;
+
+
+        page.page = page_number_offset + logical_index;
+
+
+        std::vector<std::string> lines;
+        std::string line;
+        std::istringstream in(chunk);
+
+        size_t max_cols = 0;
+
+
+        while (std::getline(in, line)) {
+
+
+            while (!line.empty() && (line.back() == '\n' || line.back() == '\r')) line.pop_back();
+            max_cols = std::max(max_cols, line.size());
+
+
+            lines.push_back(line);
+        }
+        page.width = std::max(612.0, left * 2.0 + static_cast<double>(std::max<size_t>(1, max_cols)) * char_w);
+
+
+        page.height = std::max(792.0, top * 2.0 + static_cast<double>(std::max<size_t>(1, lines.size())) * line_h);
+
+
+        for (size_t r = 0; r < lines.size(); ++r) {
+            const std::string& ln = lines[r];
+            size_t c = 0;
+
+
+            while (c < ln.size()) {
+
+
+                while (c < ln.size() && std::isspace(static_cast<unsigned char>(ln[c]))) ++c;
+                const size_t start = c;
+
+
+                while (c < ln.size() && !std::isspace(static_cast<unsigned char>(ln[c]))) ++c;
+
+
+                if (c <= start) continue;
+                std::string txt = trim(html_unescape(ln.substr(start, c - start)));
+
+
+                if (txt.empty()) continue;
+
+
+                Token t;
+                t.page = page.page;
+                t.text = std::move(txt);
+
+
+                t.norm = normalize_key(t.text);
+                const double x0 = left + static_cast<double>(start) * char_w;
+                const double x1 = left + static_cast<double>(c) * char_w;
+
+                const double y0 = top + static_cast<double>(r) * line_h;
+                t.box = {x0, y0, x1, y0 + line_h * 0.92};
+
+
+                page.tokens.push_back(std::move(t));
+            }
+        }
+
+
+        if (!page.tokens.empty()) {
+
+
+            std::sort(page.tokens.begin(), page.tokens.end(), [](const Token& a, const Token& b) {
+
+
+                if (std::abs(a.box.cy() - b.box.cy()) > 2.0) return a.box.cy() < b.box.cy();
+
+
+                return a.box.cx() < b.box.cx();
+            });
+
+
+            pages.push_back(std::move(page));
+        }
+    }
+
+
+    if (pages.empty()) log_.warn("El TXT layout de pdftotext no contiene paginas con tokens: " + path_utf8(text_file));
+
+
+    return pages;
+}
+
+
+
+
+static int first_year_20xx_pdf(const std::string& text) {
+
+
+    return ozmvm_first_year_20xx(text.data(), text.size());
+}
+
+
+
+
+static bool valid_epi_week_pdf(int week) {
+
+
+    return week >= 1 && week <= 53;
+}
+
+
+
+
+
+static int week_from_compact_or_spaced_marker_pdf(const std::string& text) {
+
+
+    const std::string norm = normalize_key(text);
+
+
+    if (norm.empty()) return 0;
+
+
+
+    auto regex_week = [&](const std::regex& re) -> int {
+        std::smatch m;
+
+
+        if (!std::regex_search(norm, m, re) || m.size() < 2) return 0;
+        try {
+            const int w = std::stoi(m[1].str());
+
+
+            return valid_epi_week_pdf(w) ? w : 0;
+        } catch (...) { return 0; }
+    };
+
+
+
+    if (int w = regex_week(std::regex(R"((?:^| )se ?0*([1-9]|[1-4][0-9]|5[0-3])(?: |$))", std::regex::icase))) return w;
+
+
+    if (int w = regex_week(std::regex(R"((?:^| )(?:sem|semana|numero|num|nro|no) ?0*([1-9]|[1-4][0-9]|5[0-3])(?: |$))", std::regex::icase))) return w;
+
+
+    if (int w = regex_week(std::regex(R"((?:^| )s e ?0*([1-9]|[1-4][0-9]|5[0-3])(?: |$))", std::regex::icase))) return w;
+
+
+    return 0;
+}
+
+
+
+
+static int number_immediately_after_marker(const std::string& text, const char* marker) {
+
+
+    return ozmvm_week_after_marker(text.data(), text.size(), marker);
+}
+
+
+
+
+static int week_before_del_year(const std::string& text) {
+
+
+    return ozmvm_week_before_del_year(text.data(), text.size());
+}
+
+
+
+
+
+std::pair<int,int> PdfTextExtractor::infer_year_week(const fs::path& pdf, const std::vector<PageText>& pages) {
+
+
+    const std::string filename_text = path_utf8(pdf.filename());
+    const std::string parent_text = path_utf8(pdf.parent_path().filename());
+    const std::string filename_norm = normalize_key(filename_text);
+    const std::string parent_norm = normalize_key(parent_text);
+    const int filename_year = first_year_20xx_pdf(filename_norm);
+    const int parent_year = first_year_20xx_pdf(parent_norm);
+    int filename_week = week_from_compact_or_spaced_marker_pdf(filename_text);
+    if (filename_week == 0) filename_week = number_immediately_after_marker(filename_norm, "semana");
+    if (filename_week == 0) filename_week = number_immediately_after_marker(filename_norm, "semanal");
+    if (filename_week == 0) filename_week = number_immediately_after_marker(filename_norm, "sem");
+    if (filename_week == 0) filename_week = number_immediately_after_marker(filename_norm, "se");
+    if (filename_week == 0) filename_week = week_before_del_year(filename_norm);
+    std::string all = filename_text + " " + parent_text + " ";
+
+
+    for (size_t i = 0; i < std::min<size_t>(pages.size(), 15); ++i) {
+
+
+        for (const auto& t : pages[i].tokens) all += t.text + " ";
+    }
+
+
+    const std::string norm = normalize_key(all);
+
+
+    int year = 0;
+
+
+    int week = 0;
+
+
+    year = filename_year > 0 ? filename_year : (parent_year > 0 ? parent_year : first_year_20xx_pdf(norm));
+
+
+    week = valid_epi_week_pdf(filename_week) ? filename_week : week_from_compact_or_spaced_marker_pdf(norm);
+
+
+    if (week == 0) week = number_immediately_after_marker(norm, "semana");
+
+
+    if (week == 0) {
+
+
+        std::string file_text = path_utf8(pdf.parent_path().filename()) + " " + path_utf8(pdf.filename());
+
+
+        std::string file = normalize_key(file_text);
+
+
+        week = week_from_compact_or_spaced_marker_pdf(file_text);
+
+
+        if (week == 0) week = number_immediately_after_marker(file, "semana");
+
+
+        if (week == 0) week = number_immediately_after_marker(file, "semanal");
+
+
+        if (week == 0) week = number_immediately_after_marker(file, "sem");
+
+
+        if (week == 0) week = number_immediately_after_marker(file, "se");
+
+
+        if (week == 0) week = number_immediately_after_marker(file, "numero");
+
+
+        if (week == 0) week = number_immediately_after_marker(file, "num");
+
+
+        if (week == 0) week = number_immediately_after_marker(file, "nro");
+
+
+        if (week == 0) week = number_immediately_after_marker(file, "no");
+
+
+        if (week == 0) week = week_before_del_year(file);
+    }
+
+
+    if (!valid_epi_week_pdf(week)) week = 0;
+
+
+    return {year, week};
+}
+
+}

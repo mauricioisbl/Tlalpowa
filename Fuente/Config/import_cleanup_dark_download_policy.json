@@ -1,0 +1,39 @@
+{
+  "version": "v71_import_cleanup_dark_download",
+  "generated_utc": "2026-05-25T01:52:45Z",
+  "ui": {
+    "tabs": [
+      "CSV y JSON",
+      "PDF"
+    ],
+    "footer_buttons": [
+      {
+        "label": "Rehacer archivos internos",
+        "effect": "borra productos internos .ixiptlah/cache del dominio activo y conserva descargas"
+      },
+      {
+        "label": "Volver a descargar",
+        "effect": "borra productos internos y descargas oficiales acotadas del dominio activo"
+      }
+    ],
+    "dark_mode": "La ventana Importar Datos ya no fuerza paleta clara; toma ui.light_theme y ajusta WindowBg, ChildBg, Border, FrameBg, tabs, sliders y controles con contraste oscuro/claro."
+  },
+  "safety": {
+    "delete_guards": [
+      "no borrar workspace_root",
+      "no borrar Datos raiz",
+      "no borrar Datos externos raiz",
+      "no borrar Build/runtime raiz",
+      "no borrar Fuente/Config"
+    ],
+    "scope": "solo rutas contenidas en Datos, Datos externos o Build/runtime, y nunca la raiz protegida"
+  },
+  "download_defaults": {
+    "curl_connect_timeout_seconds": 1,
+    "curl_max_time_seconds": 18,
+    "curl_low_speed_time_seconds": 5,
+    "wininet_connect_timeout_ms": 650,
+    "wininet_read_timeout_ms": 1200,
+    "worker_auto_formula": "max(fallback, hardware_concurrency*12), clamp 24..160, configurable hasta 256"
+  }
+}

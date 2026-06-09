@@ -1,0 +1,82 @@
+#include "Dashboard.hpp"
+#include "Ixiptlah.hpp"
+
+
+namespace epi {
+
+
+void Dashboard::ensure() {
+    ensure_dir(root_);
+}
+
+
+void Dashboard::push_page(DashboardPage page, const PipelineStats& stats) {
+    ensure();
+    last_.push_back(std::move(page));
+    /* Ráfaga documental: la UI debe ver la sucesión real de páginas útiles, no
+       una muestra de dos hojas. La cola se mantiene acotada y lineal para que
+       el dashboard siga siendo telemetría ligera, sin crecer con el boletín. */
+    while (last_.size() > 48) last_.erase(last_.begin());
+    write(stats);
+}
+
+
+void Dashboard::write(const PipelineStats& stats) {
+    const fs::path ix = index_path();
+    ensure_dir(ix.parent_path());
+
+    /*
+       Vista previa nativa: se conserva la telemetría de inspección en IXIPTLAH,
+       sin generar un runtime documental paralelo. El payload es lineal para que
+       el lector pueda saltarlo por tipo/esquema o reconstruir el último estado
+       con lecturas secuenciales, sin árboles de marcado ni hojas de estilo.
+    */
+    (void)ixiptlah_write_single_record_atomic(ix, IxiptlahRecordType::LivePreview, 2, [&](std::ostream& out) {
+        if (!ixiptlah_write_string(out, now_utc_iso()) ||
+            !ixiptlah_write_value(out, stats.pdf_total) ||
+            !ixiptlah_write_value(out, stats.pdf_done) ||
+            !ixiptlah_write_value(out, stats.pages_total) ||
+            !ixiptlah_write_value(out, stats.pages_done) ||
+            !ixiptlah_write_value(out, stats.detail_total) ||
+            !ixiptlah_write_value(out, stats.detail_done) ||
+            !ixiptlah_write_value(out, stats.progress) ||
+            !ixiptlah_write_value(out, stats.pages_with_tables) ||
+            !ixiptlah_write_value(out, stats.tables_detected) ||
+            !ixiptlah_write_value(out, stats.observations_accepted) ||
+            !ixiptlah_write_value(out, stats.quarantine_items) ||
+            !ixiptlah_write_string(out, stats.current_pdf) ||
+            !ixiptlah_write_value(out, stats.current_page) ||
+            !ixiptlah_write_string(out, stats.status)) return false;
+
+        const std::uint32_t page_count = static_cast<std::uint32_t>(std::min<std::size_t>(last_.size(), 48u));
+        if (!ixiptlah_write_value(out, page_count)) return false;
+
+        for (std::uint32_t i = 0; i < page_count; ++i) {
+            const DashboardPage& page = last_[static_cast<std::size_t>(i)];
+            const std::uint32_t table_count = static_cast<std::uint32_t>(std::min<std::size_t>(page.tables.size(), 4096u));
+            if (!ixiptlah_write_string(out, page.pdf_file) ||
+                !ixiptlah_write_value(out, page.page) ||
+                !ixiptlah_write_value(out, page.page_width) ||
+                !ixiptlah_write_value(out, page.page_height) ||
+                !ixiptlah_write_string(out, path_utf8(page.image_path)) ||
+                !ixiptlah_write_value(out, table_count)) return false;
+
+            for (std::uint32_t j = 0; j < table_count; ++j) {
+                const TableCandidate& table = page.tables[static_cast<std::size_t>(j)];
+                const std::uint32_t row_count = static_cast<std::uint32_t>(std::min<std::size_t>(table.rows.size(), 1000000u));
+                const std::uint32_t column_count = static_cast<std::uint32_t>(std::min<std::size_t>(table.columns.size(), 1000000u));
+                const std::uint32_t accepted_count = static_cast<std::uint32_t>(std::min<std::size_t>(table.accepted.size(), 1000000u));
+                const std::uint32_t quarantine_count = static_cast<std::uint32_t>(std::min<std::size_t>(table.quarantine.size(), 1000000u));
+                if (!ixiptlah_write_string(out, table.table_id) ||
+                    !ixiptlah_write_value(out, row_count) ||
+                    !ixiptlah_write_value(out, column_count) ||
+                    !ixiptlah_write_value(out, accepted_count) ||
+                    !ixiptlah_write_value(out, quarantine_count)) return false;
+            }
+        }
+
+        return true;
+    });
+}
+
+}

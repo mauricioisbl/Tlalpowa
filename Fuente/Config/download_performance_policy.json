@@ -1,0 +1,26 @@
+{
+  "version": "2026-05-24-max-download-layout",
+  "objective": "Evitar que descargas oficiales se congelen y reducir latencia percibida sin mezclar descarga, validacion y compilacion .ixiptlah.",
+  "bulk_downloader": {
+    "preferred_engine": "curl.exe para fuentes oficiales CDMX/Edomex/SIMAT/CKAN cuando exista; WinINet queda como respaldo si curl no inicia",
+    "enabled_by_default": "TLALPOWA_USE_CURL=1",
+    "not_used_for_tiles_by_default": "TLALPOWA_USE_CURL_FOR_ALL=0 para evitar procesos externos por tesela cartografica",
+    "hard_timeout_seconds_default": 28,
+    "connect_timeout_seconds_default": 2,
+    "low_speed_abort": "TLALPOWA_CURL_LOW_SPEED_LIMIT=1024 bytes/s durante TLALPOWA_CURL_LOW_SPEED_TIME=8 s",
+    "reason": "WinINet puede tardar en devolver control ante conexiones semicolgadas; curl permite max-time y low-speed-time por proceso descargador."
+  },
+  "wininet_fallback": {
+    "connect_timeout_ms_default": 900,
+    "read_timeout_ms_default": 1800,
+    "aggressive_fast_mode_default": true,
+    "attempts_default_when_fast_mode": 1,
+    "buffer_kib_default": 8192,
+    "max_connections_per_server_default": 128
+  },
+  "ui": {
+    "tab_csv_json": "La pestaña JSON cambia a CSV y JSON.",
+    "mobility_in_menu": "La red de movilidad integrada deja de ser pestaña separada y queda como formato dentro de CSV y JSON.",
+    "pdf_preview": "El visualizador de boletines PDF permanece en la pestaña PDF y respeta la cabecera compacta."
+  }
+}

@@ -1,0 +1,120 @@
+id	name	lon	lat	kind	rank	population	source
+cdmx_zocalo	Ciudad de México	-99.133208	19.432608	capital / anclaje Zócalo	1	9209944	catálogo_local_curado
+gustavo_a_madero_villa	Villa Gustavo A. Madero	-99.117000	19.484000	pueblo histórico / zona urbana	2	0	catálogo_local_curado
+azcapotzalco	Azcapotzalco	-99.183600	19.486900	pueblo histórico / zona urbana	2	0	catálogo_local_curado
+tacuba	Tacuba	-99.188700	19.459700	pueblo histórico / barrio	3	0	catálogo_local_curado
+tacubaya	Tacubaya	-99.187800	19.403100	pueblo histórico / barrio	3	0	catálogo_local_curado
+mixcoac	Mixcoac	-99.188600	19.376500	pueblo histórico / barrio	3	0	catálogo_local_curado
+coyoacan	Coyoacán	-99.161700	19.350000	pueblo histórico / alcaldía	2	0	catálogo_local_curado
+san_angel	San Ángel	-99.190100	19.344400	pueblo histórico / barrio	3	0	catálogo_local_curado
+tlalpan	Tlalpan	-99.166700	19.288300	pueblo histórico / alcaldía	2	0	catálogo_local_curado
+san_miguel_topilejo	San Miguel Topilejo	-99.141000	19.202000	pueblo originario	3	0	catálogo_local_curado
+san_miguel_ajusco	San Miguel Ajusco	-99.198000	19.225000	pueblo originario	4	0	catálogo_local_curado
+santo_tomas_ajusco	Santo Tomás Ajusco	-99.206000	19.222000	pueblo originario	4	0	catálogo_local_curado
+san_andres_totoltepec	San Andrés Totoltepec	-99.156000	19.236000	pueblo originario	4	0	catálogo_local_curado
+parres_el_guarda	Parres el Guarda	-99.170000	19.134000	pueblo / localidad rural	4	0	catálogo_local_curado
+xochimilco	Xochimilco	-99.103600	19.257000	pueblo histórico / alcaldía	2	0	catálogo_local_curado
+santa_maria_nativitas	Santa María Nativitas	-99.094500	19.248100	pueblo originario	4	0	catálogo_local_curado
+san_luis_tlaxialtemalco	San Luis Tlaxialtemalco	-99.034500	19.254900	pueblo originario	4	0	catálogo_local_curado
+santiago_tulyehualco	Santiago Tulyehualco	-99.019600	19.254700	pueblo originario	4	0	catálogo_local_curado
+san_gregorio_atlapulco	San Gregorio Atlapulco	-99.047600	19.254300	pueblo originario	4	0	catálogo_local_curado
+milpa_alta	Villa Milpa Alta	-99.023100	19.192200	pueblo originario / alcaldía	3	0	catálogo_local_curado
+san_pedro_atocpan	San Pedro Atocpan	-99.048500	19.199400	pueblo originario	4	0	catálogo_local_curado
+san_pablo_oztotepec	San Pablo Oztotepec	-99.074200	19.183300	pueblo originario	4	0	catálogo_local_curado
+san_salvador_cuauhtenco	San Salvador Cuauhtenco	-99.089200	19.191700	pueblo originario	4	0	catálogo_local_curado
+san_antonio_tecomitl	San Antonio Tecómitl	-98.988900	19.217600	pueblo originario	4	0	catálogo_local_curado
+san_andres_mixquic	San Andrés Mixquic	-98.963000	19.224100	pueblo originario	4	0	catálogo_local_curado
+tlahuac	Tláhuac	-99.006400	19.286900	pueblo histórico / alcaldía	2	0	catálogo_local_curado
+san_juan_ixtayopan	San Juan Ixtayopan	-98.995200	19.239700	pueblo originario	4	0	catálogo_local_curado
+santa_catarina_yecahuizotl	Santa Catarina Yecahuizotl	-98.967600	19.306600	pueblo originario	4	0	catálogo_local_curado
+iztapalapa	Iztapalapa	-99.092000	19.357400	pueblo histórico / alcaldía	2	0	catálogo_local_curado
+culhuacan	Culhuacán	-99.111500	19.337500	pueblo histórico / barrio	3	0	catálogo_local_curado
+san_lorenzo_tezonco	San Lorenzo Tezonco	-99.067000	19.304000	pueblo originario	4	0	catálogo_local_curado
+santa_maria_aztahuacan	Santa María Aztahuacán	-99.026800	19.346100	pueblo originario	4	0	catálogo_local_curado
+cuajimalpa	Cuajimalpa de Morelos	-99.293900	19.357400	pueblo histórico / alcaldía	2	0	catálogo_local_curado
+contadero	Contadero	-99.302300	19.349100	pueblo / barrio	4	0	catálogo_local_curado
+san_mateo_tlaltenango	San Mateo Tlaltenango	-99.319000	19.325000	pueblo originario	4	0	catálogo_local_curado
+santa_fe	Santa Fe	-99.259200	19.359800	zona urbana	3	0	catálogo_local_curado
+magdalena_contreras	La Magdalena Contreras	-99.242700	19.332000	pueblo histórico / alcaldía	3	0	catálogo_local_curado
+san_bartolo_ameyalco	San Bartolo Ameyalco	-99.263900	19.333900	pueblo originario	4	0	catálogo_local_curado
+san_nicolas_totolapan	San Nicolás Totolapan	-99.249700	19.293900	pueblo originario	4	0	catálogo_local_curado
+ecatepec	Ecatepec de Morelos	-99.052500	19.601100	ciudad / cabecera municipal	1	1645352	catálogo_local_curado
+san_cristobal_ecatepec	San Cristóbal Ecatepec	-99.052800	19.599700	cabecera histórica	2	0	catálogo_local_curado
+neza	Ciudad Nezahualcóyotl	-99.033100	19.400600	ciudad	1	1077208	catálogo_local_curado
+naucalpan	Naucalpan de Juárez	-99.238300	19.475300	ciudad / cabecera municipal	1	834434	catálogo_local_curado
+tlalnepantla	Tlalnepantla de Baz	-99.194700	19.536700	ciudad / cabecera municipal	1	672202	catálogo_local_curado
+cuautitlan_izcalli	Cuautitlán Izcalli	-99.211300	19.646900	ciudad	1	555163	catálogo_local_curado
+atizapan_zaragoza	Ciudad López Mateos	-99.246700	19.558300	ciudad / cabecera municipal	2	0	catálogo_local_curado
+nicolas_romero	Nicolás Romero	-99.313100	19.621900	ciudad / cabecera municipal	2	0	catálogo_local_curado
+huixquilucan	Huixquilucan de Degollado	-99.351400	19.361400	ciudad / cabecera municipal	2	0	catálogo_local_curado
+interlomas	Interlomas	-99.282100	19.402500	zona urbana	3	0	catálogo_local_curado
+coacalco	San Francisco Coacalco	-99.109700	19.631100	ciudad / cabecera municipal	2	0	catálogo_local_curado
+tultitlan	Tultitlán de Mariano Escobedo	-99.169200	19.647700	ciudad / cabecera municipal	2	0	catálogo_local_curado
+cuautitlan	Cuautitlán	-99.179700	19.670000	ciudad / cabecera municipal	2	0	catálogo_local_curado
+tultepec	Tultepec	-99.128100	19.684600	ciudad / cabecera municipal	2	0	catálogo_local_curado
+melchor_ocampo	Melchor Ocampo	-99.147500	19.699400	pueblo / cabecera municipal	3	0	catálogo_local_curado
+teoloyucan	Teoloyucan	-99.182200	19.744200	pueblo / cabecera municipal	3	0	catálogo_local_curado
+coyotepec	Coyotepec	-99.207500	19.778600	pueblo / cabecera municipal	3	0	catálogo_local_curado
+tepotzotlan	Tepotzotlán	-99.223700	19.713300	pueblo / cabecera municipal	3	0	catálogo_local_curado
+huehuetoca	Huehuetoca	-99.205000	19.828300	ciudad / cabecera municipal	2	0	catálogo_local_curado
+zumpango	Zumpango de Ocampo	-99.099200	19.797800	ciudad / cabecera municipal	2	0	catálogo_local_curado
+san_juan_zitlaltepec	San Juan Zitlaltepec	-99.147200	19.812500	pueblo	4	0	catálogo_local_curado
+tequixquiac	Santiago Tequixquiac	-99.145600	19.909700	pueblo / cabecera municipal	3	0	catálogo_local_curado
+hueypoxtla	Hueypoxtla	-99.072500	19.909200	pueblo / cabecera municipal	3	0	catálogo_local_curado
+apaxco	Apaxco de Ocampo	-99.171900	19.975600	pueblo / cabecera municipal	3	0	catálogo_local_curado
+jaltenco	Jaltenco	-99.093100	19.750000	pueblo / cabecera municipal	4	0	catálogo_local_curado
+nextlalpan	Santa Ana Nextlalpan	-99.070600	19.742800	pueblo / cabecera municipal	4	0	catálogo_local_curado
+tonanitla	Tonanitla	-99.054400	19.688900	pueblo / cabecera municipal	4	0	catálogo_local_curado
+tecámac	Tecámac de Felipe Villanueva	-98.968900	19.713100	ciudad / cabecera municipal	2	0	catálogo_local_curado
+ojo_de_agua	Ojo de Agua	-99.027800	19.678300	ciudad / fraccionamiento urbano	2	0	catálogo_local_curado
+los_reyes_acoztac	Los Reyes Acozac	-98.980400	19.763100	pueblo	4	0	catálogo_local_curado
+tizayuca	Tizayuca	-98.983300	19.833300	ciudad / cabecera municipal	2	0	catálogo_local_curado
+tolcayuca	Tolcayuca	-98.918300	19.956400	pueblo / cabecera municipal	3	0	catálogo_local_curado
+villa_tezontepec	Villa de Tezontepec	-98.819400	19.881900	pueblo / cabecera municipal	3	0	catálogo_local_curado
+texcoco	Texcoco de Mora	-98.882800	19.511900	ciudad / cabecera municipal	2	0	catálogo_local_curado
+san_salvador_atenco	San Salvador Atenco	-98.918100	19.551900	pueblo / cabecera municipal	3	0	catálogo_local_curado
+chiconcuac	Chiconcuac de Juárez	-98.898100	19.558600	pueblo / cabecera municipal	3	0	catálogo_local_curado
+chiautla	Chiautla	-98.881900	19.548900	pueblo / cabecera municipal	4	0	catálogo_local_curado
+papalotla	Papalotla	-98.856900	19.563900	pueblo / cabecera municipal	4	0	catálogo_local_curado
+tepetlaoxtoc	Tepetlaoxtoc de Hidalgo	-98.818300	19.574700	pueblo / cabecera municipal	3	0	catálogo_local_curado
+tezoyuca	Tezoyuca	-98.911100	19.590300	pueblo / cabecera municipal	4	0	catálogo_local_curado
+acolman	Acolman de Nezahualcóyotl	-98.912500	19.638900	pueblo / cabecera municipal	3	0	catálogo_local_curado
+teotihuacan	San Juan Teotihuacán	-98.871900	19.685000	pueblo / cabecera municipal	3	0	catálogo_local_curado
+san_martin_piramides	San Martín de las Pirámides	-98.835000	19.705600	pueblo / cabecera municipal	3	0	catálogo_local_curado
+otumba	Otumba de Gómez Farías	-98.758900	19.699700	pueblo / cabecera municipal	3	0	catálogo_local_curado
+axapusco	Axapusco	-98.758100	19.724700	pueblo / cabecera municipal	4	0	catálogo_local_curado
+nopaltepec	Nopaltepec	-98.712200	19.779700	pueblo / cabecera municipal	4	0	catálogo_local_curado
+temascalapa	Temascalapa	-98.902800	19.828900	pueblo / cabecera municipal	3	0	catálogo_local_curado
+chimalhuacan	Chimalhuacán	-98.954400	19.421100	ciudad / cabecera municipal	1	705193	catálogo_local_curado
+chicoloapan	San Vicente Chicoloapan	-98.902500	19.416900	ciudad / cabecera municipal	2	0	catálogo_local_curado
+los_reyes_la_paz	Los Reyes Acaquilpan	-98.990300	19.357200	ciudad / cabecera municipal	2	0	catálogo_local_curado
+ixtapaluca	Ixtapaluca	-98.882800	19.315600	ciudad / cabecera municipal	2	0	catálogo_local_curado
+chalco	Chalco de Díaz Covarrubias	-98.897200	19.264700	ciudad / cabecera municipal	2	0	catálogo_local_curado
+valle_de_chalco	Valle de Chalco Solidaridad	-98.938900	19.291900	ciudad	2	0	catálogo_local_curado
+cocotitlan	Cocotitlán	-98.865600	19.231100	pueblo / cabecera municipal	4	0	catálogo_local_curado
+temamatla	Temamatla	-98.869200	19.203100	pueblo / cabecera municipal	4	0	catálogo_local_curado
+tlalmanalco	Tlalmanalco de Velázquez	-98.804400	19.205600	pueblo / cabecera municipal	3	0	catálogo_local_curado
+amecameca	Amecameca de Juárez	-98.766900	19.123600	ciudad / cabecera municipal	3	0	catálogo_local_curado
+ozumba	Ozumba de Alzate	-98.795000	19.036900	pueblo / cabecera municipal	3	0	catálogo_local_curado
+tepetlixpa	Tepetlixpa	-98.819200	19.026400	pueblo / cabecera municipal	4	0	catálogo_local_curado
+atlautla	Atlautla de Victoria	-98.778100	19.021100	pueblo / cabecera municipal	4	0	catálogo_local_curado
+ecatzingo	Ecatzingo de Hidalgo	-98.751900	18.955600	pueblo / cabecera municipal	4	0	catálogo_local_curado
+juchitepec	Juchitepec de Mariano Riva Palacio	-98.878100	19.101100	pueblo / cabecera municipal	4	0	catálogo_local_curado
+tenango_aire	Tenango del Aire	-98.856900	19.157800	pueblo / cabecera municipal	4	0	catálogo_local_curado
+ayapango	Ayapango de Gabriel Ramos Millán	-98.799200	19.126400	pueblo / cabecera municipal	4	0	catálogo_local_curado
+ayotzingo	San Juan y San Pedro Tezompa	-98.918600	19.224200	pueblo	4	0	catálogo_local_curado
+san_martin_cuautlalpan	San Martín Cuautlalpan	-98.802800	19.276400	pueblo	4	0	catálogo_local_curado
+miraflores_chalco	San Mateo Huitzilzingo	-98.916900	19.228100	pueblo	4	0	catálogo_local_curado
+lerma	Lerma de Villada	-99.510300	19.285800	ciudad / cabecera municipal	2	0	catálogo_local_curado
+ocoyoacac	Ocoyoacac	-99.458600	19.271100	pueblo / cabecera municipal	3	0	catálogo_local_curado
+la_marquesa	La Marquesa	-99.379200	19.295300	pueblo / paraje urbano	4	0	catálogo_local_curado
+san_mateo_atenco	San Mateo Atenco	-99.532800	19.267200	ciudad / cabecera municipal	3	0	catálogo_local_curado
+capulhuac	Capulhuac de Mirafuentes	-99.466900	19.193600	pueblo / cabecera municipal	3	0	catálogo_local_curado
+tianguistenco	Santiago Tianguistenco	-99.466900	19.180600	ciudad / cabecera municipal	3	0	catálogo_local_curado
+xalatlaco	Xalatlaco	-99.418900	19.183900	pueblo / cabecera municipal	4	0	catálogo_local_curado
+almoloya_rio	Almoloya del Río	-99.488600	19.160300	pueblo / cabecera municipal	4	0	catálogo_local_curado
+texcalyacac	Texcalyacac	-99.499700	19.132800	pueblo / cabecera municipal	4	0	catálogo_local_curado
+santa_cruz_atizapan	Santa Cruz Atizapán	-99.488600	19.176400	pueblo / cabecera municipal	4	0	catálogo_local_curado
+huitzilac	Huitzilac	-99.267200	19.028300	pueblo / cabecera municipal	4	0	catálogo_local_curado
+tres_marias	Tres Marías	-99.239400	19.050800	pueblo	4	0	catálogo_local_curado
+tepoztlan	Tepoztlán	-99.099200	18.984200	pueblo / cabecera municipal	3	0	catálogo_local_curado

@@ -1,0 +1,118 @@
+{
+  "schema_version": "1.1",
+  "module": "mapa_vivo_cache_dem_3d",
+  "visible_attribution_required": true,
+  "removed_legacy_label": "OpenMaps/OSM + satelital | 2 niveles | ZMVM + 50 km",
+  "attribution_visible_text_components": [
+    "© OpenStreetMap contributors",
+    "ODbL",
+    "OSMF tiles when OpenStreetMap tile server is used",
+    "DEM real Mapzen/AWS Terrarium",
+    "Powered by Esri · World Imagery when satellite base is selected"
+  ],
+  "base_layers": [
+    {
+      "id": "satellite",
+      "label": "Satelital con DEM 3D real",
+      "startup_zoom": 9,
+      "zmvm_zoom": 12,
+      "municipal_zoom": 20
+    },
+    {
+      "id": "openstreetmap",
+      "label": "Mapa OpenStreetMap con DEM 3D real",
+      "startup_zoom": 9,
+      "zmvm_zoom": 12,
+      "municipal_zoom": 20
+    }
+  ],
+  "terrain": {
+    "type": "raster_dem_terrarium_rgb",
+    "url_template": "https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{x}/{y}.png",
+    "formula_m": "R * 256 + G + B / 256 - 32768",
+    "startup_dem_zoom": 9,
+    "zmvm_dem_zoom": 11,
+    "municipal_dem_zoom": 12,
+    "hillshade_is_not_used_as_primary_relief": true
+  },
+  "cache": {
+    "local_root": "Build/cache_mapa",
+    "atomic_write": true,
+    "max_tile_downloads_per_frame": 4,
+    "max_dem_downloads_per_frame": 2,
+    "soft_limit_mb": 768,
+    "eviction": "LRU_background_only",
+    "compile_time_cache_delete": false
+  },
+  "version": "v44_cache_fuera_de_datos_timeline_1970",
+  "startup_tile_zoom": 9,
+  "buffer_50km_tile_zoom": 9,
+  "zmvm_tile_zoom": 12,
+  "municipal_tile_zoom": 20,
+  "resident_map_textures_max": 64,
+  "resident_dem_tiles_max": 14,
+  "disk_cache_soft_limit_mb": 768,
+  "beyond_50km_policy": "ultra_low_resolution_only",
+  "pdf_conversion": "same_exe_child_process_high_priority_no_render_low_ram",
+  "scale_limits": {
+    "min_denominator": "1:500",
+    "max_denominator": "1:1000000"
+  },
+  "resolution_cuts": [
+    {
+      "level": 1,
+      "scale_denominator": "1:15000",
+      "tile_zoom": 20,
+      "activation": "after_2_seconds_idle_on_visible_screen"
+    },
+    {
+      "level": 2,
+      "scale_denominator": "1:30000",
+      "tile_zoom": 17,
+      "activation": "interactive_visible_screen"
+    },
+    {
+      "level": 3,
+      "scale_denominator": "1:90000",
+      "tile_zoom": 15,
+      "activation": "interactive_visible_screen"
+    },
+    {
+      "level": 4,
+      "scale_denominator": "1:300000",
+      "tile_zoom": 12,
+      "activation": "interactive_visible_screen"
+    },
+    {
+      "level": "overview",
+      "scale_denominator": ">1:300000",
+      "tile_zoom": 9,
+      "activation": "startup_and_regional"
+    }
+  ],
+  "timeline": {
+    "start_year": 1970,
+    "snap": "weekly",
+    "mapping": "blended_exponential_recent_dates_expanded"
+  },
+  "icons": {
+    "root": "Fuente/Config/movilidad_iconos",
+    "runtime_downloads": false,
+    "fallback_fake_icons": false,
+    "lookup_cache": "enabled_per_session"
+  },
+  "preseed": {
+    "base_cache": "desactivado",
+    "restored_after_compile_cache_clean": false
+  },
+  "mobility_icons": {
+    "runtime": "embedded_png_atlas_generated_at_compile_time",
+    "viewport_policy": "only visible field candidates survive to icon lookup",
+    "max_icons_per_frame": 110,
+    "collision_policy": "screen-space collision culling before disk fallback lookup"
+  },
+  "mobility_runtime": {
+    "geometry": "deduplicated bidirectional shapes, RDP/capped line vertices by system, bbox culling before projection",
+    "stations": "aggregate only visible station coordinates; hide surplus icons/markers by screen density"
+  }
+}

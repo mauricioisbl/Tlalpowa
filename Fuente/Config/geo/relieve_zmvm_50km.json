@@ -1,0 +1,48 @@
+{
+  "id": "relieve_zmvm_50km",
+  "schema_version": "1.0",
+  "scope": "Modelo digital de elevación cuantitativa real para ZMVM + 50 km, usado como malla 3D ligera dentro del mapa vivo.",
+  "bbox_wgs84_approx": {
+    "lon_min": -100.15,
+    "lon_max": -98.35,
+    "lat_min": 18.55,
+    "lat_max": 20.35
+  },
+  "primary_visual_layer": {
+    "name": "Mapzen Terrain Tiles / AWS Terrain Tiles Terrarium",
+    "kind": "raster_dem_tile_service_decoded_to_3d_mesh",
+    "url_template": "https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{x}/{y}.png",
+    "encoding": "terrarium_rgb",
+    "elevation_m_formula": "elevation_m = red * 256 + green + blue / 256 - 32768",
+    "use_in_app": "El mapa vivo descarga pocas teselas DEM, las cachea y las convierte en una malla 3D de altura real; no usa sombreado de relieve como sustituto de altitud.",
+    "purpose": "Altura real visible para lectura orográfica y futura corrección atmosférica por elevación."
+  },
+  "quantitative_dem_layer": {
+    "name": "Mapzen Terrain Tiles / AWS Terrain Tiles Terrarium",
+    "kind": "raster_dem_tile_service",
+    "url_template": "https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{x}/{y}.png",
+    "encoding": "terrarium_rgb",
+    "elevation_m_formula": "elevation_m = red * 256 + green + blue / 256 - 32768",
+    "maxzoom": 15,
+    "expected_use": "Muestreo cuantitativo de altitud para covariables orograficas, interpolacion atmosferica, correccion por altura y modelado de nubes de factores ambientales.",
+    "recommended_runtime_grid": {
+      "zoom_inicio": 9,
+      "zoom_zmvm": 11,
+      "zoom_alcaldia_municipio": 12,
+      "cell_target_m": "250-1000 según escala",
+      "clip_to": "zmvm_buffer_50km.geojson"
+    }
+  },
+  "notes": [
+    "El relieve visible ya no depende de World Shaded Relief ni de hillshade: la app decodifica DEM Terrarium a metros y lo dibuja como levantamiento 3D ligero.",
+    "La extensión ZMVM+50 km regula encuadre, paneo, opacidad y resolución; no debe verse como borde cuadriculado.",
+    "El cache es LRU y tiene límite blando para evitar crecimiento indefinido sin reprocesar teselas útiles."
+  ],
+  "attribution": [
+    "Mapzen Terrain Tiles",
+    "AWS Open Data Terrain Tiles",
+    "SRTM and other open DEM sources aggregated by Mapzen/Terrain Tiles",
+    "OpenStreetMap contributors (ODbL) for the cartographic map layer",
+    "Powered by Esri · World Imagery for the optional satellite layer"
+  ]
+}

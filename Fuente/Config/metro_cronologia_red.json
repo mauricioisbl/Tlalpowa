@@ -1,0 +1,5631 @@
+{
+  "dataset": "metro_cronologia_iconografia_red",
+  "version": "2026-05-14-v28-wiki-profunda-un-solo-color-real",
+  "notes": "Diccionario histórico y red temporal del Metro. Las variantes de Un Solo Color no se sintetizan: se obtienen como archivos reales de las secciones Un Solo Color de Fandom.",
+  "line_segments": [
+    {
+      "line": "1",
+      "opened": "1969-09-04",
+      "from_station": "Chapultepec",
+      "to_station": "Zaragoza"
+    },
+    {
+      "line": "1",
+      "opened": "1970-04-11",
+      "from_station": "Juanacatlán",
+      "to_station": "Zaragoza"
+    },
+    {
+      "line": "1",
+      "opened": "1970-11-20",
+      "from_station": "Tacubaya",
+      "to_station": "Zaragoza"
+    },
+    {
+      "line": "1",
+      "opened": "1972-06-10",
+      "from_station": "Observatorio",
+      "to_station": "Zaragoza"
+    },
+    {
+      "line": "1",
+      "opened": "1984-08-22",
+      "from_station": "Observatorio",
+      "to_station": "Pantitlán"
+    },
+    {
+      "line": "2",
+      "opened": "1970-08-01",
+      "from_station": "Tasqueña",
+      "to_station": "Pino Suárez"
+    },
+    {
+      "line": "2",
+      "opened": "1970-09-14",
+      "from_station": "Tasqueña",
+      "to_station": "Tacuba"
+    },
+    {
+      "line": "2",
+      "opened": "1984-08-22",
+      "from_station": "Tasqueña",
+      "to_station": "Cuatro Caminos"
+    },
+    {
+      "line": "3",
+      "opened": "1970-11-20",
+      "from_station": "Tlatelolco",
+      "to_station": "Hospital General"
+    },
+    {
+      "line": "3",
+      "opened": "1978-08-25",
+      "from_station": "La Raza",
+      "to_station": "Hospital General"
+    },
+    {
+      "line": "3",
+      "opened": "1979-12-01",
+      "from_station": "Indios Verdes",
+      "to_station": "Hospital General"
+    },
+    {
+      "line": "3",
+      "opened": "1980-06-07",
+      "from_station": "Indios Verdes",
+      "to_station": "Centro Médico"
+    },
+    {
+      "line": "3",
+      "opened": "1980-08-25",
+      "from_station": "Indios Verdes",
+      "to_station": "Zapata"
+    },
+    {
+      "line": "3",
+      "opened": "1983-08-30",
+      "from_station": "Indios Verdes",
+      "to_station": "Universidad"
+    },
+    {
+      "line": "4",
+      "opened": "1981-08-29",
+      "from_station": "Martín Carrera",
+      "to_station": "Candelaria"
+    },
+    {
+      "line": "4",
+      "opened": "1982-05-26",
+      "from_station": "Martín Carrera",
+      "to_station": "Santa Anita"
+    },
+    {
+      "line": "5",
+      "opened": "1981-12-19",
+      "from_station": "Pantitlán",
+      "to_station": "Consulado"
+    },
+    {
+      "line": "5",
+      "opened": "1982-07-01",
+      "from_station": "Pantitlán",
+      "to_station": "La Raza"
+    },
+    {
+      "line": "5",
+      "opened": "1982-08-30",
+      "from_station": "Pantitlán",
+      "to_station": "Politécnico"
+    },
+    {
+      "line": "6",
+      "opened": "1983-12-21",
+      "from_station": "El Rosario",
+      "to_station": "Instituto del Petróleo"
+    },
+    {
+      "line": "6",
+      "opened": "1986-07-08",
+      "from_station": "El Rosario",
+      "to_station": "Martín Carrera"
+    },
+    {
+      "line": "7",
+      "opened": "1984-12-20",
+      "from_station": "Tacuba",
+      "to_station": "Auditorio"
+    },
+    {
+      "line": "7",
+      "opened": "1985-08-23",
+      "from_station": "Tacubaya",
+      "to_station": "Auditorio"
+    },
+    {
+      "line": "7",
+      "opened": "1985-12-19",
+      "from_station": "Tacubaya",
+      "to_station": "Barranca del Muerto"
+    },
+    {
+      "line": "7",
+      "opened": "1988-11-29",
+      "from_station": "El Rosario",
+      "to_station": "Barranca del Muerto"
+    },
+    {
+      "line": "8",
+      "opened": "1994-07-20",
+      "from_station": "Garibaldi / Lagunilla",
+      "to_station": "Constitución de 1917"
+    },
+    {
+      "line": "9",
+      "opened": "1987-08-26",
+      "from_station": "Centro Médico",
+      "to_station": "Pantitlán"
+    },
+    {
+      "line": "9",
+      "opened": "1988-08-29",
+      "from_station": "Tacubaya",
+      "to_station": "Pantitlán"
+    },
+    {
+      "line": "A",
+      "opened": "1991-08-12",
+      "from_station": "Pantitlán",
+      "to_station": "La Paz"
+    },
+    {
+      "line": "B",
+      "opened": "1999-12-15",
+      "from_station": "Buenavista",
+      "to_station": "Villa de Aragón"
+    },
+    {
+      "line": "B",
+      "opened": "2000-11-30",
+      "from_station": "Buenavista",
+      "to_station": "Ciudad Azteca"
+    },
+    {
+      "line": "12",
+      "opened": "2012-10-30",
+      "from_station": "Mixcoac",
+      "to_station": "Tláhuac"
+    }
+  ],
+  "stations": [
+    {
+      "line": "1",
+      "index": 1,
+      "current_name": "Observatorio",
+      "base_name_in_gtfs_or_seed": "Observatorio",
+      "open_date": "1972-06-10",
+      "current_icon_file": "1.1_Observatorio.svg",
+      "aliases": [
+        "observatorio"
+      ],
+      "eras": [
+        {
+          "from": "1972-06-10",
+          "to": null,
+          "name": "Observatorio",
+          "icon_file": "1.1_Observatorio.svg",
+          "icon_key": "1_1_observatorio",
+          "aliases": [
+            "observatorio"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.398298021394,
+      "lon": -99.200341701508
+    },
+    {
+      "line": "1",
+      "index": 2,
+      "current_name": "Tacubaya",
+      "base_name_in_gtfs_or_seed": "Tacubaya",
+      "open_date": "1970-11-20",
+      "current_icon_file": "1.2_Tacubaya.svg",
+      "aliases": [
+        "tacubaya"
+      ],
+      "eras": [
+        {
+          "from": "1970-11-20",
+          "to": null,
+          "name": "Tacubaya",
+          "icon_file": "1.2_Tacubaya.svg",
+          "icon_key": "1_2_tacubaya",
+          "aliases": [
+            "tacubaya"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.40317568567,
+      "lon": -99.18710231781
+    },
+    {
+      "line": "1",
+      "index": 3,
+      "current_name": "Juanacatlán",
+      "base_name_in_gtfs_or_seed": "Juanacatlán",
+      "open_date": "1970-04-11",
+      "current_icon_file": "1.3_Juanacatlan.svg",
+      "aliases": [
+        "juanacatlan"
+      ],
+      "eras": [
+        {
+          "from": "1970-04-11",
+          "to": null,
+          "name": "Juanacatlán",
+          "icon_file": "1.3_Juanacatlan.svg",
+          "icon_key": "1_3_juanacatlan",
+          "aliases": [
+            "juanacatlan"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.412910337685,
+      "lon": -99.182145595551
+    },
+    {
+      "line": "1",
+      "index": 4,
+      "current_name": "Chapultepec",
+      "base_name_in_gtfs_or_seed": "Chapultepec",
+      "open_date": "1969-09-04",
+      "current_icon_file": "1.4_Chapultepec.svg",
+      "aliases": [
+        "chapultepec"
+      ],
+      "eras": [
+        {
+          "from": "1969-09-04",
+          "to": null,
+          "name": "Chapultepec",
+          "icon_file": "1.4_Chapultepec.svg",
+          "icon_key": "1_4_chapultepec",
+          "aliases": [
+            "chapultepec"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.42084334447,
+      "lon": -99.175901412964
+    },
+    {
+      "line": "1",
+      "index": 5,
+      "current_name": "Sevilla",
+      "base_name_in_gtfs_or_seed": "Sevilla",
+      "open_date": "1969-09-04",
+      "current_icon_file": "1.5_Sevilla.svg",
+      "aliases": [
+        "sevilla"
+      ],
+      "eras": [
+        {
+          "from": "1969-09-04",
+          "to": null,
+          "name": "Sevilla",
+          "icon_file": "1.5_Sevilla.svg",
+          "icon_key": "1_5_sevilla",
+          "aliases": [
+            "sevilla"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.421915889653,
+      "lon": -99.17060136795
+    },
+    {
+      "line": "1",
+      "index": 6,
+      "current_name": "Insurgentes",
+      "base_name_in_gtfs_or_seed": "Insurgentes",
+      "open_date": "1969-09-04",
+      "current_icon_file": "1.6_Insurgentes.svg",
+      "aliases": [
+        "insurgentes"
+      ],
+      "eras": [
+        {
+          "from": "1969-09-04",
+          "to": null,
+          "name": "Insurgentes",
+          "icon_file": "1.6_Insurgentes.svg",
+          "icon_key": "1_6_insurgentes",
+          "aliases": [
+            "insurgentes"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.423635994506,
+      "lon": -99.162769317627
+    },
+    {
+      "line": "1",
+      "index": 7,
+      "current_name": "Cuauhtémoc",
+      "base_name_in_gtfs_or_seed": "Cuauhtémoc",
+      "open_date": "1969-09-04",
+      "current_icon_file": "1.7_Cuauhtemoc.svg",
+      "aliases": [
+        "cuauhtemoc"
+      ],
+      "eras": [
+        {
+          "from": "1969-09-04",
+          "to": null,
+          "name": "Cuauhtémoc",
+          "icon_file": "1.7_Cuauhtemoc.svg",
+          "icon_key": "1_7_cuauhtemoc",
+          "aliases": [
+            "cuauhtemoc"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.425902457802,
+      "lon": -99.154658317566
+    },
+    {
+      "line": "1",
+      "index": 8,
+      "current_name": "Balderas",
+      "base_name_in_gtfs_or_seed": "Balderas",
+      "open_date": "1969-09-04",
+      "current_icon_file": "1.8_Balderas.svg",
+      "aliases": [
+        "balderas"
+      ],
+      "eras": [
+        {
+          "from": "1969-09-04",
+          "to": null,
+          "name": "Balderas",
+          "icon_file": "1.8_Balderas.svg",
+          "icon_key": "1_8_balderas",
+          "aliases": [
+            "balderas"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.427420161084,
+      "lon": -99.149057865143
+    },
+    {
+      "line": "1",
+      "index": 9,
+      "current_name": "Salto del Agua",
+      "base_name_in_gtfs_or_seed": "Salto del Agua",
+      "open_date": "1969-09-04",
+      "current_icon_file": "1.9_Salto_del_Agua.svg",
+      "aliases": [
+        "salto_del_agua"
+      ],
+      "eras": [
+        {
+          "from": "1969-09-04",
+          "to": null,
+          "name": "Salto del Agua",
+          "icon_file": "1.9_Salto_del_Agua.svg",
+          "icon_key": "1_9_salto_del_agua",
+          "aliases": [
+            "salto_del_agua"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.426792845446,
+      "lon": -99.142234325409
+    },
+    {
+      "line": "1",
+      "index": 10,
+      "current_name": "Isabel la Católica",
+      "base_name_in_gtfs_or_seed": "Isabel la Católica",
+      "open_date": "1969-09-04",
+      "current_icon_file": "1.10_Isabel_la_Catolica.svg",
+      "aliases": [
+        "isabel_la_catolica"
+      ],
+      "eras": [
+        {
+          "from": "1969-09-04",
+          "to": null,
+          "name": "Isabel la Católica",
+          "icon_file": "1.10_Isabel_la_Catolica.svg",
+          "icon_key": "1_10_isabel_la_catolica",
+          "aliases": [
+            "isabel_la_catolica"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.426529776877,
+      "lon": -99.137470722198
+    },
+    {
+      "line": "1",
+      "index": 11,
+      "current_name": "Pino Suárez",
+      "base_name_in_gtfs_or_seed": "Pino Suárez",
+      "open_date": "1969-09-04",
+      "current_icon_file": "1.11_Pino_Suarez.svg",
+      "aliases": [
+        "pino_suarez"
+      ],
+      "eras": [
+        {
+          "from": "1969-09-04",
+          "to": null,
+          "name": "Pino Suárez",
+          "icon_file": "1.11_Pino_Suarez.svg",
+          "icon_key": "1_11_pino_suarez",
+          "aliases": [
+            "pino_suarez"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.425760804772,
+      "lon": -99.132900238037
+    },
+    {
+      "line": "1",
+      "index": 12,
+      "current_name": "Merced",
+      "base_name_in_gtfs_or_seed": "Merced",
+      "open_date": "1969-09-04",
+      "current_icon_file": "1.12_Merced.svg",
+      "aliases": [
+        "merced"
+      ],
+      "eras": [
+        {
+          "from": "1969-09-04",
+          "to": null,
+          "name": "Merced",
+          "icon_file": "1.12_Merced.svg",
+          "icon_key": "1_12_merced",
+          "aliases": [
+            "merced"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.42586198552,
+      "lon": -99.125046730042
+    },
+    {
+      "line": "1",
+      "index": 13,
+      "current_name": "Candelaria",
+      "base_name_in_gtfs_or_seed": "Candelaria",
+      "open_date": "1969-09-04",
+      "current_icon_file": "1.13_Candelaria.svg",
+      "aliases": [
+        "candelaria"
+      ],
+      "eras": [
+        {
+          "from": "1969-09-04",
+          "to": null,
+          "name": "Candelaria",
+          "icon_file": "1.13_Candelaria.svg",
+          "icon_key": "1_13_candelaria",
+          "aliases": [
+            "candelaria"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.428836671354,
+      "lon": -99.11906003952
+    },
+    {
+      "line": "1",
+      "index": 14,
+      "current_name": "San Lázaro",
+      "base_name_in_gtfs_or_seed": "San Lázaro",
+      "open_date": "1969-09-04",
+      "current_icon_file": "1.14_San_Lazaro.svg",
+      "aliases": [
+        "san_lazaro"
+      ],
+      "eras": [
+        {
+          "from": "1969-09-04",
+          "to": null,
+          "name": "San Lázaro",
+          "icon_file": "1.14_San_Lazaro.svg",
+          "icon_key": "1_14_san_lazaro",
+          "aliases": [
+            "san_lazaro"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.43029364046,
+      "lon": -99.114789962769
+    },
+    {
+      "line": "1",
+      "index": 15,
+      "current_name": "Moctezuma",
+      "base_name_in_gtfs_or_seed": "Moctezuma",
+      "open_date": "1969-09-04",
+      "current_icon_file": "1.15_Moctezuma.svg",
+      "aliases": [
+        "moctezuma"
+      ],
+      "eras": [
+        {
+          "from": "1969-09-04",
+          "to": null,
+          "name": "Moctezuma",
+          "icon_file": "1.15_Moctezuma.svg",
+          "icon_key": "1_15_moctezuma",
+          "aliases": [
+            "moctezuma"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.427238037439,
+      "lon": -99.110262393951
+    },
+    {
+      "line": "1",
+      "index": 16,
+      "current_name": "Balbuena",
+      "base_name_in_gtfs_or_seed": "Balbuena",
+      "open_date": "1969-09-04",
+      "current_icon_file": "1.16_Balbuena.svg",
+      "aliases": [
+        "balbuena"
+      ],
+      "eras": [
+        {
+          "from": "1969-09-04",
+          "to": null,
+          "name": "Balbuena",
+          "icon_file": "1.16_Balbuena.svg",
+          "icon_key": "1_16_balbuena",
+          "aliases": [
+            "balbuena"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.423231265591,
+      "lon": -99.102258682251
+    },
+    {
+      "line": "1",
+      "index": 17,
+      "current_name": "Boulevard Puerto Aéreo",
+      "base_name_in_gtfs_or_seed": "Boulevard Puerto Aéreo",
+      "open_date": "1969-09-04",
+      "current_icon_file": "1.17_Boulevard_Puerto_Aereo.svg",
+      "aliases": [
+        "boulevard_puerto_aereo"
+      ],
+      "eras": [
+        {
+          "from": "1969-09-04",
+          "to": "1996-09-23",
+          "name": "Aeropuerto",
+          "icon_file": "1.17_Aeropuerto.svg",
+          "icon_key": "1_17_aeropuerto",
+          "aliases": [
+            "aeropuerto"
+          ],
+          "note": "Nombre e iconografía previos de Boulevard Puerto Aéreo."
+        },
+        {
+          "from": "1996-09-24",
+          "to": null,
+          "name": "Boulevard Puerto Aéreo",
+          "icon_file": "1.17_Boulevard_Puerto_Aereo.svg",
+          "icon_key": "1_17_boulevard_puerto_aereo",
+          "aliases": [
+            "boulevard_puerto_aereo"
+          ],
+          "note": "Nombre vigente desde 1996."
+        }
+      ],
+      "lat": 19.419447001456,
+      "lon": -99.095735549927
+    },
+    {
+      "line": "1",
+      "index": 18,
+      "current_name": "Gómez Farías",
+      "base_name_in_gtfs_or_seed": "Gómez Farías",
+      "open_date": "1969-09-04",
+      "current_icon_file": "1.18_Gomez_Farias.svg",
+      "aliases": [
+        "gomez_farias"
+      ],
+      "eras": [
+        {
+          "from": "1969-09-04",
+          "to": null,
+          "name": "Gómez Farías",
+          "icon_file": "1.18_Gomez_Farias.svg",
+          "icon_key": "1_18_gomez_farias",
+          "aliases": [
+            "gomez_farias"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.416391194454,
+      "lon": -99.090349674225
+    },
+    {
+      "line": "1",
+      "index": 19,
+      "current_name": "Zaragoza",
+      "base_name_in_gtfs_or_seed": "Zaragoza",
+      "open_date": "1969-09-04",
+      "current_icon_file": "1.19_Zaragoza.svg",
+      "aliases": [
+        "zaragoza"
+      ],
+      "eras": [
+        {
+          "from": "1969-09-04",
+          "to": null,
+          "name": "Zaragoza",
+          "icon_file": "1.19_Zaragoza.svg",
+          "icon_key": "1_19_zaragoza",
+          "aliases": [
+            "zaragoza"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.412282966038,
+      "lon": -99.082367420197
+    },
+    {
+      "line": "1",
+      "index": 20,
+      "current_name": "Pantitlán",
+      "base_name_in_gtfs_or_seed": "Pantitlán",
+      "open_date": "1984-08-22",
+      "current_icon_file": "1.20_Pantitlan.svg",
+      "aliases": [
+        "pantitlan"
+      ],
+      "eras": [
+        {
+          "from": "1984-08-22",
+          "to": null,
+          "name": "Pantitlán",
+          "icon_file": "1.20_Pantitlan.svg",
+          "icon_key": "1_20_pantitlan",
+          "aliases": [
+            "pantitlan"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.415359,
+      "lon": -99.072207
+    },
+    {
+      "line": "2",
+      "index": 1,
+      "current_name": "Cuatro Caminos",
+      "base_name_in_gtfs_or_seed": "Cuatro Caminos",
+      "open_date": "1984-08-22",
+      "current_icon_file": "2.1_Cuatro_Caminos.svg",
+      "aliases": [
+        "cuatro_caminos"
+      ],
+      "eras": [
+        {
+          "from": "1984-08-22",
+          "to": null,
+          "name": "Cuatro Caminos",
+          "icon_file": "2.1_Cuatro_Caminos.svg",
+          "icon_key": "2_1_cuatro_caminos",
+          "aliases": [
+            "cuatro_caminos"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.459592132589,
+      "lon": -99.215898513794
+    },
+    {
+      "line": "2",
+      "index": 2,
+      "current_name": "Panteones",
+      "base_name_in_gtfs_or_seed": "Panteones",
+      "open_date": "1984-08-22",
+      "current_icon_file": "2.2_Panteones.svg",
+      "aliases": [
+        "panteones"
+      ],
+      "eras": [
+        {
+          "from": "1984-08-22",
+          "to": null,
+          "name": "Panteones",
+          "icon_file": "2.2_Panteones.svg",
+          "icon_key": "2_2_panteones",
+          "aliases": [
+            "panteones"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.458803085067,
+      "lon": -99.203174114227
+    },
+    {
+      "line": "2",
+      "index": 3,
+      "current_name": "Tacuba",
+      "base_name_in_gtfs_or_seed": "Tacuba",
+      "open_date": "1970-09-14",
+      "current_icon_file": "2.3_Tacuba.svg",
+      "aliases": [
+        "tacuba"
+      ],
+      "eras": [
+        {
+          "from": "1970-09-14",
+          "to": null,
+          "name": "Tacuba",
+          "icon_file": "2.3_Tacuba.svg",
+          "icon_key": "2_3_tacuba",
+          "aliases": [
+            "tacuba"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.459369581113,
+      "lon": -99.189248085022
+    },
+    {
+      "line": "2",
+      "index": 4,
+      "current_name": "Cuitláhuac",
+      "base_name_in_gtfs_or_seed": "Cuitláhuac",
+      "open_date": "1970-09-14",
+      "current_icon_file": "2.4_Cuitlahuac.svg",
+      "aliases": [
+        "cuitlahuac"
+      ],
+      "eras": [
+        {
+          "from": "1970-09-14",
+          "to": null,
+          "name": "Cuitláhuac",
+          "icon_file": "2.4_Cuitlahuac.svg",
+          "icon_key": "2_4_cuitlahuac",
+          "aliases": [
+            "cuitlahuac"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.457487997333,
+      "lon": -99.182360172272
+    },
+    {
+      "line": "2",
+      "index": 5,
+      "current_name": "Popotla",
+      "base_name_in_gtfs_or_seed": "Popotla",
+      "open_date": "1970-09-14",
+      "current_icon_file": "2.5_Popotla.svg",
+      "aliases": [
+        "popotla"
+      ],
+      "eras": [
+        {
+          "from": "1970-09-14",
+          "to": null,
+          "name": "Popotla",
+          "icon_file": "2.5_Popotla.svg",
+          "icon_key": "2_5_popotla",
+          "aliases": [
+            "popotla"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.452146608312,
+      "lon": -99.174764156342
+    },
+    {
+      "line": "2",
+      "index": 6,
+      "current_name": "Colegio Militar",
+      "base_name_in_gtfs_or_seed": "Colegio Militar",
+      "open_date": "1970-09-14",
+      "current_icon_file": "2.6_Colegio_Militar.svg",
+      "aliases": [
+        "colegio_militar"
+      ],
+      "eras": [
+        {
+          "from": "1970-09-14",
+          "to": null,
+          "name": "Colegio Militar",
+          "icon_file": "2.6_Colegio_Militar.svg",
+          "icon_key": "2_6_colegio_militar",
+          "aliases": [
+            "colegio_militar"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.448970017051,
+      "lon": -99.171545505524
+    },
+    {
+      "line": "2",
+      "index": 7,
+      "current_name": "Normal",
+      "base_name_in_gtfs_or_seed": "Normal",
+      "open_date": "1970-09-14",
+      "current_icon_file": "2.7_Normal.svg",
+      "aliases": [
+        "normal"
+      ],
+      "eras": [
+        {
+          "from": "1970-09-14",
+          "to": null,
+          "name": "Normal",
+          "icon_file": "2.7_Normal.svg",
+          "icon_key": "2_7_normal",
+          "aliases": [
+            "normal"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.445287521322,
+      "lon": -99.167382717133
+    },
+    {
+      "line": "2",
+      "index": 8,
+      "current_name": "San Cosme",
+      "base_name_in_gtfs_or_seed": "San Cosme",
+      "open_date": "1970-09-14",
+      "current_icon_file": "2.8_San_Cosme.svg",
+      "aliases": [
+        "san_cosme"
+      ],
+      "eras": [
+        {
+          "from": "1970-09-14",
+          "to": null,
+          "name": "San Cosme",
+          "icon_file": "2.8_San_Cosme.svg",
+          "icon_key": "2_8_san_cosme",
+          "aliases": [
+            "san_cosme"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.441807283723,
+      "lon": -99.161095619202
+    },
+    {
+      "line": "2",
+      "index": 9,
+      "current_name": "Revolución",
+      "base_name_in_gtfs_or_seed": "Revolución",
+      "open_date": "1970-09-14",
+      "current_icon_file": "2.9_Revolucion.svg",
+      "aliases": [
+        "revolucion"
+      ],
+      "eras": [
+        {
+          "from": "1970-09-14",
+          "to": null,
+          "name": "Revolución",
+          "icon_file": "2.9_Revolucion.svg",
+          "icon_key": "2_9_revolucion",
+          "aliases": [
+            "revolucion"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.439905261873,
+      "lon": -99.155666828156
+    },
+    {
+      "line": "2",
+      "index": 10,
+      "current_name": "Hidalgo",
+      "base_name_in_gtfs_or_seed": "Hidalgo",
+      "open_date": "1970-09-14",
+      "current_icon_file": "2.10_Hidalgo.svg",
+      "aliases": [
+        "hidalgo"
+      ],
+      "eras": [
+        {
+          "from": "1970-09-14",
+          "to": null,
+          "name": "Hidalgo",
+          "icon_file": "2.10_Hidalgo.svg",
+          "icon_key": "2_10_hidalgo",
+          "aliases": [
+            "hidalgo"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.437497351185,
+      "lon": -99.147298336029
+    },
+    {
+      "line": "2",
+      "index": 11,
+      "current_name": "Bellas Artes",
+      "base_name_in_gtfs_or_seed": "Bellas Artes",
+      "open_date": "1970-09-14",
+      "current_icon_file": "2.11_Bellas_Artes.svg",
+      "aliases": [
+        "bellas_artes"
+      ],
+      "eras": [
+        {
+          "from": "1970-09-14",
+          "to": null,
+          "name": "Bellas Artes",
+          "icon_file": "2.11_Bellas_Artes.svg",
+          "icon_key": "2_11_bellas_artes",
+          "aliases": [
+            "bellas_artes"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.436445143706,
+      "lon": -99.141933917999
+    },
+    {
+      "line": "2",
+      "index": 12,
+      "current_name": "Allende",
+      "base_name_in_gtfs_or_seed": "Allende",
+      "open_date": "1970-09-14",
+      "current_icon_file": "2.12_Allende.svg",
+      "aliases": [
+        "allende"
+      ],
+      "eras": [
+        {
+          "from": "1970-09-14",
+          "to": null,
+          "name": "Allende",
+          "icon_file": "2.12_Allende.svg",
+          "icon_key": "2_12_allende",
+          "aliases": [
+            "allende"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.435575043909,
+      "lon": -99.137427806854
+    },
+    {
+      "line": "2",
+      "index": 13,
+      "current_name": "Zócalo/Tenochtitlan",
+      "base_name_in_gtfs_or_seed": "Zócalo",
+      "open_date": "1970-09-14",
+      "current_icon_file": "2.13_Zocalo_Tenochtitlan.svg",
+      "aliases": [
+        "zocalo",
+        "zocalo_tenochtitlan"
+      ],
+      "eras": [
+        {
+          "from": "1970-09-14",
+          "to": "2021-08-18",
+          "name": "Zócalo",
+          "icon_file": "2.13_Zocalo.svg",
+          "icon_key": "2_13_zocalo",
+          "aliases": [
+            "zocalo"
+          ],
+          "note": "Nombre previo a Zócalo/Tenochtitlan."
+        },
+        {
+          "from": "2021-08-19",
+          "to": null,
+          "name": "Zócalo/Tenochtitlan",
+          "icon_file": "2.13_Zocalo_Tenochtitlan.svg",
+          "icon_key": "2_13_zocalo_tenochtitlan",
+          "aliases": [
+            "zocalo",
+            "zocalo_tenochtitlan"
+          ],
+          "note": "Nombre vigente desde 2021."
+        }
+      ],
+      "lat": 19.433248009916,
+      "lon": -99.133007526398
+    },
+    {
+      "line": "2",
+      "index": 14,
+      "current_name": "Pino Suárez",
+      "base_name_in_gtfs_or_seed": "Pino Suárez",
+      "open_date": "1970-08-01",
+      "current_icon_file": "2.14_Pino_Suarez.svg",
+      "aliases": [
+        "pino_suarez"
+      ],
+      "eras": [
+        {
+          "from": "1970-08-01",
+          "to": null,
+          "name": "Pino Suárez",
+          "icon_file": "2.14_Pino_Suarez.svg",
+          "icon_key": "2_14_pino_suarez",
+          "aliases": [
+            "pino_suarez"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.425801277079,
+      "lon": -99.132900238037
+    },
+    {
+      "line": "2",
+      "index": 15,
+      "current_name": "San Antonio Abad",
+      "base_name_in_gtfs_or_seed": "San Antonio Abad",
+      "open_date": "1970-08-01",
+      "current_icon_file": "2.15_San_Antonio_Abad.svg",
+      "aliases": [
+        "san_antonio_abad"
+      ],
+      "eras": [
+        {
+          "from": "1970-08-01",
+          "to": null,
+          "name": "San Antonio Abad",
+          "icon_file": "2.15_San_Antonio_Abad.svg",
+          "icon_key": "2_15_san_antonio_abad",
+          "aliases": [
+            "san_antonio_abad"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.418738706934,
+      "lon": -99.134166240692
+    },
+    {
+      "line": "2",
+      "index": 16,
+      "current_name": "Chabacano",
+      "base_name_in_gtfs_or_seed": "Chabacano",
+      "open_date": "1970-08-01",
+      "current_icon_file": "2.16_Chabacano.svg",
+      "aliases": [
+        "chabacano"
+      ],
+      "eras": [
+        {
+          "from": "1970-08-01",
+          "to": null,
+          "name": "Chabacano",
+          "icon_file": "2.16_Chabacano.svg",
+          "icon_key": "2_16_chabacano",
+          "aliases": [
+            "chabacano"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.408498447018,
+      "lon": -99.135775566101
+    },
+    {
+      "line": "2",
+      "index": 17,
+      "current_name": "Viaducto",
+      "base_name_in_gtfs_or_seed": "Viaducto",
+      "open_date": "1970-08-01",
+      "current_icon_file": "2.17_Viaducto.svg",
+      "aliases": [
+        "viaducto"
+      ],
+      "eras": [
+        {
+          "from": "1970-08-01",
+          "to": null,
+          "name": "Viaducto",
+          "icon_file": "2.17_Viaducto.svg",
+          "icon_key": "2_17_viaducto",
+          "aliases": [
+            "viaducto"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.400888666272,
+      "lon": -99.136934280396
+    },
+    {
+      "line": "2",
+      "index": 18,
+      "current_name": "Xola",
+      "base_name_in_gtfs_or_seed": "Xola",
+      "open_date": "1970-08-01",
+      "current_icon_file": "2.18_Xola.svg",
+      "aliases": [
+        "xola"
+      ],
+      "eras": [
+        {
+          "from": "1970-08-01",
+          "to": null,
+          "name": "Xola",
+          "icon_file": "2.18_Xola.svg",
+          "icon_key": "2_18_xola",
+          "aliases": [
+            "xola"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.395221577028,
+      "lon": -99.137814044952
+    },
+    {
+      "line": "2",
+      "index": 19,
+      "current_name": "Villa de Cortéz",
+      "base_name_in_gtfs_or_seed": "Villa de Cortéz",
+      "open_date": "1970-08-01",
+      "current_icon_file": "2.19_Villa_de_Cortez.svg",
+      "aliases": [
+        "villa_de_cortez"
+      ],
+      "eras": [
+        {
+          "from": "1970-08-01",
+          "to": null,
+          "name": "Villa de Cortéz",
+          "icon_file": "2.19_Villa_de_Cortez.svg",
+          "icon_key": "2_19_villa_de_cortez",
+          "aliases": [
+            "villa_de_cortez"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.387570693515,
+      "lon": -99.138994216919
+    },
+    {
+      "line": "2",
+      "index": 20,
+      "current_name": "Nativitas",
+      "base_name_in_gtfs_or_seed": "Nativitas",
+      "open_date": "1970-08-01",
+      "current_icon_file": "2.20_Nativitas.svg",
+      "aliases": [
+        "nativitas"
+      ],
+      "eras": [
+        {
+          "from": "1970-08-01",
+          "to": null,
+          "name": "Nativitas",
+          "icon_file": "2.20_Nativitas.svg",
+          "icon_key": "2_20_nativitas",
+          "aliases": [
+            "nativitas"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.379433645109,
+      "lon": -99.140174388885
+    },
+    {
+      "line": "2",
+      "index": 21,
+      "current_name": "Portales",
+      "base_name_in_gtfs_or_seed": "Portales",
+      "open_date": "1970-08-01",
+      "current_icon_file": "2.21_Portales.svg",
+      "aliases": [
+        "portales"
+      ],
+      "eras": [
+        {
+          "from": "1970-08-01",
+          "to": null,
+          "name": "Portales",
+          "icon_file": "2.21_Portales.svg",
+          "icon_key": "2_21_portales",
+          "aliases": [
+            "portales"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.369919665097,
+      "lon": -99.141590595245
+    },
+    {
+      "line": "2",
+      "index": 22,
+      "current_name": "Ermita",
+      "base_name_in_gtfs_or_seed": "Ermita",
+      "open_date": "1970-08-01",
+      "current_icon_file": "2.22_Ermita.svg",
+      "aliases": [
+        "ermita"
+      ],
+      "eras": [
+        {
+          "from": "1970-08-01",
+          "to": null,
+          "name": "Ermita",
+          "icon_file": "2.22_Ermita.svg",
+          "icon_key": "2_22_ermita",
+          "aliases": [
+            "ermita"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.361904144287,
+      "lon": -99.142929077148
+    },
+    {
+      "line": "2",
+      "index": 23,
+      "current_name": "General Anaya",
+      "base_name_in_gtfs_or_seed": "General Anaya",
+      "open_date": "1970-08-01",
+      "current_icon_file": "2.23_General_Anaya.svg",
+      "aliases": [
+        "general_anaya"
+      ],
+      "eras": [
+        {
+          "from": "1970-08-01",
+          "to": null,
+          "name": "General Anaya",
+          "icon_file": "2.23_General_Anaya.svg",
+          "icon_key": "2_23_general_anaya",
+          "aliases": [
+            "general_anaya"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.353278986282,
+      "lon": -99.145002365112
+    },
+    {
+      "line": "2",
+      "index": 24,
+      "current_name": "Tasqueña",
+      "base_name_in_gtfs_or_seed": "Tasqueña",
+      "open_date": "1970-08-01",
+      "current_icon_file": "2.24_Tasquena.svg",
+      "aliases": [
+        "tasquena"
+      ],
+      "eras": [
+        {
+          "from": "1970-08-01",
+          "to": null,
+          "name": "Tasqueña",
+          "icon_file": "2.24_Tasquena.svg",
+          "icon_key": "2_24_tasquena",
+          "aliases": [
+            "tasquena"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.34418865273,
+      "lon": -99.142642021179
+    },
+    {
+      "line": "3",
+      "index": 1,
+      "current_name": "Indios Verdes",
+      "base_name_in_gtfs_or_seed": "Indios Verdes",
+      "open_date": "1979-12-01",
+      "current_icon_file": "3.1_Indios_Verdes.svg",
+      "aliases": [
+        "indios_verdes"
+      ],
+      "eras": [
+        {
+          "from": "1979-12-01",
+          "to": null,
+          "name": "Indios Verdes",
+          "icon_file": "3.1_Indios_Verdes.svg",
+          "icon_key": "3_1_indios_verdes",
+          "aliases": [
+            "indios_verdes"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.49539870767,
+      "lon": -99.119510650635
+    },
+    {
+      "line": "3",
+      "index": 2,
+      "current_name": "Deportivo 18 de Marzo",
+      "base_name_in_gtfs_or_seed": "Deportivo 18 de Marzo",
+      "open_date": "1979-12-01",
+      "current_icon_file": "3.2_Deportivo_18_de_Marzo.svg",
+      "aliases": [
+        "deportivo_18_de_marzo"
+      ],
+      "eras": [
+        {
+          "from": "1979-12-01",
+          "to": "1996-09-23",
+          "name": "Basílica",
+          "icon_file": "3.2_Basilica.svg",
+          "icon_key": "3_2_basilica",
+          "aliases": [
+            "basilica"
+          ],
+          "note": "Nombre e iconografía previos de Deportivo 18 de Marzo."
+        },
+        {
+          "from": "1996-09-24",
+          "to": null,
+          "name": "Deportivo 18 de Marzo",
+          "icon_file": "3.2_Deportivo_18_de_Marzo.svg",
+          "icon_key": "3_2_deportivo_18_de_marzo",
+          "aliases": [
+            "dep_18_montevideo",
+            "deportivo_18_de_marzo",
+            "deportivo_18_marzo"
+          ],
+          "note": "Nombre vigente desde 1996."
+        }
+      ],
+      "lat": 19.48378772509,
+      "lon": -99.126580953598
+    },
+    {
+      "line": "3",
+      "index": 3,
+      "current_name": "Potrero",
+      "base_name_in_gtfs_or_seed": "Potrero",
+      "open_date": "1979-12-01",
+      "current_icon_file": "3.3_Potrero.svg",
+      "aliases": [
+        "potrero"
+      ],
+      "eras": [
+        {
+          "from": "1979-12-01",
+          "to": null,
+          "name": "Potrero",
+          "icon_file": "3.3_Potrero.svg",
+          "icon_key": "3_3_potrero",
+          "aliases": [
+            "potrero"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.476960321374,
+      "lon": -99.132192134857
+    },
+    {
+      "line": "3",
+      "index": 4,
+      "current_name": "La Raza",
+      "base_name_in_gtfs_or_seed": "La Raza",
+      "open_date": "1978-08-25",
+      "current_icon_file": "3.4_La_Raza.svg",
+      "aliases": [
+        "la_raza"
+      ],
+      "eras": [
+        {
+          "from": "1978-08-25",
+          "to": null,
+          "name": "La Raza",
+          "icon_file": "3.4_La_Raza.svg",
+          "icon_key": "3_4_la_raza",
+          "aliases": [
+            "la_raza"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.470274244218,
+      "lon": -99.136934280396
+    },
+    {
+      "line": "3",
+      "index": 5,
+      "current_name": "Tlatelolco",
+      "base_name_in_gtfs_or_seed": "Tlatelolco",
+      "open_date": "1970-11-20",
+      "current_icon_file": "3.5_Tlatelolco.svg",
+      "aliases": [
+        "tlatelolco"
+      ],
+      "eras": [
+        {
+          "from": "1970-11-20",
+          "to": null,
+          "name": "Tlatelolco",
+          "icon_file": "3.5_Tlatelolco.svg",
+          "icon_key": "3_5_tlatelolco",
+          "aliases": [
+            "tlatelolco"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.45510058004,
+      "lon": -99.142813682556
+    },
+    {
+      "line": "3",
+      "index": 6,
+      "current_name": "Guerrero",
+      "base_name_in_gtfs_or_seed": "Guerrero",
+      "open_date": "1970-11-20",
+      "current_icon_file": "3.6_Guerrero.svg",
+      "aliases": [
+        "guerrero"
+      ],
+      "eras": [
+        {
+          "from": "1970-11-20",
+          "to": null,
+          "name": "Guerrero",
+          "icon_file": "3.6_Guerrero.svg",
+          "icon_key": "3_6_guerrero",
+          "aliases": [
+            "guerrero"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.44512565146,
+      "lon": -99.145367145538
+    },
+    {
+      "line": "3",
+      "index": 7,
+      "current_name": "Hidalgo",
+      "base_name_in_gtfs_or_seed": "Hidalgo",
+      "open_date": "1970-11-20",
+      "current_icon_file": "3.7_Hidalgo.svg",
+      "aliases": [
+        "hidalgo"
+      ],
+      "eras": [
+        {
+          "from": "1970-11-20",
+          "to": null,
+          "name": "Hidalgo",
+          "icon_file": "3.7_Hidalgo.svg",
+          "icon_key": "3_7_hidalgo",
+          "aliases": [
+            "hidalgo"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.437497351185,
+      "lon": -99.147319793701
+    },
+    {
+      "line": "3",
+      "index": 8,
+      "current_name": "Juárez",
+      "base_name_in_gtfs_or_seed": "Juárez",
+      "open_date": "1970-11-20",
+      "current_icon_file": "3.8_Juarez.svg",
+      "aliases": [
+        "juarez"
+      ],
+      "eras": [
+        {
+          "from": "1970-11-20",
+          "to": null,
+          "name": "Juárez",
+          "icon_file": "3.8_Juarez.svg",
+          "icon_key": "3_8_juarez",
+          "aliases": [
+            "juarez"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.433268245138,
+      "lon": -99.147899150848
+    },
+    {
+      "line": "3",
+      "index": 9,
+      "current_name": "Balderas",
+      "base_name_in_gtfs_or_seed": "Balderas",
+      "open_date": "1970-11-20",
+      "current_icon_file": "3.9_Balderas.svg",
+      "aliases": [
+        "balderas"
+      ],
+      "eras": [
+        {
+          "from": "1970-11-20",
+          "to": null,
+          "name": "Balderas",
+          "icon_file": "3.9_Balderas.svg",
+          "icon_key": "3_9_balderas",
+          "aliases": [
+            "balderas"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.427399925133,
+      "lon": -99.149100780487
+    },
+    {
+      "line": "3",
+      "index": 10,
+      "current_name": "Niños Héroes",
+      "base_name_in_gtfs_or_seed": "Niños Héroes",
+      "open_date": "1970-11-20",
+      "current_icon_file": "3.10_Ninos_Heroes.svg",
+      "aliases": [
+        "ninos_heroes"
+      ],
+      "eras": [
+        {
+          "from": "1970-11-20",
+          "to": null,
+          "name": "Niños Héroes",
+          "icon_file": "3.10_Ninos_Heroes.svg",
+          "icon_key": "3_10_ninos_heroes",
+          "aliases": [
+            "ninos_heroes"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.419952924224,
+      "lon": -99.151010513306
+    },
+    {
+      "line": "3",
+      "index": 11,
+      "current_name": "Hospital General",
+      "base_name_in_gtfs_or_seed": "Hospital General",
+      "open_date": "1970-11-20",
+      "current_icon_file": "3.11_Hospital_General.svg",
+      "aliases": [
+        "hospital_general"
+      ],
+      "eras": [
+        {
+          "from": "1970-11-20",
+          "to": null,
+          "name": "Hospital General",
+          "icon_file": "3.11_Hospital_General.svg",
+          "icon_key": "3_11_hospital_general",
+          "aliases": [
+            "hospital_general"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.413517469231,
+      "lon": -99.15399312973
+    },
+    {
+      "line": "3",
+      "index": 12,
+      "current_name": "Centro Médico",
+      "base_name_in_gtfs_or_seed": "Centro Médico",
+      "open_date": "1980-06-07",
+      "current_icon_file": "3.12_Centro_Medico.svg",
+      "aliases": [
+        "centro_medico"
+      ],
+      "eras": [
+        {
+          "from": "1980-06-07",
+          "to": null,
+          "name": "Centro Médico",
+          "icon_file": "3.12_Centro_Medico.svg",
+          "icon_key": "3_12_centro_medico",
+          "aliases": [
+            "centro_medico"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.407041282521,
+      "lon": -99.155666828156
+    },
+    {
+      "line": "3",
+      "index": 13,
+      "current_name": "Etiopía / Plaza de la Transparencia",
+      "base_name_in_gtfs_or_seed": "Etiopía / Plaza de la Transparencia",
+      "open_date": "1980-08-25",
+      "current_icon_file": "3.13_Etiopia_Plaza_de_la_Transparencia.svg",
+      "aliases": [
+        "etiopia",
+        "etiopia_plaza_de_la_transparencia"
+      ],
+      "eras": [
+        {
+          "from": "1980-08-25",
+          "to": "2009-03-26",
+          "name": "Etiopía",
+          "icon_file": "3.13_Etiopía.svg",
+          "icon_key": "3_13_etiopia",
+          "aliases": [
+            "etiopia"
+          ],
+          "note": "Nombre e iconografía previos a Plaza de la Transparencia."
+        },
+        {
+          "from": "2009-03-27",
+          "to": null,
+          "name": "Etiopía / Plaza de la Transparencia",
+          "icon_file": "3.13_Etiopia_Plaza_de_la_Transparencia.svg",
+          "icon_key": "3_13_etiopia_plaza_de_la_transparencia",
+          "aliases": [
+            "etiopia",
+            "etiopia_plaza_de_la_transparencia"
+          ],
+          "note": "Nombre vigente desde 2009."
+        }
+      ],
+      "lat": 19.395626375662,
+      "lon": -99.156267642975
+    },
+    {
+      "line": "3",
+      "index": 14,
+      "current_name": "Eugenia",
+      "base_name_in_gtfs_or_seed": "Eugenia",
+      "open_date": "1980-08-25",
+      "current_icon_file": "3.14_Eugenia.svg",
+      "aliases": [
+        "eugenia"
+      ],
+      "eras": [
+        {
+          "from": "1980-08-25",
+          "to": null,
+          "name": "Eugenia",
+          "icon_file": "3.14_Eugenia.svg",
+          "icon_key": "3_14_eugenia",
+          "aliases": [
+            "eugenia"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.385506107787,
+      "lon": -99.157469272614
+    },
+    {
+      "line": "3",
+      "index": 15,
+      "current_name": "División del Norte",
+      "base_name_in_gtfs_or_seed": "División del Norte",
+      "open_date": "1980-08-25",
+      "current_icon_file": "3.15_Division_del_Norte.svg",
+      "aliases": [
+        "division_del_norte"
+      ],
+      "eras": [
+        {
+          "from": "1980-08-25",
+          "to": null,
+          "name": "División del Norte",
+          "icon_file": "3.15_Division_del_Norte.svg",
+          "icon_key": "3_15_division_del_norte",
+          "aliases": [
+            "division_del_norte"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.379818241127,
+      "lon": -99.159100055695
+    },
+    {
+      "line": "3",
+      "index": 16,
+      "current_name": "Zapata",
+      "base_name_in_gtfs_or_seed": "Zapata",
+      "open_date": "1980-08-25",
+      "current_icon_file": "3.16_Zapata.svg",
+      "aliases": [
+        "zapata"
+      ],
+      "eras": [
+        {
+          "from": "1980-08-25",
+          "to": null,
+          "name": "Zapata",
+          "icon_file": "3.16_Zapata.svg",
+          "icon_key": "3_16_zapata",
+          "aliases": [
+            "zapata"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.370729387151,
+      "lon": -99.164936542511
+    },
+    {
+      "line": "3",
+      "index": 17,
+      "current_name": "Coyoacán",
+      "base_name_in_gtfs_or_seed": "Coyoacán",
+      "open_date": "1983-08-30",
+      "current_icon_file": "3.17_Coyoacan.svg",
+      "aliases": [
+        "coyoacan"
+      ],
+      "eras": [
+        {
+          "from": "1983-08-30",
+          "to": null,
+          "name": "Coyoacán",
+          "icon_file": "3.17_Coyoacan.svg",
+          "icon_key": "3_17_coyoacan",
+          "aliases": [
+            "coyoacan"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.361457828976,
+      "lon": -99.17049407959
+    },
+    {
+      "line": "3",
+      "index": 18,
+      "current_name": "Viveros / Derechos Humanos",
+      "base_name_in_gtfs_or_seed": "Viveros / Derechos Humanos",
+      "open_date": "1983-08-30",
+      "current_icon_file": "3.18_Viveros_Derechos_Humanos.svg",
+      "aliases": [
+        "viveros",
+        "viveros_derechos_humanos"
+      ],
+      "eras": [
+        {
+          "from": "1983-08-30",
+          "to": "2009-03-26",
+          "name": "Viveros",
+          "icon_file": "3.18_Viveros.svg",
+          "icon_key": "3_18_viveros",
+          "aliases": [
+            "viveros"
+          ],
+          "note": "Nombre previo a la adición Derechos Humanos."
+        },
+        {
+          "from": "2009-03-27",
+          "to": null,
+          "name": "Viveros / Derechos Humanos",
+          "icon_file": "3.18_Viveros_Derechos_Humanos.svg",
+          "icon_key": "3_18_viveros_derechos_humanos",
+          "aliases": [
+            "viveros",
+            "viveros_derechos_humanos"
+          ],
+          "note": "Nombre vigente desde 2009."
+        }
+      ],
+      "lat": 19.353704134251,
+      "lon": -99.176030158997
+    },
+    {
+      "line": "3",
+      "index": 19,
+      "current_name": "Miguel Ángel de Quevedo",
+      "base_name_in_gtfs_or_seed": "Miguel Ángel de Quevedo",
+      "open_date": "1983-08-30",
+      "current_icon_file": "3.19_Miguel_Angel_de_Quevedo.svg",
+      "aliases": [
+        "miguel_angel_de_quevedo"
+      ],
+      "eras": [
+        {
+          "from": "1983-08-30",
+          "to": null,
+          "name": "Miguel Ángel de Quevedo",
+          "icon_file": "3.19_Miguel_Angel_de_Quevedo.svg",
+          "icon_key": "3_19_miguel_angel_de_quevedo",
+          "aliases": [
+            "miguel_angel_de_quevedo"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.346840895911,
+      "lon": -99.181008338928
+    },
+    {
+      "line": "3",
+      "index": 20,
+      "current_name": "Copilco",
+      "base_name_in_gtfs_or_seed": "Copilco",
+      "open_date": "1983-08-30",
+      "current_icon_file": "3.20_Copilco.svg",
+      "aliases": [
+        "copilco"
+      ],
+      "eras": [
+        {
+          "from": "1983-08-30",
+          "to": null,
+          "name": "Copilco",
+          "icon_file": "3.20_Copilco.svg",
+          "icon_key": "3_20_copilco",
+          "aliases": [
+            "copilco"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.335907707753,
+      "lon": -99.176630973816
+    },
+    {
+      "line": "3",
+      "index": 21,
+      "current_name": "Universidad",
+      "base_name_in_gtfs_or_seed": "Universidad",
+      "open_date": "1983-08-30",
+      "current_icon_file": "3.21_Universidad.svg",
+      "aliases": [
+        "universidad"
+      ],
+      "eras": [
+        {
+          "from": "1983-08-30",
+          "to": null,
+          "name": "Universidad",
+          "icon_file": "3.21_Universidad.svg",
+          "icon_key": "3_21_universidad",
+          "aliases": [
+            "universidad"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.324123340778,
+      "lon": -99.174313545227
+    },
+    {
+      "line": "4",
+      "index": 1,
+      "current_name": "Martín Carrera",
+      "base_name_in_gtfs_or_seed": "Martín Carrera",
+      "open_date": "1981-08-29",
+      "current_icon_file": "4.1_Martin_Carrera.svg",
+      "aliases": [
+        "martin_carrera"
+      ],
+      "eras": [
+        {
+          "from": "1981-08-29",
+          "to": null,
+          "name": "Martín Carrera",
+          "icon_file": "4.1_Martin_Carrera.svg",
+          "icon_key": "4_1_martin_carrera",
+          "aliases": [
+            "martin_carrera"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.485122828173,
+      "lon": -99.104404449463
+    },
+    {
+      "line": "4",
+      "index": 2,
+      "current_name": "Talismán",
+      "base_name_in_gtfs_or_seed": "Talismán",
+      "open_date": "1981-08-29",
+      "current_icon_file": "4.2_Talisman.svg",
+      "aliases": [
+        "talisman"
+      ],
+      "eras": [
+        {
+          "from": "1981-08-29",
+          "to": null,
+          "name": "Talismán",
+          "icon_file": "4.2_Talisman.svg",
+          "icon_key": "4_2_talisman",
+          "aliases": [
+            "talisman"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.474360774988,
+      "lon": -99.108052253723
+    },
+    {
+      "line": "4",
+      "index": 3,
+      "current_name": "Bondojito",
+      "base_name_in_gtfs_or_seed": "Bondojito",
+      "open_date": "1981-08-29",
+      "current_icon_file": "4.3_Bondojito.svg",
+      "aliases": [
+        "bondojito"
+      ],
+      "eras": [
+        {
+          "from": "1981-08-29",
+          "to": null,
+          "name": "Bondojito",
+          "icon_file": "4.3_Bondojito.svg",
+          "icon_key": "4_3_bondojito",
+          "aliases": [
+            "bondojito"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.464771426131,
+      "lon": -99.111957550049
+    },
+    {
+      "line": "4",
+      "index": 4,
+      "current_name": "Consulado",
+      "base_name_in_gtfs_or_seed": "Consulado",
+      "open_date": "1981-08-29",
+      "current_icon_file": "4.4_Consulado.svg",
+      "aliases": [
+        "consulado"
+      ],
+      "eras": [
+        {
+          "from": "1981-08-29",
+          "to": null,
+          "name": "Consulado",
+          "icon_file": "4.4_Consulado.svg",
+          "icon_key": "4_4_consulado",
+          "aliases": [
+            "consulado"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.458094962228,
+      "lon": -99.113931655884
+    },
+    {
+      "line": "4",
+      "index": 5,
+      "current_name": "Canal del Norte",
+      "base_name_in_gtfs_or_seed": "Canal del Norte",
+      "open_date": "1981-08-29",
+      "current_icon_file": "4.5_Canal_del_Norte.svg",
+      "aliases": [
+        "canal_del_norte"
+      ],
+      "eras": [
+        {
+          "from": "1981-08-29",
+          "to": null,
+          "name": "Canal del Norte",
+          "icon_file": "4.5_Canal_del_Norte.svg",
+          "icon_key": "4_5_canal_del_norte",
+          "aliases": [
+            "canal_del_norte"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.448868850702,
+      "lon": -99.116184711456
+    },
+    {
+      "line": "4",
+      "index": 6,
+      "current_name": "Morelos",
+      "base_name_in_gtfs_or_seed": "Morelos",
+      "open_date": "1981-08-29",
+      "current_icon_file": "4.6_Morelos.svg",
+      "aliases": [
+        "morelos"
+      ],
+      "eras": [
+        {
+          "from": "1981-08-29",
+          "to": null,
+          "name": "Morelos",
+          "icon_file": "4.6_Morelos.svg",
+          "icon_key": "4_6_morelos",
+          "aliases": [
+            "morelos"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.438974477102,
+      "lon": -99.11824464798
+    },
+    {
+      "line": "4",
+      "index": 7,
+      "current_name": "Candelaria",
+      "base_name_in_gtfs_or_seed": "Candelaria",
+      "open_date": "1981-08-29",
+      "current_icon_file": "4.7_Candelaria.svg",
+      "aliases": [
+        "candelaria"
+      ],
+      "eras": [
+        {
+          "from": "1981-08-29",
+          "to": null,
+          "name": "Candelaria",
+          "icon_file": "4.7_Candelaria.svg",
+          "icon_key": "4_7_candelaria",
+          "aliases": [
+            "candelaria"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.428836671354,
+      "lon": -99.11906003952
+    },
+    {
+      "line": "4",
+      "index": 8,
+      "current_name": "Fray Servando",
+      "base_name_in_gtfs_or_seed": "Fray Servando",
+      "open_date": "1982-05-26",
+      "current_icon_file": "4.8_Fray_Servando.svg",
+      "aliases": [
+        "fray_servando"
+      ],
+      "eras": [
+        {
+          "from": "1982-05-26",
+          "to": null,
+          "name": "Fray Servando",
+          "icon_file": "4.8_Fray_Servando.svg",
+          "icon_key": "4_8_fray_servando",
+          "aliases": [
+            "fray_servando"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.421673049854,
+      "lon": -99.120562076569
+    },
+    {
+      "line": "4",
+      "index": 9,
+      "current_name": "Jamaica",
+      "base_name_in_gtfs_or_seed": "Jamaica",
+      "open_date": "1982-05-26",
+      "current_icon_file": "4.9_Jamaica.svg",
+      "aliases": [
+        "jamaica"
+      ],
+      "eras": [
+        {
+          "from": "1982-05-26",
+          "to": null,
+          "name": "Jamaica",
+          "icon_file": "4.9_Jamaica.svg",
+          "icon_key": "4_9_jamaica",
+          "aliases": [
+            "jamaica"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.409105595039,
+      "lon": -99.121785163879
+    },
+    {
+      "line": "4",
+      "index": 10,
+      "current_name": "Santa Anita",
+      "base_name_in_gtfs_or_seed": "Santa Anita",
+      "open_date": "1982-05-26",
+      "current_icon_file": "4.10_Santa_Anita.svg",
+      "aliases": [
+        "santa_anita"
+      ],
+      "eras": [
+        {
+          "from": "1982-05-26",
+          "to": null,
+          "name": "Santa Anita",
+          "icon_file": "4.10_Santa_Anita.svg",
+          "icon_key": "4_10_santa_anita",
+          "aliases": [
+            "santa_anita"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.403114968757,
+      "lon": -99.122107028961
+    },
+    {
+      "line": "5",
+      "index": 1,
+      "current_name": "Pantitlán",
+      "base_name_in_gtfs_or_seed": "Pantitlán",
+      "open_date": "1981-12-19",
+      "current_icon_file": "5.1_Pantitlan.svg",
+      "aliases": [
+        "pantitlan"
+      ],
+      "eras": [
+        {
+          "from": "1981-12-19",
+          "to": null,
+          "name": "Pantitlán",
+          "icon_file": "5.1_Pantitlan.svg",
+          "icon_key": "5_1_pantitlan",
+          "aliases": [
+            "pantitlan"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.41535908772,
+      "lon": -99.072196483612
+    },
+    {
+      "line": "5",
+      "index": 2,
+      "current_name": "Hangares",
+      "base_name_in_gtfs_or_seed": "Hangares",
+      "open_date": "1981-12-19",
+      "current_icon_file": "5.2_Hangares.svg",
+      "aliases": [
+        "hangares"
+      ],
+      "eras": [
+        {
+          "from": "1981-12-19",
+          "to": null,
+          "name": "Hangares",
+          "icon_file": "5.2_Hangares.svg",
+          "icon_key": "5_2_hangares",
+          "aliases": [
+            "hangares"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.424101431512,
+      "lon": -99.087431430817
+    },
+    {
+      "line": "5",
+      "index": 3,
+      "current_name": "Terminal Aérea",
+      "base_name_in_gtfs_or_seed": "Terminal Aérea",
+      "open_date": "1981-12-19",
+      "current_icon_file": "5.3_Terminal_Aerea.svg",
+      "aliases": [
+        "terminal_aerea"
+      ],
+      "eras": [
+        {
+          "from": "1981-12-19",
+          "to": null,
+          "name": "Terminal Aérea",
+          "icon_file": "5.3_Terminal_Aerea.svg",
+          "icon_key": "5_3_terminal_aerea",
+          "aliases": [
+            "terminal_aerea"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.433814595177,
+      "lon": -99.087710380554
+    },
+    {
+      "line": "5",
+      "index": 4,
+      "current_name": "Oceanía",
+      "base_name_in_gtfs_or_seed": "Oceanía",
+      "open_date": "1981-12-19",
+      "current_icon_file": "5.4_Oceania.svg",
+      "aliases": [
+        "oceania"
+      ],
+      "eras": [
+        {
+          "from": "1981-12-19",
+          "to": null,
+          "name": "Oceanía",
+          "icon_file": "5.4_Oceania.svg",
+          "icon_key": "5_4_oceania",
+          "aliases": [
+            "oceania"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.445793363598,
+      "lon": -99.087195396423
+    },
+    {
+      "line": "5",
+      "index": 5,
+      "current_name": "Aragón",
+      "base_name_in_gtfs_or_seed": "Aragón",
+      "open_date": "1981-12-19",
+      "current_icon_file": "5.5_Aragon.svg",
+      "aliases": [
+        "aragon"
+      ],
+      "eras": [
+        {
+          "from": "1981-12-19",
+          "to": null,
+          "name": "Aragón",
+          "icon_file": "5.5_Aragon.svg",
+          "icon_key": "5_5_aragon",
+          "aliases": [
+            "aragon"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.450811233576,
+      "lon": -99.09637928009
+    },
+    {
+      "line": "5",
+      "index": 6,
+      "current_name": "Eduardo Molina",
+      "base_name_in_gtfs_or_seed": "Eduardo Molina",
+      "open_date": "1981-12-19",
+      "current_icon_file": "5.6_Eduardo_Molina.svg",
+      "aliases": [
+        "eduardo_molina"
+      ],
+      "eras": [
+        {
+          "from": "1981-12-19",
+          "to": null,
+          "name": "Eduardo Molina",
+          "icon_file": "5.6_Eduardo_Molina.svg",
+          "icon_key": "5_6_eduardo_molina",
+          "aliases": [
+            "eduardo_molina"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.451013563788,
+      "lon": -99.105434417725
+    },
+    {
+      "line": "5",
+      "index": 7,
+      "current_name": "Consulado",
+      "base_name_in_gtfs_or_seed": "Consulado",
+      "open_date": "1981-12-19",
+      "current_icon_file": "5.7_Consulado.svg",
+      "aliases": [
+        "consulado"
+      ],
+      "eras": [
+        {
+          "from": "1981-12-19",
+          "to": null,
+          "name": "Consulado",
+          "icon_file": "5.7_Consulado.svg",
+          "icon_key": "5_7_consulado",
+          "aliases": [
+            "consulado"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.458054497972,
+      "lon": -99.113931655884
+    },
+    {
+      "line": "5",
+      "index": 8,
+      "current_name": "Valle Gómez",
+      "base_name_in_gtfs_or_seed": "Valle Gómez",
+      "open_date": "1982-07-01",
+      "current_icon_file": "5.8_Valle_Gomez.svg",
+      "aliases": [
+        "valle_gomez"
+      ],
+      "eras": [
+        {
+          "from": "1982-07-01",
+          "to": null,
+          "name": "Valle Gómez",
+          "icon_file": "5.8_Valle_Gomez.svg",
+          "icon_key": "5_8_valle_gomez",
+          "aliases": [
+            "valle_gomez"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.458722156899,
+      "lon": -99.119317531586
+    },
+    {
+      "line": "5",
+      "index": 9,
+      "current_name": "Misterios",
+      "base_name_in_gtfs_or_seed": "Misterios",
+      "open_date": "1982-07-01",
+      "current_icon_file": "5.9_Misterios.svg",
+      "aliases": [
+        "misterios"
+      ],
+      "eras": [
+        {
+          "from": "1982-07-01",
+          "to": null,
+          "name": "Misterios",
+          "icon_file": "5.9_Misterios.svg",
+          "icon_key": "5_9_misterios",
+          "aliases": [
+            "misterios"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.463405609131,
+      "lon": -99.130798339844
+    },
+    {
+      "line": "5",
+      "index": 10,
+      "current_name": "La Raza",
+      "base_name_in_gtfs_or_seed": "La Raza",
+      "open_date": "1982-07-01",
+      "current_icon_file": "5.10_La_Raza.svg",
+      "aliases": [
+        "la_raza"
+      ],
+      "eras": [
+        {
+          "from": "1982-07-01",
+          "to": null,
+          "name": "La Raza",
+          "icon_file": "5.10_La_Raza.svg",
+          "icon_key": "5_10_la_raza",
+          "aliases": [
+            "la_raza"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.470881161245,
+      "lon": -99.136912822723
+    },
+    {
+      "line": "5",
+      "index": 11,
+      "current_name": "Autobuses del Norte",
+      "base_name_in_gtfs_or_seed": "Autobuses del Norte",
+      "open_date": "1982-08-30",
+      "current_icon_file": "5.11_Autobuses_del_Norte.svg",
+      "aliases": [
+        "autobuses_del_norte"
+      ],
+      "eras": [
+        {
+          "from": "1982-08-30",
+          "to": null,
+          "name": "Autobuses del Norte",
+          "icon_file": "5.11_Autobuses_del_Norte.svg",
+          "icon_key": "5_11_autobuses_del_norte",
+          "aliases": [
+            "autobuses_del_norte"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.479114777624,
+      "lon": -99.140689373016
+    },
+    {
+      "line": "5",
+      "index": 12,
+      "current_name": "Instituto del Petróleo",
+      "base_name_in_gtfs_or_seed": "Instituto del Petróleo",
+      "open_date": "1982-08-30",
+      "current_icon_file": "5.12_Instituto_del_Petroleo.svg",
+      "aliases": [
+        "instituto_del_petroleo"
+      ],
+      "eras": [
+        {
+          "from": "1982-08-30",
+          "to": null,
+          "name": "Instituto del Petróleo",
+          "icon_file": "5.12_Instituto_del_Petroleo.svg",
+          "icon_key": "5_12_instituto_del_petroleo",
+          "aliases": [
+            "instituto_del_petroleo"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.489370810201,
+      "lon": -99.14528131485
+    },
+    {
+      "line": "5",
+      "index": 13,
+      "current_name": "Politécnico",
+      "base_name_in_gtfs_or_seed": "Politécnico",
+      "open_date": "1982-08-30",
+      "current_icon_file": "5.13_Politecnico.svg",
+      "aliases": [
+        "politecnico"
+      ],
+      "eras": [
+        {
+          "from": "1982-08-30",
+          "to": null,
+          "name": "Politécnico",
+          "icon_file": "5.13_Politecnico.svg",
+          "icon_key": "5_13_politecnico",
+          "aliases": [
+            "politecnico"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.50053640278,
+      "lon": -99.149658679962
+    },
+    {
+      "line": "6",
+      "index": 1,
+      "current_name": "El Rosario",
+      "base_name_in_gtfs_or_seed": "El Rosario",
+      "open_date": "1983-12-21",
+      "current_icon_file": "6.1_El_Rosario.svg",
+      "aliases": [
+        "el_rosario"
+      ],
+      "eras": [
+        {
+          "from": "1983-12-21",
+          "to": null,
+          "name": "El Rosario",
+          "icon_file": "6.1_El_Rosario.svg",
+          "icon_key": "6_1_el_rosario",
+          "aliases": [
+            "el_rosario"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.5045817172,
+      "lon": -99.200084209442
+    },
+    {
+      "line": "6",
+      "index": 2,
+      "current_name": "Tezozómoc",
+      "base_name_in_gtfs_or_seed": "Tezozómoc",
+      "open_date": "1983-12-21",
+      "current_icon_file": "6.2_Tezozomoc.svg",
+      "aliases": [
+        "tezozomoc"
+      ],
+      "eras": [
+        {
+          "from": "1983-12-21",
+          "to": null,
+          "name": "Tezozómoc",
+          "icon_file": "6.2_Tezozomoc.svg",
+          "icon_key": "6_2_tezozomoc",
+          "aliases": [
+            "tezozomoc"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.495034612851,
+      "lon": -99.196286201477
+    },
+    {
+      "line": "6",
+      "index": 3,
+      "current_name": "UAM-Azcapotzalco",
+      "base_name_in_gtfs_or_seed": "Azcapotzalco",
+      "open_date": "1983-12-21",
+      "current_icon_file": "6.3_UAM_Azcapotzalco.svg",
+      "aliases": [
+        "azcapotzalco",
+        "uam_azcapotzalco"
+      ],
+      "eras": [
+        {
+          "from": "1983-12-21",
+          "to": "2015-05-20",
+          "name": "Azcapotzalco",
+          "icon_file": "6.3_Azcapotzalco.svg",
+          "icon_key": "6_3_azcapotzalco",
+          "aliases": [
+            "azcapotzalco"
+          ],
+          "note": "Nombre previo a la denominación UAM-Azcapotzalco."
+        },
+        {
+          "from": "2015-05-21",
+          "to": null,
+          "name": "UAM-Azcapotzalco",
+          "icon_file": "6.3_UAM_Azcapotzalco.svg",
+          "icon_key": "6_3_uam_azcapotzalco",
+          "aliases": [
+            "uam_azcapotzalco"
+          ],
+          "note": "Nombre vigente desde 2015."
+        }
+      ],
+      "lat": 19.491029515783,
+      "lon": -99.186437129974
+    },
+    {
+      "line": "6",
+      "index": 4,
+      "current_name": "Ferrería/Arena CDMX",
+      "base_name_in_gtfs_or_seed": "Ferrería",
+      "open_date": "1983-12-21",
+      "current_icon_file": "6.4_Ferreria_Arena_CDMX.svg",
+      "aliases": [
+        "ferreria",
+        "ferreria_arena_cdmx"
+      ],
+      "eras": [
+        {
+          "from": "1983-12-21",
+          "to": "2012-11-28",
+          "name": "Ferrería",
+          "icon_file": "6.4_Ferreria.svg",
+          "icon_key": "6_4_ferreria",
+          "aliases": [
+            "ferreria"
+          ],
+          "note": "Nombre e iconografía previos a Arena Ciudad de México."
+        },
+        {
+          "from": "2012-11-29",
+          "to": null,
+          "name": "Ferrería/Arena CDMX",
+          "icon_file": "6.4_Ferreria-Arena_CDMX.svg",
+          "icon_key": "6_4_ferreria_arena_cdmx",
+          "aliases": [
+            "ferreria_arena_cdmx",
+            "ferreria_arena_ciudad_de_mexico"
+          ],
+          "note": "Nombre vigente desde 2012."
+        }
+      ],
+      "lat": 19.490989059751,
+      "lon": -99.173991680145
+    },
+    {
+      "line": "6",
+      "index": 5,
+      "current_name": "Norte 45",
+      "base_name_in_gtfs_or_seed": "Norte 45",
+      "open_date": "1983-12-21",
+      "current_icon_file": "6.5_Norte_45.svg",
+      "aliases": [
+        "norte_45"
+      ],
+      "eras": [
+        {
+          "from": "1983-12-21",
+          "to": null,
+          "name": "Norte 45",
+          "icon_file": "6.5_Norte_45.svg",
+          "icon_key": "6_5_norte_45",
+          "aliases": [
+            "norte_45"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.488946017013,
+      "lon": -99.162790775299
+    },
+    {
+      "line": "6",
+      "index": 6,
+      "current_name": "Vallejo",
+      "base_name_in_gtfs_or_seed": "Vallejo",
+      "open_date": "1983-12-21",
+      "current_icon_file": "6.6_Vallejo.svg",
+      "aliases": [
+        "vallejo"
+      ],
+      "eras": [
+        {
+          "from": "1983-12-21",
+          "to": null,
+          "name": "Vallejo",
+          "icon_file": "6.6_Vallejo.svg",
+          "icon_key": "6_6_vallejo",
+          "aliases": [
+            "vallejo"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.490325927734,
+      "lon": -99.155555725098
+    },
+    {
+      "line": "6",
+      "index": 7,
+      "current_name": "Instituto del Petróleo",
+      "base_name_in_gtfs_or_seed": "Instituto del Petróleo",
+      "open_date": "1983-12-21",
+      "current_icon_file": "6.7_Instituto_del_Petroleo.svg",
+      "aliases": [
+        "instituto_del_petroleo"
+      ],
+      "eras": [
+        {
+          "from": "1983-12-21",
+          "to": null,
+          "name": "Instituto del Petróleo",
+          "icon_file": "6.7_Instituto_del_Petroleo.svg",
+          "icon_key": "6_7_instituto_del_petroleo",
+          "aliases": [
+            "instituto_del_petroleo"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.48939103842,
+      "lon": -99.14528131485
+    },
+    {
+      "line": "6",
+      "index": 8,
+      "current_name": "Lindavista",
+      "base_name_in_gtfs_or_seed": "Lindavista",
+      "open_date": "1986-07-08",
+      "current_icon_file": "6.8_Lindavista.svg",
+      "aliases": [
+        "lindavista"
+      ],
+      "eras": [
+        {
+          "from": "1986-07-08",
+          "to": null,
+          "name": "Lindavista",
+          "icon_file": "6.8_Lindavista.svg",
+          "icon_key": "6_8_lindavista",
+          "aliases": [
+            "lindavista"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.487772772896,
+      "lon": -99.134745597839
+    },
+    {
+      "line": "6",
+      "index": 9,
+      "current_name": "Deportivo 18 de Marzo",
+      "base_name_in_gtfs_or_seed": "Deportivo 18 de Marzo",
+      "open_date": "1986-07-08",
+      "current_icon_file": "6.9_Deportivo_18_de_Marzo.svg",
+      "aliases": [
+        "deportivo_18_de_marzo"
+      ],
+      "eras": [
+        {
+          "from": "1986-07-08",
+          "to": "1996-09-23",
+          "name": "Basílica",
+          "icon_file": "3.2_Basilica.svg",
+          "icon_key": "3_2_basilica",
+          "aliases": [
+            "basilica"
+          ],
+          "note": "Correspondencia heredada con el nombre Basílica antes de 1996."
+        },
+        {
+          "from": "1996-09-24",
+          "to": null,
+          "name": "Deportivo 18 de Marzo",
+          "icon_file": "3.2_Deportivo_18_de_Marzo.svg",
+          "icon_key": "3_2_deportivo_18_de_marzo",
+          "aliases": [
+            "dep_18_montevideo",
+            "deportivo_18_de_marzo",
+            "deportivo_18_marzo"
+          ],
+          "note": "Nombre vigente desde 1996."
+        }
+      ],
+      "lat": 19.483807954006,
+      "lon": -99.126591682434
+    },
+    {
+      "line": "6",
+      "index": 10,
+      "current_name": "La Villa-Basílica",
+      "base_name_in_gtfs_or_seed": "La Villa-Basílica",
+      "open_date": "1986-07-08",
+      "current_icon_file": "6.10_La_Villa_Basilica.svg",
+      "aliases": [
+        "la_villa_basilica"
+      ],
+      "eras": [
+        {
+          "from": "1986-07-08",
+          "to": "1996-09-23",
+          "name": "La Villa",
+          "icon_file": "6.10_La_Villa.svg",
+          "icon_key": "6_10_la_villa",
+          "aliases": [
+            "la_villa"
+          ],
+          "note": "Nombre e iconografía previos de La Villa-Basílica."
+        },
+        {
+          "from": "1996-09-24",
+          "to": null,
+          "name": "La Villa-Basílica",
+          "icon_file": "6.10_La_Villa-Basilica.svg",
+          "icon_key": "6_10_la_villa_basilica",
+          "aliases": [
+            "la_villa_basilica"
+          ],
+          "note": "Nombre vigente desde 1996."
+        }
+      ],
+      "lat": 19.481542299628,
+      "lon": -99.11794424057
+    },
+    {
+      "line": "6",
+      "index": 11,
+      "current_name": "Martín Carrera",
+      "base_name_in_gtfs_or_seed": "Martín Carrera",
+      "open_date": "1986-07-08",
+      "current_icon_file": "6.11_Martin_Carrera.svg",
+      "aliases": [
+        "martin_carrera"
+      ],
+      "eras": [
+        {
+          "from": "1986-07-08",
+          "to": null,
+          "name": "Martín Carrera",
+          "icon_file": "6.11_Martin_Carrera.svg",
+          "icon_key": "6_11_martin_carrera",
+          "aliases": [
+            "martin_carrera"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.485062141908,
+      "lon": -99.104382991791
+    },
+    {
+      "line": "7",
+      "index": 1,
+      "current_name": "El Rosario",
+      "base_name_in_gtfs_or_seed": "El Rosario",
+      "open_date": "1988-11-29",
+      "current_icon_file": "7.1_El_Rosario.svg",
+      "aliases": [
+        "el_rosario"
+      ],
+      "eras": [
+        {
+          "from": "1988-11-29",
+          "to": null,
+          "name": "El Rosario",
+          "icon_file": "7.1_El_Rosario.svg",
+          "icon_key": "7_1_el_rosario",
+          "aliases": [
+            "el_rosario"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.504622169833,
+      "lon": -99.200084209442
+    },
+    {
+      "line": "7",
+      "index": 2,
+      "current_name": "Aquiles Serdán",
+      "base_name_in_gtfs_or_seed": "Aquiles Serdán",
+      "open_date": "1988-11-29",
+      "current_icon_file": "7.2_Aquiles_Serdan.svg",
+      "aliases": [
+        "aquiles_serdan"
+      ],
+      "eras": [
+        {
+          "from": "1988-11-29",
+          "to": null,
+          "name": "Aquiles Serdán",
+          "icon_file": "7.2_Aquiles_Serdan.svg",
+          "icon_key": "7_2_aquiles_serdan",
+          "aliases": [
+            "aquiles_serdan"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.490503586585,
+      "lon": -99.194869995117
+    },
+    {
+      "line": "7",
+      "index": 3,
+      "current_name": "Camarones",
+      "base_name_in_gtfs_or_seed": "Camarones",
+      "open_date": "1988-11-29",
+      "current_icon_file": "7.3_Camarones.svg",
+      "aliases": [
+        "camarones"
+      ],
+      "eras": [
+        {
+          "from": "1988-11-29",
+          "to": null,
+          "name": "Camarones",
+          "icon_file": "7.3_Camarones.svg",
+          "icon_key": "7_3_camarones",
+          "aliases": [
+            "camarones"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.4792159251,
+      "lon": -99.190170764923
+    },
+    {
+      "line": "7",
+      "index": 4,
+      "current_name": "Refinería",
+      "base_name_in_gtfs_or_seed": "Refinería",
+      "open_date": "1988-11-29",
+      "current_icon_file": "7.4_Refineria.svg",
+      "aliases": [
+        "refineria"
+      ],
+      "eras": [
+        {
+          "from": "1988-11-29",
+          "to": null,
+          "name": "Refinería",
+          "icon_file": "7.4_Refineria.svg",
+          "icon_key": "7_4_refineria",
+          "aliases": [
+            "refineria"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.470092168667,
+      "lon": -99.190599918365
+    },
+    {
+      "line": "7",
+      "index": 5,
+      "current_name": "Tacuba",
+      "base_name_in_gtfs_or_seed": "Tacuba",
+      "open_date": "1984-12-20",
+      "current_icon_file": "7.5_Tacuba.svg",
+      "aliases": [
+        "tacuba"
+      ],
+      "eras": [
+        {
+          "from": "1984-12-20",
+          "to": null,
+          "name": "Tacuba",
+          "icon_file": "7.5_Tacuba.svg",
+          "icon_key": "7_5_tacuba",
+          "aliases": [
+            "tacuba"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.459349349145,
+      "lon": -99.189248085022
+    },
+    {
+      "line": "7",
+      "index": 6,
+      "current_name": "San Joaquín",
+      "base_name_in_gtfs_or_seed": "San Joaquín",
+      "open_date": "1984-12-20",
+      "current_icon_file": "7.6_San_Joaquin.svg",
+      "aliases": [
+        "san_joaquin"
+      ],
+      "eras": [
+        {
+          "from": "1984-12-20",
+          "to": null,
+          "name": "San Joaquín",
+          "icon_file": "7.6_San_Joaquin.svg",
+          "icon_key": "7_6_san_joaquin",
+          "aliases": [
+            "san_joaquin"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.445833830912,
+      "lon": -99.191865921021
+    },
+    {
+      "line": "7",
+      "index": 7,
+      "current_name": "Polanco",
+      "base_name_in_gtfs_or_seed": "Polanco",
+      "open_date": "1984-12-20",
+      "current_icon_file": "7.7_Polanco.svg",
+      "aliases": [
+        "polanco"
+      ],
+      "eras": [
+        {
+          "from": "1984-12-20",
+          "to": null,
+          "name": "Polanco",
+          "icon_file": "7.7_Polanco.svg",
+          "icon_key": "7_7_polanco",
+          "aliases": [
+            "polanco"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.433065892805,
+      "lon": -99.19105052948
+    },
+    {
+      "line": "7",
+      "index": 8,
+      "current_name": "Auditorio",
+      "base_name_in_gtfs_or_seed": "Auditorio",
+      "open_date": "1984-12-20",
+      "current_icon_file": "7.8_Auditorio.svg",
+      "aliases": [
+        "auditorio"
+      ],
+      "eras": [
+        {
+          "from": "1984-12-20",
+          "to": null,
+          "name": "Auditorio",
+          "icon_file": "7.8_Auditorio.svg",
+          "icon_key": "7_8_auditorio",
+          "aliases": [
+            "auditorio"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.425538206904,
+      "lon": -99.191994667053
+    },
+    {
+      "line": "7",
+      "index": 9,
+      "current_name": "Constituyentes",
+      "base_name_in_gtfs_or_seed": "Constituyentes",
+      "open_date": "1985-08-23",
+      "current_icon_file": "7.9_Constituyentes.svg",
+      "aliases": [
+        "constituyentes"
+      ],
+      "eras": [
+        {
+          "from": "1985-08-23",
+          "to": null,
+          "name": "Constituyentes",
+          "icon_file": "7.9_Constituyentes.svg",
+          "icon_key": "7_9_constituyentes",
+          "aliases": [
+            "constituyentes"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.411918684616,
+      "lon": -99.190943241119
+    },
+    {
+      "line": "7",
+      "index": 10,
+      "current_name": "Tacubaya",
+      "base_name_in_gtfs_or_seed": "Tacubaya",
+      "open_date": "1985-08-23",
+      "current_icon_file": "7.10_Tacubaya.svg",
+      "aliases": [
+        "tacubaya"
+      ],
+      "eras": [
+        {
+          "from": "1985-08-23",
+          "to": null,
+          "name": "Tacubaya",
+          "icon_file": "7.10_Tacubaya.svg",
+          "icon_key": "7_10_tacubaya",
+          "aliases": [
+            "tacubaya"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.40317568567,
+      "lon": -99.187123775482
+    },
+    {
+      "line": "7",
+      "index": 11,
+      "current_name": "San Pedro de los Pinos",
+      "base_name_in_gtfs_or_seed": "San Pedro de los Pinos",
+      "open_date": "1985-12-19",
+      "current_icon_file": "7.11_San_Pedro_de_los_Pinos.svg",
+      "aliases": [
+        "san_pedro_de_los_pinos"
+      ],
+      "eras": [
+        {
+          "from": "1985-12-19",
+          "to": null,
+          "name": "San Pedro de los Pinos",
+          "icon_file": "7.11_San_Pedro_de_los_Pinos.svg",
+          "icon_key": "7_11_san_pedro_de_los_pinos",
+          "aliases": [
+            "san_pedro_de_los_pinos"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.391274737581,
+      "lon": -99.186072349548
+    },
+    {
+      "line": "7",
+      "index": 12,
+      "current_name": "San Antonio",
+      "base_name_in_gtfs_or_seed": "San Antonio",
+      "open_date": "1985-12-19",
+      "current_icon_file": "7.12_San_Antonio.svg",
+      "aliases": [
+        "san_antonio"
+      ],
+      "eras": [
+        {
+          "from": "1985-12-19",
+          "to": null,
+          "name": "San Antonio",
+          "icon_file": "7.12_San_Antonio.svg",
+          "icon_key": "7_12_san_antonio",
+          "aliases": [
+            "san_antonio"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.384514287687,
+      "lon": -99.186050891876
+    },
+    {
+      "line": "7",
+      "index": 13,
+      "current_name": "Mixcoac",
+      "base_name_in_gtfs_or_seed": "Mixcoac",
+      "open_date": "1985-12-19",
+      "current_icon_file": "7.13_Mixcoac.svg",
+      "aliases": [
+        "mixcoac"
+      ],
+      "eras": [
+        {
+          "from": "1985-12-19",
+          "to": null,
+          "name": "Mixcoac",
+          "icon_file": "7.13_Mixcoac.svg",
+          "icon_key": "7_13_mixcoac",
+          "aliases": [
+            "mixcoac"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.375911513019,
+      "lon": -99.18751001358
+    },
+    {
+      "line": "7",
+      "index": 14,
+      "current_name": "Barranca del Muerto",
+      "base_name_in_gtfs_or_seed": "Barranca del Muerto",
+      "open_date": "1985-12-19",
+      "current_icon_file": "7.14_Barranca_del_Muerto.svg",
+      "aliases": [
+        "barranca_del_muerto"
+      ],
+      "eras": [
+        {
+          "from": "1985-12-19",
+          "to": null,
+          "name": "Barranca del Muerto",
+          "icon_file": "7.14_Barranca_del_Muerto.svg",
+          "icon_key": "7_14_barranca_del_muerto",
+          "aliases": [
+            "barranca_del_muerto"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.360708793614,
+      "lon": -99.190170764923
+    },
+    {
+      "line": "8",
+      "index": 1,
+      "current_name": "Garibaldi / Lagunilla",
+      "base_name_in_gtfs_or_seed": "Garibaldi / Lagunilla",
+      "open_date": "1994-07-20",
+      "current_icon_file": "8.1_Garibaldi_Lagunilla.svg",
+      "aliases": [
+        "garibaldi_lagunilla"
+      ],
+      "eras": [
+        {
+          "from": "1994-07-20",
+          "to": null,
+          "name": "Garibaldi / Lagunilla",
+          "icon_file": "8.1_Garibaldi_Lagunilla.svg",
+          "icon_key": "8_1_garibaldi_lagunilla",
+          "aliases": [
+            "garibaldi_lagunilla"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.444397235086,
+      "lon": -99.139788150787
+    },
+    {
+      "line": "8",
+      "index": 2,
+      "current_name": "Bellas Artes",
+      "base_name_in_gtfs_or_seed": "Bellas Artes",
+      "open_date": "1994-07-20",
+      "current_icon_file": "8.2_Bellas_Artes.svg",
+      "aliases": [
+        "bellas_artes"
+      ],
+      "eras": [
+        {
+          "from": "1994-07-20",
+          "to": null,
+          "name": "Bellas Artes",
+          "icon_file": "8.2_Bellas_Artes.svg",
+          "icon_key": "8_2_bellas_artes",
+          "aliases": [
+            "bellas_artes"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.43642490888,
+      "lon": -99.141955375671
+    },
+    {
+      "line": "8",
+      "index": 3,
+      "current_name": "San Juan de Letrán",
+      "base_name_in_gtfs_or_seed": "San Juan de Letrán",
+      "open_date": "1994-07-20",
+      "current_icon_file": "8.3_San_Juan_de_Letran.svg",
+      "aliases": [
+        "san_juan_de_letran"
+      ],
+      "eras": [
+        {
+          "from": "1994-07-20",
+          "to": null,
+          "name": "San Juan de Letrán",
+          "icon_file": "8.3_San_Juan_de_Letran.svg",
+          "icon_key": "8_3_san_juan_de_letran",
+          "aliases": [
+            "san_juan_de_letran"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.431243896484,
+      "lon": -99.141494750977
+    },
+    {
+      "line": "8",
+      "index": 4,
+      "current_name": "Salto del Agua",
+      "base_name_in_gtfs_or_seed": "Salto del Agua",
+      "open_date": "1994-07-20",
+      "current_icon_file": "8.4_Salto_del_Agua.svg",
+      "aliases": [
+        "salto_del_agua"
+      ],
+      "eras": [
+        {
+          "from": "1994-07-20",
+          "to": null,
+          "name": "Salto del Agua",
+          "icon_file": "8.4_Salto_del_Agua.svg",
+          "icon_key": "8_4_salto_del_agua",
+          "aliases": [
+            "salto_del_agua"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.426772609418,
+      "lon": -99.142255783081
+    },
+    {
+      "line": "8",
+      "index": 5,
+      "current_name": "Doctores",
+      "base_name_in_gtfs_or_seed": "Doctores",
+      "open_date": "1994-07-20",
+      "current_icon_file": "8.5_Doctores.svg",
+      "aliases": [
+        "doctores"
+      ],
+      "eras": [
+        {
+          "from": "1994-07-20",
+          "to": null,
+          "name": "Doctores",
+          "icon_file": "8.5_Doctores.svg",
+          "icon_key": "8_5_doctores",
+          "aliases": [
+            "doctores"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.421652813188,
+      "lon": -99.143371582031
+    },
+    {
+      "line": "8",
+      "index": 6,
+      "current_name": "Obrera",
+      "base_name_in_gtfs_or_seed": "Obrera",
+      "open_date": "1994-07-20",
+      "current_icon_file": "8.6_Obrera.svg",
+      "aliases": [
+        "obrera"
+      ],
+      "eras": [
+        {
+          "from": "1994-07-20",
+          "to": null,
+          "name": "Obrera",
+          "icon_file": "8.6_Obrera.svg",
+          "icon_key": "8_6_obrera",
+          "aliases": [
+            "obrera"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.413330078125,
+      "lon": -99.144180297852
+    },
+    {
+      "line": "8",
+      "index": 7,
+      "current_name": "Chabacano",
+      "base_name_in_gtfs_or_seed": "Chabacano",
+      "open_date": "1994-07-20",
+      "current_icon_file": "8.7_Chabacano.svg",
+      "aliases": [
+        "chabacano"
+      ],
+      "eras": [
+        {
+          "from": "1994-07-20",
+          "to": null,
+          "name": "Chabacano",
+          "icon_file": "8.7_Chabacano.svg",
+          "icon_key": "8_7_chabacano",
+          "aliases": [
+            "chabacano"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.408498447018,
+      "lon": -99.135754108429
+    },
+    {
+      "line": "8",
+      "index": 8,
+      "current_name": "La Viga",
+      "base_name_in_gtfs_or_seed": "La Viga",
+      "open_date": "1994-07-20",
+      "current_icon_file": "8.8_La_Viga.svg",
+      "aliases": [
+        "la_viga"
+      ],
+      "eras": [
+        {
+          "from": "1994-07-20",
+          "to": null,
+          "name": "La Viga",
+          "icon_file": "8.8_La_Viga.svg",
+          "icon_key": "8_8_la_viga",
+          "aliases": [
+            "la_viga"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.406596035209,
+      "lon": -99.126291275024
+    },
+    {
+      "line": "8",
+      "index": 9,
+      "current_name": "Santa Anita",
+      "base_name_in_gtfs_or_seed": "Santa Anita",
+      "open_date": "1994-07-20",
+      "current_icon_file": "8.9_Santa_Anita.svg",
+      "aliases": [
+        "santa_anita"
+      ],
+      "eras": [
+        {
+          "from": "1994-07-20",
+          "to": null,
+          "name": "Santa Anita",
+          "icon_file": "8.9_Santa_Anita.svg",
+          "icon_key": "8_9_santa_anita",
+          "aliases": [
+            "santa_anita"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.403114968757,
+      "lon": -99.122128486633
+    },
+    {
+      "line": "8",
+      "index": 10,
+      "current_name": "Coyuya",
+      "base_name_in_gtfs_or_seed": "Coyuya",
+      "open_date": "1994-07-20",
+      "current_icon_file": "8.10_Coyuya.svg",
+      "aliases": [
+        "coyuya"
+      ],
+      "eras": [
+        {
+          "from": "1994-07-20",
+          "to": null,
+          "name": "Coyuya",
+          "icon_file": "8.10_Coyuya.svg",
+          "icon_key": "8_10_coyuya",
+          "aliases": [
+            "coyuya"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.398540896103,
+      "lon": -99.113502502441
+    },
+    {
+      "line": "8",
+      "index": 11,
+      "current_name": "Iztacalco",
+      "base_name_in_gtfs_or_seed": "Iztacalco",
+      "open_date": "1994-07-20",
+      "current_icon_file": "8.11_Iztacalco.svg",
+      "aliases": [
+        "iztacalco"
+      ],
+      "eras": [
+        {
+          "from": "1994-07-20",
+          "to": null,
+          "name": "Iztacalco",
+          "icon_file": "8.11_Iztacalco.svg",
+          "icon_key": "8_11_iztacalco",
+          "aliases": [
+            "iztacalco"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.38858273578,
+      "lon": -99.112322330475
+    },
+    {
+      "line": "8",
+      "index": 12,
+      "current_name": "Apatlaco",
+      "base_name_in_gtfs_or_seed": "Apatlaco",
+      "open_date": "1994-07-20",
+      "current_icon_file": "8.12_Apatlaco.svg",
+      "aliases": [
+        "apatlaco"
+      ],
+      "eras": [
+        {
+          "from": "1994-07-20",
+          "to": null,
+          "name": "Apatlaco",
+          "icon_file": "8.12_Apatlaco.svg",
+          "icon_key": "8_12_apatlaco",
+          "aliases": [
+            "apatlaco"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.379231225787,
+      "lon": -99.109683036804
+    },
+    {
+      "line": "8",
+      "index": 13,
+      "current_name": "Aculco",
+      "base_name_in_gtfs_or_seed": "Aculco",
+      "open_date": "1994-07-20",
+      "current_icon_file": "8.13_Aculco.svg",
+      "aliases": [
+        "aculco"
+      ],
+      "eras": [
+        {
+          "from": "1994-07-20",
+          "to": null,
+          "name": "Aculco",
+          "icon_file": "8.13_Aculco.svg",
+          "icon_key": "8_13_aculco",
+          "aliases": [
+            "aculco"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.37376580902,
+      "lon": -99.107730388641
+    },
+    {
+      "line": "8",
+      "index": 14,
+      "current_name": "Escuadrón 201",
+      "base_name_in_gtfs_or_seed": "Escuadrón 201",
+      "open_date": "1994-07-20",
+      "current_icon_file": "8.14_Escuadron_201.svg",
+      "aliases": [
+        "escuadron_201"
+      ],
+      "eras": [
+        {
+          "from": "1994-07-20",
+          "to": null,
+          "name": "Escuadrón 201",
+          "icon_file": "8.14_Escuadron_201.svg",
+          "icon_key": "8_14_escuadron_201",
+          "aliases": [
+            "escuadron_201"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.365041004588,
+      "lon": -99.109189510345
+    },
+    {
+      "line": "8",
+      "index": 15,
+      "current_name": "Atlalilco",
+      "base_name_in_gtfs_or_seed": "Atlalilco",
+      "open_date": "1994-07-20",
+      "current_icon_file": "8.15_Atlalilco.svg",
+      "aliases": [
+        "atlalilco"
+      ],
+      "eras": [
+        {
+          "from": "1994-07-20",
+          "to": null,
+          "name": "Atlalilco",
+          "icon_file": "8.15_Atlalilco.svg",
+          "icon_key": "8_15_atlalilco",
+          "aliases": [
+            "atlalilco"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.356174019578,
+      "lon": -99.101314544678
+    },
+    {
+      "line": "8",
+      "index": 16,
+      "current_name": "Iztapalapa",
+      "base_name_in_gtfs_or_seed": "Iztapalapa",
+      "open_date": "1994-07-20",
+      "current_icon_file": "8.16_Iztapalapa.svg",
+      "aliases": [
+        "iztapalapa"
+      ],
+      "eras": [
+        {
+          "from": "1994-07-20",
+          "to": null,
+          "name": "Iztapalapa",
+          "icon_file": "8.16_Iztapalapa.svg",
+          "icon_key": "8_16_iztapalapa",
+          "aliases": [
+            "iztapalapa"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.357935308399,
+      "lon": -99.093997478485
+    },
+    {
+      "line": "8",
+      "index": 17,
+      "current_name": "Cerro de la Estrella",
+      "base_name_in_gtfs_or_seed": "Cerro de la Estrella",
+      "open_date": "1994-07-20",
+      "current_icon_file": "8.17_Cerro_de_la_Estrella.svg",
+      "aliases": [
+        "cerro_de_la_estrella"
+      ],
+      "eras": [
+        {
+          "from": "1994-07-20",
+          "to": null,
+          "name": "Cerro de la Estrella",
+          "icon_file": "8.17_Cerro_de_la_Estrella.svg",
+          "icon_key": "8_17_cerro_de_la_estrella",
+          "aliases": [
+            "cerro_de_la_estrella"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.356052550682,
+      "lon": -99.085521697998
+    },
+    {
+      "line": "8",
+      "index": 18,
+      "current_name": "UAM-I",
+      "base_name_in_gtfs_or_seed": "UAM-I",
+      "open_date": "1994-07-20",
+      "current_icon_file": "8.18_UAM_I.svg",
+      "aliases": [
+        "uam_i"
+      ],
+      "eras": [
+        {
+          "from": "1994-07-20",
+          "to": "1996-09-23",
+          "name": "La Purísima",
+          "icon_file": "8.18_La_Purisima.svg",
+          "icon_key": "8_18_la_purisima",
+          "aliases": [
+            "la_purisima"
+          ],
+          "note": "Nombre e iconografía previos de UAM-I."
+        },
+        {
+          "from": "1996-09-24",
+          "to": null,
+          "name": "UAM-I",
+          "icon_file": "8.18_UAM-I.svg",
+          "icon_key": "8_18_uam_i",
+          "aliases": [
+            "uam_i",
+            "uam_i_iztapalapa",
+            "uam_iztapalapa"
+          ],
+          "note": "Nombre vigente desde 1996."
+        }
+      ],
+      "lat": 19.350728075203,
+      "lon": -99.074728488922
+    },
+    {
+      "line": "8",
+      "index": 19,
+      "current_name": "Constitución de 1917",
+      "base_name_in_gtfs_or_seed": "Constitución de 1917",
+      "open_date": "1994-07-20",
+      "current_icon_file": "8.19_Constitucion_de_1917.svg",
+      "aliases": [
+        "constitucion_de_1917"
+      ],
+      "eras": [
+        {
+          "from": "1994-07-20",
+          "to": null,
+          "name": "Constitución de 1917",
+          "icon_file": "8.19_Constitucion_de_1917.svg",
+          "icon_key": "8_19_constitucion_de_1917",
+          "aliases": [
+            "constitucion_de_1917"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.345727363947,
+      "lon": -99.063591957092
+    },
+    {
+      "line": "9",
+      "index": 1,
+      "current_name": "Tacubaya",
+      "base_name_in_gtfs_or_seed": "Tacubaya",
+      "open_date": "1988-08-29",
+      "current_icon_file": "9.1_Tacubaya.svg",
+      "aliases": [
+        "tacubaya"
+      ],
+      "eras": [
+        {
+          "from": "1988-08-29",
+          "to": null,
+          "name": "Tacubaya",
+          "icon_file": "9.1_Tacubaya.svg",
+          "icon_key": "9_1_tacubaya",
+          "aliases": [
+            "tacubaya"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.40317568567,
+      "lon": -99.187123775482
+    },
+    {
+      "line": "9",
+      "index": 2,
+      "current_name": "Patriotismo",
+      "base_name_in_gtfs_or_seed": "Patriotismo",
+      "open_date": "1988-08-29",
+      "current_icon_file": "9.2_Patriotismo.svg",
+      "aliases": [
+        "patriotismo"
+      ],
+      "eras": [
+        {
+          "from": "1988-08-29",
+          "to": null,
+          "name": "Patriotismo",
+          "icon_file": "9.2_Patriotismo.svg",
+          "icon_key": "9_2_patriotismo",
+          "aliases": [
+            "patriotismo"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.406251979634,
+      "lon": -99.178905487061
+    },
+    {
+      "line": "9",
+      "index": 3,
+      "current_name": "Chilpancingo",
+      "base_name_in_gtfs_or_seed": "Chilpancingo",
+      "open_date": "1988-08-29",
+      "current_icon_file": "9.3_Chilpancingo.svg",
+      "aliases": [
+        "chilpancingo"
+      ],
+      "eras": [
+        {
+          "from": "1988-08-29",
+          "to": null,
+          "name": "Chilpancingo",
+          "icon_file": "9.3_Chilpancingo.svg",
+          "icon_key": "9_3_chilpancingo",
+          "aliases": [
+            "chilpancingo"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.406069832269,
+      "lon": -99.168584346771
+    },
+    {
+      "line": "9",
+      "index": 4,
+      "current_name": "Centro Médico",
+      "base_name_in_gtfs_or_seed": "Centro Médico",
+      "open_date": "1987-08-26",
+      "current_icon_file": "9.4_Centro_Medico.svg",
+      "aliases": [
+        "centro_medico"
+      ],
+      "eras": [
+        {
+          "from": "1987-08-26",
+          "to": null,
+          "name": "Centro Médico",
+          "icon_file": "9.4_Centro_Medico.svg",
+          "icon_key": "9_4_centro_medico",
+          "aliases": [
+            "centro_medico"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.407041282521,
+      "lon": -99.155623912811
+    },
+    {
+      "line": "9",
+      "index": 5,
+      "current_name": "Lázaro Cárdenas",
+      "base_name_in_gtfs_or_seed": "Lázaro Cárdenas",
+      "open_date": "1987-08-26",
+      "current_icon_file": "9.5_Lazaro_Cardenas.svg",
+      "aliases": [
+        "lazaro_cardenas"
+      ],
+      "eras": [
+        {
+          "from": "1987-08-26",
+          "to": null,
+          "name": "Lázaro Cárdenas",
+          "icon_file": "9.5_Lazaro_Cardenas.svg",
+          "icon_key": "9_5_lazaro_cardenas",
+          "aliases": [
+            "lazaro_cardenas"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.407041282521,
+      "lon": -99.144895076752
+    },
+    {
+      "line": "9",
+      "index": 6,
+      "current_name": "Chabacano",
+      "base_name_in_gtfs_or_seed": "Chabacano",
+      "open_date": "1987-08-26",
+      "current_icon_file": "9.6_Chabacano.svg",
+      "aliases": [
+        "chabacano"
+      ],
+      "eras": [
+        {
+          "from": "1987-08-26",
+          "to": null,
+          "name": "Chabacano",
+          "icon_file": "9.6_Chabacano.svg",
+          "icon_key": "9_6_chabacano",
+          "aliases": [
+            "chabacano"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.408498447018,
+      "lon": -99.135754108429
+    },
+    {
+      "line": "9",
+      "index": 7,
+      "current_name": "Jamaica",
+      "base_name_in_gtfs_or_seed": "Jamaica",
+      "open_date": "1987-08-26",
+      "current_icon_file": "9.7_Jamaica.svg",
+      "aliases": [
+        "jamaica"
+      ],
+      "eras": [
+        {
+          "from": "1987-08-26",
+          "to": null,
+          "name": "Jamaica",
+          "icon_file": "9.7_Jamaica.svg",
+          "icon_key": "9_7_jamaica",
+          "aliases": [
+            "jamaica"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.409146071493,
+      "lon": -99.121763706207
+    },
+    {
+      "line": "9",
+      "index": 8,
+      "current_name": "Mixiuhca",
+      "base_name_in_gtfs_or_seed": "Mixiuhca",
+      "open_date": "1987-08-26",
+      "current_icon_file": "9.8_Mixiuhca.svg",
+      "aliases": [
+        "mixiuhca"
+      ],
+      "eras": [
+        {
+          "from": "1987-08-26",
+          "to": null,
+          "name": "Mixiuhca",
+          "icon_file": "9.8_Mixiuhca.svg",
+          "icon_key": "9_8_mixiuhca",
+          "aliases": [
+            "mixiuhca"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.408579400219,
+      "lon": -99.11288022995
+    },
+    {
+      "line": "9",
+      "index": 9,
+      "current_name": "Velódromo",
+      "base_name_in_gtfs_or_seed": "Velódromo",
+      "open_date": "1987-08-26",
+      "current_icon_file": "9.9_Velodromo.svg",
+      "aliases": [
+        "velodromo"
+      ],
+      "eras": [
+        {
+          "from": "1987-08-26",
+          "to": null,
+          "name": "Velódromo",
+          "icon_file": "9.9_Velodromo.svg",
+          "icon_key": "9_9_velodromo",
+          "aliases": [
+            "velodromo"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.408559161922,
+      "lon": -99.103052616119
+    },
+    {
+      "line": "9",
+      "index": 10,
+      "current_name": "Ciudad Deportiva",
+      "base_name_in_gtfs_or_seed": "Ciudad Deportiva",
+      "open_date": "1987-08-26",
+      "current_icon_file": "9.10_Ciudad_Deportiva.svg",
+      "aliases": [
+        "ciudad_deportiva"
+      ],
+      "eras": [
+        {
+          "from": "1987-08-26",
+          "to": null,
+          "name": "Ciudad Deportiva",
+          "icon_file": "9.10_Ciudad_Deportiva.svg",
+          "icon_key": "9_10_ciudad_deportiva",
+          "aliases": [
+            "ciudad_deportiva"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.408478208712,
+      "lon": -99.091250896454
+    },
+    {
+      "line": "9",
+      "index": 11,
+      "current_name": "Puebla",
+      "base_name_in_gtfs_or_seed": "Puebla",
+      "open_date": "1987-08-26",
+      "current_icon_file": "9.11_Puebla.svg",
+      "aliases": [
+        "puebla"
+      ],
+      "eras": [
+        {
+          "from": "1987-08-26",
+          "to": null,
+          "name": "Puebla",
+          "icon_file": "9.11_Puebla.svg",
+          "icon_key": "9_11_puebla",
+          "aliases": [
+            "puebla"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.407223428797,
+      "lon": -99.082474708557
+    },
+    {
+      "line": "9",
+      "index": 12,
+      "current_name": "Pantitlán",
+      "base_name_in_gtfs_or_seed": "Pantitlán",
+      "open_date": "1987-08-26",
+      "current_icon_file": "9.12_Pantitlan.svg",
+      "aliases": [
+        "pantitlan"
+      ],
+      "eras": [
+        {
+          "from": "1987-08-26",
+          "to": null,
+          "name": "Pantitlán",
+          "icon_file": "9.12_Pantitlan.svg",
+          "icon_key": "9_12_pantitlan",
+          "aliases": [
+            "pantitlan"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.41535908772,
+      "lon": -99.072196483612
+    },
+    {
+      "line": "A",
+      "index": 1,
+      "current_name": "Pantitlán",
+      "base_name_in_gtfs_or_seed": "Pantitlán",
+      "open_date": "1991-08-12",
+      "current_icon_file": "A.1_Pantitlan.svg",
+      "aliases": [
+        "pantitlan"
+      ],
+      "eras": [
+        {
+          "from": "1991-08-12",
+          "to": null,
+          "name": "Pantitlán",
+          "icon_file": "A.1_Pantitlan.svg",
+          "icon_key": "a_1_pantitlan",
+          "aliases": [
+            "pantitlan"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.415338850268,
+      "lon": -99.072217941284
+    },
+    {
+      "line": "A",
+      "index": 2,
+      "current_name": "Agrícola Oriental",
+      "base_name_in_gtfs_or_seed": "Agrícola Oriental",
+      "open_date": "1991-08-12",
+      "current_icon_file": "A.2_Agricola_Oriental.svg",
+      "aliases": [
+        "agricola_oriental"
+      ],
+      "eras": [
+        {
+          "from": "1991-08-12",
+          "to": null,
+          "name": "Agrícola Oriental",
+          "icon_file": "A.2_Agricola_Oriental.svg",
+          "icon_key": "a_2_agricola_oriental",
+          "aliases": [
+            "agricola_oriental"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.404794795009,
+      "lon": -99.069900512695
+    },
+    {
+      "line": "A",
+      "index": 3,
+      "current_name": "Canal de San Juan",
+      "base_name_in_gtfs_or_seed": "Canal de San Juan",
+      "open_date": "1991-08-12",
+      "current_icon_file": "A.3_Canal_de_San_Juan.svg",
+      "aliases": [
+        "canal_de_san_juan"
+      ],
+      "eras": [
+        {
+          "from": "1991-08-12",
+          "to": null,
+          "name": "Canal de San Juan",
+          "icon_file": "A.3_Canal_de_San_Juan.svg",
+          "icon_key": "a_3_canal_de_san_juan",
+          "aliases": [
+            "canal_de_san_juan"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.398733139038,
+      "lon": -99.059387207031
+    },
+    {
+      "line": "A",
+      "index": 4,
+      "current_name": "Tepalcates",
+      "base_name_in_gtfs_or_seed": "Tepalcates",
+      "open_date": "1991-08-12",
+      "current_icon_file": "A.4_Tepalcates.svg",
+      "aliases": [
+        "tepalcates"
+      ],
+      "eras": [
+        {
+          "from": "1991-08-12",
+          "to": null,
+          "name": "Tepalcates",
+          "icon_file": "A.4_Tepalcates.svg",
+          "icon_key": "a_4_tepalcates",
+          "aliases": [
+            "tepalcates"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.391274737581,
+      "lon": -99.046361446381
+    },
+    {
+      "line": "A",
+      "index": 5,
+      "current_name": "Guelatao",
+      "base_name_in_gtfs_or_seed": "Guelatao",
+      "open_date": "1991-08-12",
+      "current_icon_file": "A.5_Guelatao.svg",
+      "aliases": [
+        "guelatao"
+      ],
+      "eras": [
+        {
+          "from": "1991-08-12",
+          "to": null,
+          "name": "Guelatao",
+          "icon_file": "A.5_Guelatao.svg",
+          "icon_key": "a_5_guelatao",
+          "aliases": [
+            "guelatao"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.38516200762,
+      "lon": -99.035654067993
+    },
+    {
+      "line": "A",
+      "index": 6,
+      "current_name": "Peñón Viejo",
+      "base_name_in_gtfs_or_seed": "Peñón Viejo",
+      "open_date": "1991-08-12",
+      "current_icon_file": "A.6_Penon_Viejo.svg",
+      "aliases": [
+        "penon_viejo"
+      ],
+      "eras": [
+        {
+          "from": "1991-08-12",
+          "to": null,
+          "name": "Peñón Viejo",
+          "icon_file": "A.6_Penon_Viejo.svg",
+          "icon_key": "a_6_penon_viejo",
+          "aliases": [
+            "penon_viejo"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.373320470686,
+      "lon": -99.017050266266
+    },
+    {
+      "line": "A",
+      "index": 7,
+      "current_name": "Acatitla",
+      "base_name_in_gtfs_or_seed": "Acatitla",
+      "open_date": "1991-08-12",
+      "current_icon_file": "A.7_Acatitla.svg",
+      "aliases": [
+        "acatitla"
+      ],
+      "eras": [
+        {
+          "from": "1991-08-12",
+          "to": null,
+          "name": "Acatitla",
+          "icon_file": "A.7_Acatitla.svg",
+          "icon_key": "a_7_acatitla",
+          "aliases": [
+            "acatitla"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.364737348692,
+      "lon": -99.005677700043
+    },
+    {
+      "line": "A",
+      "index": 8,
+      "current_name": "Santa Marta",
+      "base_name_in_gtfs_or_seed": "Santa Marta",
+      "open_date": "1991-08-12",
+      "current_icon_file": "A.8_Santa_Marta.svg",
+      "aliases": [
+        "santa_marta"
+      ],
+      "eras": [
+        {
+          "from": "1991-08-12",
+          "to": null,
+          "name": "Santa Marta",
+          "icon_file": "A.8_Santa_Marta.svg",
+          "icon_key": "a_8_santa_marta",
+          "aliases": [
+            "santa_marta"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.360263419606,
+      "lon": -98.995141983032
+    },
+    {
+      "line": "A",
+      "index": 9,
+      "current_name": "Los Reyes",
+      "base_name_in_gtfs_or_seed": "Los Reyes",
+      "open_date": "1991-08-12",
+      "current_icon_file": "A.9_Los_Reyes.svg",
+      "aliases": [
+        "los_reyes"
+      ],
+      "eras": [
+        {
+          "from": "1991-08-12",
+          "to": null,
+          "name": "Los Reyes",
+          "icon_file": "A.9_Los_Reyes.svg",
+          "icon_key": "a_9_los_reyes",
+          "aliases": [
+            "los_reyes"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.359048757036,
+      "lon": -98.976860046387
+    },
+    {
+      "line": "A",
+      "index": 10,
+      "current_name": "La Paz",
+      "base_name_in_gtfs_or_seed": "La Paz",
+      "open_date": "1991-08-12",
+      "current_icon_file": "A.10_La_Paz.svg",
+      "aliases": [
+        "la_paz"
+      ],
+      "eras": [
+        {
+          "from": "1991-08-12",
+          "to": null,
+          "name": "La Paz",
+          "icon_file": "A.10_La_Paz.svg",
+          "icon_key": "a_10_la_paz",
+          "aliases": [
+            "la_paz"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.350647093245,
+      "lon": -98.961002826691
+    },
+    {
+      "line": "B",
+      "index": 1,
+      "current_name": "Ciudad Azteca",
+      "base_name_in_gtfs_or_seed": "Ciudad Azteca",
+      "open_date": "2000-11-30",
+      "current_icon_file": "B.1_Ciudad_Azteca.svg",
+      "aliases": [
+        "ciudad_azteca"
+      ],
+      "eras": [
+        {
+          "from": "2000-11-30",
+          "to": null,
+          "name": "Ciudad Azteca",
+          "icon_file": "B.1_Ciudad_Azteca.svg",
+          "icon_key": "b_1_ciudad_azteca",
+          "aliases": [
+            "ciudad_azteca"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.534594788807,
+      "lon": -99.027500152588
+    },
+    {
+      "line": "B",
+      "index": 2,
+      "current_name": "Plaza Aragón",
+      "base_name_in_gtfs_or_seed": "Plaza Aragón",
+      "open_date": "2000-11-30",
+      "current_icon_file": "B.2_Plaza_Aragon.svg",
+      "aliases": [
+        "plaza_aragon"
+      ],
+      "eras": [
+        {
+          "from": "2000-11-30",
+          "to": null,
+          "name": "Plaza Aragón",
+          "icon_file": "B.2_Plaza_Aragon.svg",
+          "icon_key": "b_2_plaza_aragon",
+          "aliases": [
+            "plaza_aragon"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.528487459141,
+      "lon": -99.030139446259
+    },
+    {
+      "line": "B",
+      "index": 3,
+      "current_name": "Olímpica",
+      "base_name_in_gtfs_or_seed": "Olímpica",
+      "open_date": "2000-11-30",
+      "current_icon_file": "B.3_Olimpica.svg",
+      "aliases": [
+        "olimpica"
+      ],
+      "eras": [
+        {
+          "from": "2000-11-30",
+          "to": null,
+          "name": "Olímpica",
+          "icon_file": "B.3_Olimpica.svg",
+          "icon_key": "b_3_olimpica",
+          "aliases": [
+            "olimpica"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.521328242328,
+      "lon": -99.033379554749
+    },
+    {
+      "line": "B",
+      "index": 4,
+      "current_name": "Ecatepec",
+      "base_name_in_gtfs_or_seed": "Ecatepec",
+      "open_date": "2000-11-30",
+      "current_icon_file": "B.4_Ecatepec.svg",
+      "aliases": [
+        "ecatepec"
+      ],
+      "eras": [
+        {
+          "from": "2000-11-30",
+          "to": null,
+          "name": "Ecatepec",
+          "icon_file": "B.4_Ecatepec.svg",
+          "icon_key": "b_4_ecatepec",
+          "aliases": [
+            "ecatepec"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.515321536084,
+      "lon": -99.035654067993
+    },
+    {
+      "line": "B",
+      "index": 5,
+      "current_name": "Múzquiz",
+      "base_name_in_gtfs_or_seed": "Múzquiz",
+      "open_date": "2000-11-30",
+      "current_icon_file": "B.5_Muzquiz.svg",
+      "aliases": [
+        "muzquiz"
+      ],
+      "eras": [
+        {
+          "from": "2000-11-30",
+          "to": null,
+          "name": "Múzquiz",
+          "icon_file": "B.5_Muzquiz.svg",
+          "icon_key": "b_5_muzquiz",
+          "aliases": [
+            "muzquiz"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.501709554376,
+      "lon": -99.041962623596
+    },
+    {
+      "line": "B",
+      "index": 6,
+      "current_name": "Río de los Remedios",
+      "base_name_in_gtfs_or_seed": "Río de los Remedios",
+      "open_date": "2000-11-30",
+      "current_icon_file": "B.6_Rio_de_los_Remedios.svg",
+      "aliases": [
+        "rio_de_los_remedios"
+      ],
+      "eras": [
+        {
+          "from": "2000-11-30",
+          "to": null,
+          "name": "Río de los Remedios",
+          "icon_file": "B.6_Rio_de_los_Remedios.svg",
+          "icon_key": "b_6_rio_de_los_remedios",
+          "aliases": [
+            "rio_de_los_remedios"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.490968831732,
+      "lon": -99.04666185379
+    },
+    {
+      "line": "B",
+      "index": 7,
+      "current_name": "Impulsora",
+      "base_name_in_gtfs_or_seed": "Impulsora",
+      "open_date": "2000-11-30",
+      "current_icon_file": "B.7_Impulsora.svg",
+      "aliases": [
+        "impulsora"
+      ],
+      "eras": [
+        {
+          "from": "2000-11-30",
+          "to": null,
+          "name": "Impulsora",
+          "icon_file": "B.7_Impulsora.svg",
+          "icon_key": "b_7_impulsora",
+          "aliases": [
+            "impulsora"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.485871290237,
+      "lon": -99.048871994019
+    },
+    {
+      "line": "B",
+      "index": 8,
+      "current_name": "Nezahualcóyotl",
+      "base_name_in_gtfs_or_seed": "Nezahualcóyotl",
+      "open_date": "2000-11-30",
+      "current_icon_file": "B.8_Nezahualcoyotl.svg",
+      "aliases": [
+        "nezahualcoyotl"
+      ],
+      "eras": [
+        {
+          "from": "2000-11-30",
+          "to": "2002-12-31",
+          "name": "Continentes",
+          "icon_file": "B.14_Continentes.svg",
+          "icon_key": "b_14_continentes",
+          "aliases": [
+            "continentes"
+          ],
+          "note": "Nombre e iconografía previos de Nezahualcóyotl."
+        },
+        {
+          "from": "2003-01-01",
+          "to": null,
+          "name": "Nezahualcóyotl",
+          "icon_file": "B.14_Nezahualcoyotl.svg",
+          "icon_key": "b_14_nezahualcoyotl",
+          "aliases": [
+            "nezahualcoyotl"
+          ],
+          "note": "Nombre vigente desde 2002/2003."
+        }
+      ],
+      "lat": 19.473045813461,
+      "lon": -99.05455827713
+    },
+    {
+      "line": "B",
+      "index": 9,
+      "current_name": "Villa de Aragón",
+      "base_name_in_gtfs_or_seed": "Villa de Aragón",
+      "open_date": "1999-12-15",
+      "current_icon_file": "B.9_Villa_de_Aragon.svg",
+      "aliases": [
+        "villa_de_aragon"
+      ],
+      "eras": [
+        {
+          "from": "1999-12-15",
+          "to": null,
+          "name": "Villa de Aragón",
+          "icon_file": "B.9_Villa_de_Aragon.svg",
+          "icon_key": "b_9_villa_de_aragon",
+          "aliases": [
+            "villa_de_aragon"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.461716472219,
+      "lon": -99.06133890152
+    },
+    {
+      "line": "B",
+      "index": 10,
+      "current_name": "Bosque de Aragón",
+      "base_name_in_gtfs_or_seed": "Bosque de Aragón",
+      "open_date": "1999-12-15",
+      "current_icon_file": "B.10_Bosque_de_Aragon.svg",
+      "aliases": [
+        "bosque_de_aragon"
+      ],
+      "eras": [
+        {
+          "from": "1999-12-15",
+          "to": null,
+          "name": "Bosque de Aragón",
+          "icon_file": "B.10_Bosque_de_Aragon.svg",
+          "icon_key": "b_10_bosque_de_aragon",
+          "aliases": [
+            "bosque_de_aragon"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.458317515453,
+      "lon": -99.069020748138
+    },
+    {
+      "line": "B",
+      "index": 11,
+      "current_name": "Deportivo Oceanía",
+      "base_name_in_gtfs_or_seed": "Deportivo Oceanía",
+      "open_date": "1999-12-15",
+      "current_icon_file": "B.11_Deportivo_Oceania.svg",
+      "aliases": [
+        "deportivo_oceania"
+      ],
+      "eras": [
+        {
+          "from": "1999-12-15",
+          "to": null,
+          "name": "Deportivo Oceanía",
+          "icon_file": "B.11_Deportivo_Oceania.svg",
+          "icon_key": "b_11_deportivo_oceania",
+          "aliases": [
+            "deportivo_oceania"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.450952864751,
+      "lon": -99.079427719116
+    },
+    {
+      "line": "B",
+      "index": 12,
+      "current_name": "Oceanía",
+      "base_name_in_gtfs_or_seed": "Oceanía",
+      "open_date": "1999-12-15",
+      "current_icon_file": "B.12_Oceania.svg",
+      "aliases": [
+        "oceania"
+      ],
+      "eras": [
+        {
+          "from": "1999-12-15",
+          "to": null,
+          "name": "Oceanía",
+          "icon_file": "B.12_Oceania.svg",
+          "icon_key": "b_12_oceania",
+          "aliases": [
+            "oceania"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.445752896274,
+      "lon": -99.087216854095
+    },
+    {
+      "line": "B",
+      "index": 13,
+      "current_name": "Romero Rubio",
+      "base_name_in_gtfs_or_seed": "Romero Rubio",
+      "open_date": "1999-12-15",
+      "current_icon_file": "B.13_Romero_Rubio.svg",
+      "aliases": [
+        "romero_rubio"
+      ],
+      "eras": [
+        {
+          "from": "1999-12-15",
+          "to": null,
+          "name": "Romero Rubio",
+          "icon_file": "B.13_Romero_Rubio.svg",
+          "icon_key": "b_13_romero_rubio",
+          "aliases": [
+            "romero_rubio"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.440795572747,
+      "lon": -99.094340801239
+    },
+    {
+      "line": "B",
+      "index": 14,
+      "current_name": "Ricardo Flores Magón",
+      "base_name_in_gtfs_or_seed": "Ricardo Flores Magón",
+      "open_date": "1999-12-15",
+      "current_icon_file": "B.14_Ricardo_Flores_Magon.svg",
+      "aliases": [
+        "ricardo_flores_magon"
+      ],
+      "eras": [
+        {
+          "from": "1999-12-15",
+          "to": null,
+          "name": "Ricardo Flores Magón",
+          "icon_file": "B.14_Ricardo_Flores_Magon.svg",
+          "icon_key": "b_14_ricardo_flores_magon",
+          "aliases": [
+            "ricardo_flores_magon"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.436627257027,
+      "lon": -99.103674888611
+    },
+    {
+      "line": "B",
+      "index": 15,
+      "current_name": "San Lázaro",
+      "base_name_in_gtfs_or_seed": "San Lázaro",
+      "open_date": "1999-12-15",
+      "current_icon_file": "B.15_San_Lazaro.svg",
+      "aliases": [
+        "san_lazaro"
+      ],
+      "eras": [
+        {
+          "from": "1999-12-15",
+          "to": null,
+          "name": "San Lázaro",
+          "icon_file": "B.15_San_Lazaro.svg",
+          "icon_key": "b_15_san_lazaro",
+          "aliases": [
+            "san_lazaro"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.430273404868,
+      "lon": -99.114811420441
+    },
+    {
+      "line": "B",
+      "index": 16,
+      "current_name": "Morelos",
+      "base_name_in_gtfs_or_seed": "Morelos",
+      "open_date": "1999-12-15",
+      "current_icon_file": "B.16_Morelos.svg",
+      "aliases": [
+        "morelos"
+      ],
+      "eras": [
+        {
+          "from": "1999-12-15",
+          "to": null,
+          "name": "Morelos",
+          "icon_file": "B.16_Morelos.svg",
+          "icon_key": "b_16_morelos",
+          "aliases": [
+            "morelos"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.438974477102,
+      "lon": -99.118266105652
+    },
+    {
+      "line": "B",
+      "index": 17,
+      "current_name": "Tepito",
+      "base_name_in_gtfs_or_seed": "Tepito",
+      "open_date": "1999-12-15",
+      "current_icon_file": "B.17_Tepito.svg",
+      "aliases": [
+        "tepito"
+      ],
+      "eras": [
+        {
+          "from": "1999-12-15",
+          "to": null,
+          "name": "Tepito",
+          "icon_file": "B.17_Tepito.svg",
+          "icon_key": "b_17_tepito",
+          "aliases": [
+            "tepito"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.442434541361,
+      "lon": -99.123437404633
+    },
+    {
+      "line": "B",
+      "index": 18,
+      "current_name": "Lagunilla",
+      "base_name_in_gtfs_or_seed": "Lagunilla",
+      "open_date": "1999-12-15",
+      "current_icon_file": "B.18_Lagunilla.svg",
+      "aliases": [
+        "lagunilla"
+      ],
+      "eras": [
+        {
+          "from": "1999-12-15",
+          "to": null,
+          "name": "Lagunilla",
+          "icon_file": "B.18_Lagunilla.svg",
+          "icon_key": "b_18_lagunilla",
+          "aliases": [
+            "lagunilla"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.443365306292,
+      "lon": -99.131376743317
+    },
+    {
+      "line": "B",
+      "index": 19,
+      "current_name": "Garibaldi / Lagunilla",
+      "base_name_in_gtfs_or_seed": "Garibaldi / Lagunilla",
+      "open_date": "1999-12-15",
+      "current_icon_file": "B.19_Garibaldi_Lagunilla.svg",
+      "aliases": [
+        "garibaldi_lagunilla"
+      ],
+      "eras": [
+        {
+          "from": "1999-12-15",
+          "to": null,
+          "name": "Garibaldi / Lagunilla",
+          "icon_file": "B.19_Garibaldi_Lagunilla.svg",
+          "icon_key": "b_19_garibaldi_lagunilla",
+          "aliases": [
+            "garibaldi_lagunilla"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.444457936575,
+      "lon": -99.139766693115
+    },
+    {
+      "line": "B",
+      "index": 20,
+      "current_name": "Guerrero",
+      "base_name_in_gtfs_or_seed": "Guerrero",
+      "open_date": "1999-12-15",
+      "current_icon_file": "B.20_Guerrero.svg",
+      "aliases": [
+        "guerrero"
+      ],
+      "eras": [
+        {
+          "from": "1999-12-15",
+          "to": null,
+          "name": "Guerrero",
+          "icon_file": "B.20_Guerrero.svg",
+          "icon_key": "b_20_guerrero",
+          "aliases": [
+            "guerrero"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.445145885202,
+      "lon": -99.14538860321
+    },
+    {
+      "line": "B",
+      "index": 21,
+      "current_name": "Buenavista",
+      "base_name_in_gtfs_or_seed": "Buenavista",
+      "open_date": "1999-12-15",
+      "current_icon_file": "B.21_Buenavista.svg",
+      "aliases": [
+        "buenavista"
+      ],
+      "eras": [
+        {
+          "from": "1999-12-15",
+          "to": null,
+          "name": "Buenavista",
+          "icon_file": "B.21_Buenavista.svg",
+          "icon_key": "b_21_buenavista",
+          "aliases": [
+            "buenavista"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.446542007274,
+      "lon": -99.153220653534
+    },
+    {
+      "line": "12",
+      "index": 1,
+      "current_name": "Mixcoac",
+      "base_name_in_gtfs_or_seed": "Mixcoac",
+      "open_date": "2012-10-30",
+      "current_icon_file": "12.1_Mixcoac.svg",
+      "aliases": [
+        "mixcoac"
+      ],
+      "eras": [
+        {
+          "from": "2012-10-30",
+          "to": null,
+          "name": "Mixcoac",
+          "icon_file": "12.1_Mixcoac.svg",
+          "icon_key": "12_1_mixcoac",
+          "aliases": [
+            "mixcoac"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.37581,
+      "lon": -99.187703
+    },
+    {
+      "line": "12",
+      "index": 2,
+      "current_name": "Insurgentes Sur",
+      "base_name_in_gtfs_or_seed": "Insurgentes Sur",
+      "open_date": "2012-10-30",
+      "current_icon_file": "12.2_Insurgentes_Sur.svg",
+      "aliases": [
+        "insurgentes_sur"
+      ],
+      "eras": [
+        {
+          "from": "2012-10-30",
+          "to": null,
+          "name": "Insurgentes Sur",
+          "icon_file": "12.2_Insurgentes_Sur.svg",
+          "icon_key": "12_2_insurgentes_sur",
+          "aliases": [
+            "insurgentes_sur"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.373665,
+      "lon": -99.179077
+    },
+    {
+      "line": "12",
+      "index": 3,
+      "current_name": "Hospital 20 de Noviembre",
+      "base_name_in_gtfs_or_seed": "Hospital 20 de Noviembre",
+      "open_date": "2012-10-30",
+      "current_icon_file": "12.3_Hospital_20_de_Noviembre.svg",
+      "aliases": [
+        "hospital_20_de_noviembre"
+      ],
+      "eras": [
+        {
+          "from": "2012-10-30",
+          "to": null,
+          "name": "Hospital 20 de Noviembre",
+          "icon_file": "12.3_Hospital_20_de_Noviembre.svg",
+          "icon_key": "12_3_hospital_20_de_noviembre",
+          "aliases": [
+            "hospital_20_de_noviembre"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.372288,
+      "lon": -99.171138
+    },
+    {
+      "line": "12",
+      "index": 4,
+      "current_name": "Zapata",
+      "base_name_in_gtfs_or_seed": "Zapata",
+      "open_date": "2012-10-30",
+      "current_icon_file": "12.4_Zapata.svg",
+      "aliases": [
+        "zapata"
+      ],
+      "eras": [
+        {
+          "from": "2012-10-30",
+          "to": null,
+          "name": "Zapata",
+          "icon_file": "12.4_Zapata.svg",
+          "icon_key": "12_4_zapata",
+          "aliases": [
+            "zapata"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.370507,
+      "lon": -99.164829
+    },
+    {
+      "line": "12",
+      "index": 5,
+      "current_name": "Parque de los Venados",
+      "base_name_in_gtfs_or_seed": "Parque de los Venados",
+      "open_date": "2012-10-30",
+      "current_icon_file": "12.5_Parque_de_los_Venados.svg",
+      "aliases": [
+        "parque_de_los_venados"
+      ],
+      "eras": [
+        {
+          "from": "2012-10-30",
+          "to": null,
+          "name": "Parque de los Venados",
+          "icon_file": "12.5_Parque_de_los_Venados.svg",
+          "icon_key": "12_5_parque_de_los_venados",
+          "aliases": [
+            "parque_de_los_venados"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.370547,
+      "lon": -99.156718
+    },
+    {
+      "line": "12",
+      "index": 6,
+      "current_name": "Eje Central",
+      "base_name_in_gtfs_or_seed": "Eje Central",
+      "open_date": "2012-10-30",
+      "current_icon_file": "12.6_Eje_Central.svg",
+      "aliases": [
+        "eje_central"
+      ],
+      "eras": [
+        {
+          "from": "2012-10-30",
+          "to": null,
+          "name": "Eje Central",
+          "icon_file": "12.6_Eje_Central.svg",
+          "icon_key": "12_6_eje_central",
+          "aliases": [
+            "eje_central"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.361397,
+      "lon": -99.151697
+    },
+    {
+      "line": "12",
+      "index": 7,
+      "current_name": "Ermita",
+      "base_name_in_gtfs_or_seed": "Ermita",
+      "open_date": "2012-10-30",
+      "current_icon_file": "12.7_Ermita.svg",
+      "aliases": [
+        "ermita"
+      ],
+      "eras": [
+        {
+          "from": "2012-10-30",
+          "to": null,
+          "name": "Ermita",
+          "icon_file": "12.7_Ermita.svg",
+          "icon_key": "12_7_ermita",
+          "aliases": [
+            "ermita"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.360061,
+      "lon": -99.143329
+    },
+    {
+      "line": "12",
+      "index": 8,
+      "current_name": "Mexicaltzingo",
+      "base_name_in_gtfs_or_seed": "Mexicaltzingo",
+      "open_date": "2012-10-30",
+      "current_icon_file": "12.8_Mexicaltzingo.svg",
+      "aliases": [
+        "mexicaltzingo"
+      ],
+      "eras": [
+        {
+          "from": "2012-10-30",
+          "to": null,
+          "name": "Mexicaltzingo",
+          "icon_file": "12.8_Mexicaltzingo.svg",
+          "icon_key": "12_8_mexicaltzingo",
+          "aliases": [
+            "mexicaltzingo"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.35751,
+      "lon": -99.121485
+    },
+    {
+      "line": "12",
+      "index": 9,
+      "current_name": "Atlalilco",
+      "base_name_in_gtfs_or_seed": "Atlalilco",
+      "open_date": "2012-10-30",
+      "current_icon_file": "12.9_Atlalilco.svg",
+      "aliases": [
+        "atlalilco"
+      ],
+      "eras": [
+        {
+          "from": "2012-10-30",
+          "to": null,
+          "name": "Atlalilco",
+          "icon_file": "12.9_Atlalilco.svg",
+          "icon_key": "12_9_atlalilco",
+          "aliases": [
+            "atlalilco"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.356174,
+      "lon": -99.101572
+    },
+    {
+      "line": "12",
+      "index": 10,
+      "current_name": "Culhuacán",
+      "base_name_in_gtfs_or_seed": "Culhuacán",
+      "open_date": "2012-10-30",
+      "current_icon_file": "12.10_Culhuacan.svg",
+      "aliases": [
+        "culhuacan"
+      ],
+      "eras": [
+        {
+          "from": "2012-10-30",
+          "to": null,
+          "name": "Culhuacán",
+          "icon_file": "12.10_Culhuacan.svg",
+          "icon_key": "12_10_culhuacan",
+          "aliases": [
+            "culhuacan"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.33771,
+      "lon": -99.109039
+    },
+    {
+      "line": "12",
+      "index": 11,
+      "current_name": "San Andrés Tomatlán",
+      "base_name_in_gtfs_or_seed": "San Andrés Tomatlán",
+      "open_date": "2012-10-30",
+      "current_icon_file": "12.11_San_Andres_Tomatlan.svg",
+      "aliases": [
+        "san_andres_tomatlan"
+      ],
+      "eras": [
+        {
+          "from": "2012-10-30",
+          "to": null,
+          "name": "San Andrés Tomatlán",
+          "icon_file": "12.11_San_Andres_Tomatlan.svg",
+          "icon_key": "12_11_san_andres_tomatlan",
+          "aliases": [
+            "san_andres_tomatlan"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.328355,
+      "lon": -99.106464
+    },
+    {
+      "line": "12",
+      "index": 12,
+      "current_name": "Lomas Estrella",
+      "base_name_in_gtfs_or_seed": "Lomas Estrella",
+      "open_date": "2012-10-30",
+      "current_icon_file": "12.12_Lomas_Estrella.svg",
+      "aliases": [
+        "lomas_estrella"
+      ],
+      "eras": [
+        {
+          "from": "2012-10-30",
+          "to": null,
+          "name": "Lomas Estrella",
+          "icon_file": "12.12_Lomas_Estrella.svg",
+          "icon_key": "12_12_lomas_estrella",
+          "aliases": [
+            "lomas_estrella"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.322443,
+      "lon": -99.097753
+    },
+    {
+      "line": "12",
+      "index": 13,
+      "current_name": "Calle 11",
+      "base_name_in_gtfs_or_seed": "Calle 11",
+      "open_date": "2012-10-30",
+      "current_icon_file": "12.13_Calle_11.svg",
+      "aliases": [
+        "calle_11"
+      ],
+      "eras": [
+        {
+          "from": "2012-10-30",
+          "to": null,
+          "name": "Calle 11",
+          "icon_file": "12.13_Calle_11.svg",
+          "icon_key": "12_13_calle_11",
+          "aliases": [
+            "calle_11"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.320499,
+      "lon": -99.086809
+    },
+    {
+      "line": "12",
+      "index": 14,
+      "current_name": "Periférico Oriente",
+      "base_name_in_gtfs_or_seed": "Periférico Oriente",
+      "open_date": "2012-10-30",
+      "current_icon_file": "12.14_Periferico_Oriente.svg",
+      "aliases": [
+        "periferico_oriente"
+      ],
+      "eras": [
+        {
+          "from": "2012-10-30",
+          "to": null,
+          "name": "Periférico Oriente",
+          "icon_file": "12.14_Periferico_Oriente.svg",
+          "icon_key": "12_14_periferico_oriente",
+          "aliases": [
+            "periferico_oriente"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.318494,
+      "lon": -99.076638
+    },
+    {
+      "line": "12",
+      "index": 15,
+      "current_name": "Tezonco",
+      "base_name_in_gtfs_or_seed": "Tezonco",
+      "open_date": "2012-10-30",
+      "current_icon_file": "12.15_Tezonco.svg",
+      "aliases": [
+        "tezonco"
+      ],
+      "eras": [
+        {
+          "from": "2012-10-30",
+          "to": null,
+          "name": "Tezonco",
+          "icon_file": "12.15_Tezonco.svg",
+          "icon_key": "12_15_tezonco",
+          "aliases": [
+            "tezonco"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.306739,
+      "lon": -99.067068
+    },
+    {
+      "line": "12",
+      "index": 16,
+      "current_name": "Olivos",
+      "base_name_in_gtfs_or_seed": "Olivos",
+      "open_date": "2012-10-30",
+      "current_icon_file": "12.16_Olivos.svg",
+      "aliases": [
+        "olivos"
+      ],
+      "eras": [
+        {
+          "from": "2012-10-30",
+          "to": null,
+          "name": "Olivos",
+          "icon_file": "12.16_Olivos.svg",
+          "icon_key": "12_16_olivos",
+          "aliases": [
+            "olivos"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.303894,
+      "lon": -99.058056
+    },
+    {
+      "line": "12",
+      "index": 17,
+      "current_name": "Nopalera",
+      "base_name_in_gtfs_or_seed": "Nopalera",
+      "open_date": "2012-10-30",
+      "current_icon_file": "12.17_Nopalera.svg",
+      "aliases": [
+        "nopalera"
+      ],
+      "eras": [
+        {
+          "from": "2012-10-30",
+          "to": null,
+          "name": "Nopalera",
+          "icon_file": "12.17_Nopalera.svg",
+          "icon_key": "12_17_nopalera",
+          "aliases": [
+            "nopalera"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.298993,
+      "lon": -99.043164
+    },
+    {
+      "line": "12",
+      "index": 18,
+      "current_name": "Zapotitlán",
+      "base_name_in_gtfs_or_seed": "Zapotitlán",
+      "open_date": "2012-10-30",
+      "current_icon_file": "12.18_Zapotitlan.svg",
+      "aliases": [
+        "zapotitlan"
+      ],
+      "eras": [
+        {
+          "from": "2012-10-30",
+          "to": null,
+          "name": "Zapotitlán",
+          "icon_file": "12.18_Zapotitlan.svg",
+          "icon_key": "12_18_zapotitlan",
+          "aliases": [
+            "zapotitlan"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.296562,
+      "lon": -99.034925
+    },
+    {
+      "line": "12",
+      "index": 19,
+      "current_name": "Tlaltenco",
+      "base_name_in_gtfs_or_seed": "Tlaltenco",
+      "open_date": "2012-10-30",
+      "current_icon_file": "12.19_Tlaltenco.svg",
+      "aliases": [
+        "tlaltenco"
+      ],
+      "eras": [
+        {
+          "from": "2012-10-30",
+          "to": null,
+          "name": "Tlaltenco",
+          "icon_file": "12.19_Tlaltenco.svg",
+          "icon_key": "12_19_tlaltenco",
+          "aliases": [
+            "tlaltenco"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.294233,
+      "lon": -99.02117
+    },
+    {
+      "line": "12",
+      "index": 20,
+      "current_name": "Tláhuac",
+      "base_name_in_gtfs_or_seed": "Tláhuac",
+      "open_date": "2012-10-30",
+      "current_icon_file": "12.20_Tlahuac.svg",
+      "aliases": [
+        "tlahuac"
+      ],
+      "eras": [
+        {
+          "from": "2012-10-30",
+          "to": null,
+          "name": "Tláhuac",
+          "icon_file": "12.20_Tlahuac.svg",
+          "icon_key": "12_20_tlahuac",
+          "aliases": [
+            "tlahuac"
+          ],
+          "note": "Nombre e iconografía vigentes desde la apertura de la estación."
+        }
+      ],
+      "lat": 19.290651,
+      "lon": -99.01704
+    }
+  ],
+  "fandom_seed_files": [
+    "1.1_Observatorio.svg",
+    "1.2_Tacubaya.svg",
+    "1.3_Juanacatlan.svg",
+    "1.4_Chapultepec.svg",
+    "1.5_Sevilla.svg",
+    "1.6_Insurgentes.svg",
+    "1.7_Cuauhtemoc.svg",
+    "1.8_Balderas.svg",
+    "1.9_Salto_del_Agua.svg",
+    "1.10_Isabel_la_Catolica.svg",
+    "1.11_Pino_Suarez.svg",
+    "1.12_Merced.svg",
+    "1.13_Candelaria.svg",
+    "1.14_San_Lazaro.svg",
+    "1.15_Moctezuma.svg",
+    "1.16_Balbuena.svg",
+    "1.17_Boulevard_Puerto_Aereo.svg",
+    "1.17_Aeropuerto.svg",
+    "1.18_Gomez_Farias.svg",
+    "1.19_Zaragoza.svg",
+    "1.20_Pantitlan.svg",
+    "2.1_Cuatro_Caminos.svg",
+    "2.2_Panteones.svg",
+    "2.3_Tacuba.svg",
+    "2.4_Cuitlahuac.svg",
+    "2.5_Popotla.svg",
+    "2.6_Colegio_Militar.svg",
+    "2.7_Normal.svg",
+    "2.8_San_Cosme.svg",
+    "2.9_Revolucion.svg",
+    "2.10_Hidalgo.svg",
+    "2.11_Bellas_Artes.svg",
+    "2.12_Allende.svg",
+    "2.13_Zocalo_Tenochtitlan.svg",
+    "2.13_Zocalo.svg",
+    "2.14_Pino_Suarez.svg",
+    "2.15_San_Antonio_Abad.svg",
+    "2.16_Chabacano.svg",
+    "2.17_Viaducto.svg",
+    "2.18_Xola.svg",
+    "2.19_Villa_de_Cortez.svg",
+    "2.20_Nativitas.svg",
+    "2.21_Portales.svg",
+    "2.22_Ermita.svg",
+    "2.23_General_Anaya.svg",
+    "2.24_Tasquena.svg",
+    "3.1_Indios_Verdes.svg",
+    "3.2_Deportivo_18_de_Marzo.svg",
+    "3.2_Basilica.svg",
+    "3.3_Potrero.svg",
+    "3.4_La_Raza.svg",
+    "3.5_Tlatelolco.svg",
+    "3.6_Guerrero.svg",
+    "3.7_Hidalgo.svg",
+    "3.8_Juarez.svg",
+    "3.9_Balderas.svg",
+    "3.10_Ninos_Heroes.svg",
+    "3.11_Hospital_General.svg",
+    "3.12_Centro_Medico.svg",
+    "3.13_Etiopia_Plaza_de_la_Transparencia.svg",
+    "3.13_Etiopía.svg",
+    "3.14_Eugenia.svg",
+    "3.15_Division_del_Norte.svg",
+    "3.16_Zapata.svg",
+    "3.17_Coyoacan.svg",
+    "3.18_Viveros_Derechos_Humanos.svg",
+    "3.18_Viveros.svg",
+    "3.19_Miguel_Angel_de_Quevedo.svg",
+    "3.20_Copilco.svg",
+    "3.21_Universidad.svg",
+    "4.1_Martin_Carrera.svg",
+    "4.2_Talisman.svg",
+    "4.3_Bondojito.svg",
+    "4.4_Consulado.svg",
+    "4.5_Canal_del_Norte.svg",
+    "4.6_Morelos.svg",
+    "4.7_Candelaria.svg",
+    "4.8_Fray_Servando.svg",
+    "4.9_Jamaica.svg",
+    "4.10_Santa_Anita.svg",
+    "5.1_Pantitlan.svg",
+    "5.2_Hangares.svg",
+    "5.3_Terminal_Aerea.svg",
+    "5.4_Oceania.svg",
+    "5.5_Aragon.svg",
+    "5.6_Eduardo_Molina.svg",
+    "5.7_Consulado.svg",
+    "5.8_Valle_Gomez.svg",
+    "5.9_Misterios.svg",
+    "5.10_La_Raza.svg",
+    "5.11_Autobuses_del_Norte.svg",
+    "5.12_Instituto_del_Petroleo.svg",
+    "5.13_Politecnico.svg",
+    "6.1_El_Rosario.svg",
+    "6.2_Tezozomoc.svg",
+    "6.3_UAM_Azcapotzalco.svg",
+    "6.3_Azcapotzalco.svg",
+    "6.4_Ferreria_Arena_CDMX.svg",
+    "6.4_Ferreria.svg",
+    "6.4_Ferreria-Arena_CDMX.svg",
+    "6.5_Norte_45.svg",
+    "6.6_Vallejo.svg",
+    "6.7_Instituto_del_Petroleo.svg",
+    "6.8_Lindavista.svg",
+    "6.9_Deportivo_18_de_Marzo.svg",
+    "6.10_La_Villa_Basilica.svg",
+    "6.10_La_Villa.svg",
+    "6.10_La_Villa-Basilica.svg",
+    "6.11_Martin_Carrera.svg",
+    "7.1_El_Rosario.svg",
+    "7.2_Aquiles_Serdan.svg",
+    "7.3_Camarones.svg",
+    "7.4_Refineria.svg",
+    "7.5_Tacuba.svg",
+    "7.6_San_Joaquin.svg",
+    "7.7_Polanco.svg",
+    "7.8_Auditorio.svg",
+    "7.9_Constituyentes.svg",
+    "7.10_Tacubaya.svg",
+    "7.11_San_Pedro_de_los_Pinos.svg",
+    "7.12_San_Antonio.svg",
+    "7.13_Mixcoac.svg",
+    "7.14_Barranca_del_Muerto.svg",
+    "8.1_Garibaldi_Lagunilla.svg",
+    "8.2_Bellas_Artes.svg",
+    "8.3_San_Juan_de_Letran.svg",
+    "8.4_Salto_del_Agua.svg",
+    "8.5_Doctores.svg",
+    "8.6_Obrera.svg",
+    "8.7_Chabacano.svg",
+    "8.8_La_Viga.svg",
+    "8.9_Santa_Anita.svg",
+    "8.10_Coyuya.svg",
+    "8.11_Iztacalco.svg",
+    "8.12_Apatlaco.svg",
+    "8.13_Aculco.svg",
+    "8.14_Escuadron_201.svg",
+    "8.15_Atlalilco.svg",
+    "8.16_Iztapalapa.svg",
+    "8.17_Cerro_de_la_Estrella.svg",
+    "8.18_UAM_I.svg",
+    "8.18_La_Purisima.svg",
+    "8.18_UAM-I.svg",
+    "8.19_Constitucion_de_1917.svg",
+    "9.1_Tacubaya.svg",
+    "9.2_Patriotismo.svg",
+    "9.3_Chilpancingo.svg",
+    "9.4_Centro_Medico.svg",
+    "9.5_Lazaro_Cardenas.svg",
+    "9.6_Chabacano.svg",
+    "9.7_Jamaica.svg",
+    "9.8_Mixiuhca.svg",
+    "9.9_Velodromo.svg",
+    "9.10_Ciudad_Deportiva.svg",
+    "9.11_Puebla.svg",
+    "9.12_Pantitlan.svg",
+    "A.1_Pantitlan.svg",
+    "A.2_Agricola_Oriental.svg",
+    "A.3_Canal_de_San_Juan.svg",
+    "A.4_Tepalcates.svg",
+    "A.5_Guelatao.svg",
+    "A.6_Penon_Viejo.svg",
+    "A.7_Acatitla.svg",
+    "A.8_Santa_Marta.svg",
+    "A.9_Los_Reyes.svg",
+    "A.10_La_Paz.svg",
+    "B.1_Ciudad_Azteca.svg",
+    "B.2_Plaza_Aragon.svg",
+    "B.3_Olimpica.svg",
+    "B.4_Ecatepec.svg",
+    "B.5_Muzquiz.svg",
+    "B.6_Rio_de_los_Remedios.svg",
+    "B.7_Impulsora.svg",
+    "B.8_Nezahualcoyotl.svg",
+    "B.14_Continentes.svg",
+    "B.14_Nezahualcoyotl.svg",
+    "B.9_Villa_de_Aragon.svg",
+    "B.10_Bosque_de_Aragon.svg",
+    "B.11_Deportivo_Oceania.svg",
+    "B.12_Oceania.svg",
+    "B.13_Romero_Rubio.svg",
+    "B.14_Ricardo_Flores_Magon.svg",
+    "B.15_San_Lazaro.svg",
+    "B.16_Morelos.svg",
+    "B.17_Tepito.svg",
+    "B.18_Lagunilla.svg",
+    "B.19_Garibaldi_Lagunilla.svg",
+    "B.20_Guerrero.svg",
+    "B.21_Buenavista.svg",
+    "12.1_Mixcoac.svg",
+    "12.2_Insurgentes_Sur.svg",
+    "12.3_Hospital_20_de_Noviembre.svg",
+    "12.4_Zapata.svg",
+    "12.5_Parque_de_los_Venados.svg",
+    "12.6_Eje_Central.svg",
+    "12.7_Ermita.svg",
+    "12.8_Mexicaltzingo.svg",
+    "12.9_Atlalilco.svg",
+    "12.10_Culhuacan.svg",
+    "12.11_San_Andres_Tomatlan.svg",
+    "12.12_Lomas_Estrella.svg",
+    "12.13_Calle_11.svg",
+    "12.14_Periferico_Oriente.svg",
+    "12.15_Tezonco.svg",
+    "12.16_Olivos.svg",
+    "12.17_Nopalera.svg",
+    "12.18_Zapotitlan.svg",
+    "12.19_Tlaltenco.svg",
+    "12.20_Tlahuac.svg",
+    "3.13_Etiopia.svg",
+    "4.1_Santa_Anita.svg"
+  ],
+  "sources": [
+    "https://transportepublicomx.fandom.com/es/wiki/Iconos_del_Metro",
+    "https://www.metro.cdmx.gob.mx/iconografia",
+    "https://en.wikipedia.org/wiki/Mexico_City_Metro_Line_1",
+    "https://en.wikipedia.org/wiki/Mexico_City_Metro_Line_2",
+    "https://es.wikipedia.org/wiki/L%C3%ADnea_3_del_Metro_de_la_Ciudad_de_M%C3%A9xico",
+    "https://en.wikipedia.org/wiki/Mexico_City_Metro_Line_4",
+    "https://en.wikipedia.org/wiki/Mexico_City_Metro_Line_5",
+    "https://en.wikipedia.org/wiki/Mexico_City_Metro_Line_6",
+    "https://es.wikipedia.org/wiki/Historia_del_Metro_de_la_Ciudad_de_M%C3%A9xico"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "schema": "tlalpowa.ixiptlah_compresion.v1",
+  "contrato": "un .ixiptlah por elemento del catalogo; sin sidecars por defecto; sin resumenes; sin datos vacios; muestras directas dia/hora/minuto",
+  "limite_duro_operativo": "ningun IXIPTLAH elemental debe rebasar 90 MB tras importacion normal",
+  "codec": {
+    "nombre": "IXLZ_BLOCKS",
+    "modo": "compresion por bloques internos dentro del mismo .ixiptlah",
+    "tamano_bloque": "256 KiB",
+    "lectura": "descompresion por ventana; no hidratar payload completo en RAM",
+    "escritura": "se comprime desde spool por bloques; no hay .ixsm ni tipo externo nuevo"
+  },
+  "payload_atmosferico_v6": {
+    "schema": 2,
+    "contenido": "estaciones locales, unidades locales y muestras directas",
+    "muestra": "dia uint8, minuto_del_dia uint16, estacion uint32, unidad uint16, valor float32",
+    "prohibido": ["resumen mensual", "resumen diario", "resumen horario", "catalogo agregado", "archivo desconocida", "relleno vacio"]
+  }
+}

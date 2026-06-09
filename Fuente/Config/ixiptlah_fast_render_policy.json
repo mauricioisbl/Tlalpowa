@@ -1,0 +1,98 @@
+{
+  "version": "2026-06-05.ixiptlah-v15-sub025-manifiesto-vivo-apertura-perezosa",
+  "format": "IXIPTLAH v12 semanal unificado: RAMA, REDMET y RUOA/PEMBU viven en el archivo AAAA_MM_DD.ixiptlah de su semana; la red física queda como metadato/capa interna, no como archivo separado.",
+  "goal": "Cada consulta abre sólo el IXIPTLAH semanal implicado y lee datos reales por capa/red/tiempo; los preformados internos duplican rutas binarias de acceso, no resúmenes sustitutivos.",
+  "file_policy": {
+    "normal_extension": ".ixiptlah",
+    "sidecars_by_default": false,
+    "rule": "No crear sidecars ni archivos auxiliares: el índice terminal, las muestras unitarias y los bloques preformados viven dentro del .ixiptlah semanal."
+  },
+  "sharding": {
+    "root": "Datos/",
+    "subfolders": false,
+    "pattern": "AAAA_MM_DD.ixiptlah",
+    "rules": {
+      "RAMA": "contaminantes atmosféricos dentro del IXIPTLAH semanal",
+      "REDMET": "meteorológicos/físicos dentro del IXIPTLAH semanal",
+      "RUOA_PEMBU": "físicos/minutales dentro del IXIPTLAH semanal"
+    }
+  },
+  "wind_rule": {
+    "wsp": "Velocidad del viento. Dibuja pin circular solido con semaforo y contorno de variable.",
+    "wdr": "Direccion del viento. Vive como capa interna del IXIPTLAH semanal; para pines puede consultar WSP como auxiliar de longitud de flecha, sin fusionar datos ni dibujar WSP salvo casilla activa."
+  },
+  "precomputed_secondaries": {
+    "meteorological": [
+      "dewpoint",
+      "vpd",
+      "abs_humidity",
+      "vapor_pressure",
+      "sat_vapor_pressure",
+      "wet_bulb",
+      "mixing_ratio",
+      "specific_humidity",
+      "air_density",
+      "potential_temperature",
+      "u10",
+      "v10",
+      "wsp",
+      "wdr"
+    ],
+    "contaminants": [
+      "pmco",
+      "nox",
+      "tc",
+      "inorg_aer",
+      "btex",
+      "pm25_pm10",
+      "pmco_pm10",
+      "no2_nox",
+      "no_nox",
+      "no_no2",
+      "oc_ec",
+      "ec_tc",
+      "oc_tc",
+      "bc_pm25",
+      "ec_pm25",
+      "oc_pm25",
+      "so4_no3a",
+      "tol_ben",
+      "xyl_ben",
+      "btex_ben",
+      "o3_no2",
+      "hcho_no2",
+      "co_no2"
+    ],
+    "strictness": "Misma estacion, dia, hora y minuto. Sumas y razones solo con unidades iguales; conversiones explicitas solo para temperatura, humedad, presion, direccion y velocidad de viento."
+  },
+  "runtime": {
+    "selected_record_reader": "Consulta exacta type+schema+capa+intervalo sobre directorio terminal y buckets residentes; no abre el archivo si los payloads calientes ya están decodificados en RAM, y usa un único descriptor perezoso si debe tocar disco.",
+    "no_selection_rule": "Sin casilla seleccionada no se abre ningun IXIPTLAH de esa categoria.",
+    "render_rule": "El render consume registros reales ya preformados en binario; no recalcula ni resume si existe bloque semanal/horario/minutal interno. El orden estable se fuerza sólo por diagnóstico.",
+    "payload_cache": "Caché residente LRU de payloads calientes ya decodificados para epidemiología, meteorología, contaminantes y preformados semanales/horarios. Evita rerelectura, redescompresión y reapertura de archivo cuando se consulta la misma semana o se navega alrededor del pivote.",
+    "live_index": "Índice vivo de archivo abierto con snapshot bucketizado por revisión: lecturas durante importación no reconstruyen buckets si no hubo nuevos append.",
+    "terminal_directory": "El directorio terminal se emite desde el índice vivo cuando el archivo estuvo abierto para append; al cerrar no se reescanea todo el IXIPTLAH salvo ausencia de índice vivo. Esto reduce latencia de registro y deja offsets listos para lectura inmediata."
+  },
+  "ixiptlah_sm_v5_4": "Un .ixiptlah por elemento; payload primario con tablas locales; sin catálogo gráfico ni resumen diario/horario; sólo muestras directas dentro del .ixiptlah; sin sidecars por defecto.",
+  "no_backward_step_v5_4": "No volver a tablas globales completas por elemento ni a calculo de series en render si el importador puede preformarlas.",
+  "ixiptlah_sm_v56": {
+    "contrato": "un .ixiptlah por elemento del catálogo, sin subcarpetas y sin nuevos tipos externos de archivo",
+    "prohibicion_resumenes": "prohibido persistir resumen mensual, diario, horario, catálogo agregado o cualquier vista preagregada",
+    "graficas": "las gráficas consumen muestras directas día/hora/minuto; las uniones son transitorias al seleccionar casillas",
+    "secundarios": "sólo secundarios físicos/químicos defendibles desde primarios simultáneos y unidades compatibles"
+  },
+  "prohibicion_resumenes_estricta": {
+    "resumenes_externos": false,
+    "sidecars": false,
+    "preformados_internos_ixiptlah": true,
+    "regla": "Los preformados internos no sustituyen el dato unitario; duplican una vista binaria mínima para evitar reconstrucción tardía en UI."
+  },
+  "ixiptlah_v10_hot_records": {
+    "unitario": "MonthlyAtmosphereMeasurementBatch schema 3: día, minuto, estación, unidad y valor por capa dentro del archivo semanal.",
+    "diario": "AtmosphereGraphDailyStationBatch schema 1: medias día-estación-unidad ya agrupadas.",
+    "horario": "AtmosphereGraphHourlyStationBatch schema 1: puntos día-minuto-estación-unidad listos para mapa puntual.",
+    "semanal": "AtmosphereGraphWeeklyStationBatch schema 1: puntos de siete días con catálogo local mínimo por semana; lectura objetivo bajo 0.25 s con datos locales y SSD razonable.",
+    "indice_residente": "Buckets type+schema+capa+hora, semana, día y mes/año; cierre con directorio terminal desde índice vivo; lectura exacta con apertura perezosa y payload-cache decodificado.",
+    "payload_cache": "TLALPOWA_IXIPTLAH_PAYLOAD_CACHE_BYTES y TLALPOWA_IXIPTLAH_PAYLOAD_CACHE_RECORD_BYTES controlan caché residente de payload decodificado; no crea sidecars."
+  }
+}

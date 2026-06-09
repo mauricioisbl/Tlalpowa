@@ -1,0 +1,60 @@
+{
+  "schema": "tlalpowa.atmosfera.visual.representatividad.v2",
+  "proposito": "Definir radios cartograficos conservadores para pines, halos y malla gradual de contaminantes sin confundirlos con radios fisicos del sensor, distancia causal de exposicion ni interpolacion validada.",
+  "unidad_contrato": "radius_m es radio cartografico en metros. El diametro visual equivale a 2 * radius_m. La UI debe nombrarlo como radio representativo cartografico y no como cobertura real.",
+  "base_normativa": {
+    "referencia": "40 CFR Part 58 Appendix D, Network Design Criteria for Ambient Air Quality Monitoring",
+    "escalas_usadas": {
+      "micro": "varios metros a aproximadamente 100 m de dimension",
+      "middle": "aproximadamente 100 m a 0.5 km de dimension",
+      "neighborhood": "aproximadamente 0.5 a 4 km de dimension",
+      "urban": "aproximadamente 4 a 50 km de dimension"
+    },
+    "criterio_de_conversion": "El radio visual toma la mitad de una dimension representativa baja o media de la escala regulatoria elegida; se evita usar el extremo superior urbano para no sobreafirmar homogeneidad espacial."
+  },
+  "opacidad": {
+    "pin_radial_central": 0.50,
+    "malla_gradual_contaminantes_maxima": 0.25,
+    "halo_cartografico_maximo": 0.25
+  },
+  "radios_m": {
+    "O3": 2000,
+    "PM2.5": 2000,
+    "PM10": 1000,
+    "CO": 250,
+    "NO": 250,
+    "NO2": 250,
+    "NOX": 250,
+    "SO2": 500,
+    "H2S": 250,
+    "TMP": 1500,
+    "RH": 1500,
+    "WSP": 2000,
+    "WDR": 2000,
+    "GR": 2000,
+    "UVA": 2000,
+    "UVB": 2000,
+    "default": 250
+  },
+  "diametros_equivalentes_m": {
+    "O3": 4000,
+    "PM2.5": 4000,
+    "PM10": 2000,
+    "CO": 500,
+    "NO_NO2_NOX": 500,
+    "SO2": 1000,
+    "H2S": 500,
+    "TMP_RH": 3000,
+    "WSP_WDR": 4000,
+    "GR_UVA_UVB": 4000,
+    "default": 500
+  },
+  "malla_gradual": {
+    "nombre_ui": "Malla gradual de contaminantes",
+    "opacidad_maxima": 0.25,
+    "vecinos_por_estacion": 4,
+    "limite_entre_estaciones": "adaptativo: max(radius_i, radius_j) * 2.25 + 96 px, acotado por tamano de mapa",
+    "contrato": "La malla solo expresa continuidad visual conservadora entre estaciones del mismo contaminante; no sustituye kriging, transporte quimico, asimilacion satelital ni dato puntual de RAMA/SIMAT."
+  },
+  "regla_de_no_regresion": "La representatividad visual debe permanecer menor o igual a los radios declarados salvo que una capa satelital o modelo atmosferico posterior aporte resolucion, incertidumbre y linaje explicitos."
+}

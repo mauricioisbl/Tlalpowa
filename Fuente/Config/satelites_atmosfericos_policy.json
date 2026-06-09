@@ -1,0 +1,118 @@
+{
+  "schema": "tlalpowa.atmosfera.satelital.importacion.v3.elemental",
+  "proposito": "Preparar importación satelital independiente de RAMA/SIMAT como datos directos por elemento IXIPTLAH, sin núcleo mensual mixto ni resúmenes persistentes.",
+  "almacenamiento": {
+    "crudo": "Datos externos/Satelitales/<producto>",
+    "ixiptlah_elemental": "Datos/DATOS_METEOROLOGICOS__<ELEMENTO>.ixiptlah o Datos/DATOS_DE_CONTAMINANTES_ATMOSFERICOS__<ELEMENTO>.ixiptlah",
+    "sin_subcarpetas_en_datos": true,
+    "tipos_de_archivo_permitidos": [
+      ".ixiptlah"
+    ],
+    "contrato": "Cada elemento del catálogo satelital o de superficie tiene su propio .ixiptlah. No se crean .ixsm por defecto, ni resúmenes diarios, horarios, mensuales o catálogos agregados."
+  },
+  "prohibiciones_estrictas": [
+    "No crear resumen mensual ultraligero.",
+    "No crear resumen diario.",
+    "No crear resumen horario.",
+    "No crear catálogos agregados de rango.",
+    "No mezclar satélite y estación como derivado automático.",
+    "No convertir AOD a PM sin modelo explícito externo y trazable."
+  ],
+  "independencia_de_linhaje": "Los productos satelitales se descargan e inventarian sin mezclarse con estaciones RAMA/SIMAT. La calibración contra estaciones debe ser una etapa analítica posterior, reproducible y con incertidumbre, no una sobrescritura ni un secundario automático.",
+  "productos_iniciales": [
+    {
+      "id": "Sentinel5P_TROPOMI",
+      "satellite": "Sentinel-5P",
+      "sensor": "TROPOMI",
+      "variables_elementales": [
+        "O3",
+        "NO2",
+        "SO2",
+        "CO",
+        "HCHO",
+        "CH4",
+        "UVAI",
+        "cloud_fraction",
+        "cloud_pressure",
+        "cloud_top_temperature"
+      ],
+      "formatos_esperados": [
+        "NetCDF-CF",
+        "NetCDF-4",
+        "CSV/JSON de catalogo"
+      ]
+    },
+    {
+      "id": "NASA_Aura_OMI",
+      "satellite": "Aura",
+      "sensor": "OMI",
+      "variables_elementales": [
+        "NO2",
+        "O3",
+        "UVAI",
+        "cloud_fraction"
+      ],
+      "formatos_esperados": [
+        "HDF-EOS5",
+        "HDF-EOS",
+        "JSON de catalogo"
+      ]
+    },
+    {
+      "id": "MODIS_MAIAC_AOD",
+      "satellite": "Terra/Aqua",
+      "sensor": "MODIS MAIAC",
+      "variables_elementales": [
+        "AOD"
+      ],
+      "formatos_esperados": [
+        "HDF",
+        "HDF5",
+        "GeoTIFF derivado",
+        "JSON de catalogo"
+      ]
+    },
+    {
+      "id": "GOESR_ABI_Atmosfera",
+      "satellite": "GOES-R",
+      "sensor": "ABI",
+      "variables_elementales": [
+        "cloud_fraction",
+        "brightness",
+        "frp",
+        "fire_temperature",
+        "fire_area"
+      ],
+      "formatos_esperados": [
+        "NetCDF",
+        "GeoTIFF derivado",
+        "JSON de catalogo"
+      ]
+    },
+    {
+      "id": "NASA_POWER",
+      "satellite": "multi-fuente",
+      "sensor": "POWER",
+      "variables_elementales": [
+        "TMP",
+        "TMAX",
+        "TMIN",
+        "RH",
+        "PA",
+        "PP",
+        "WSP",
+        "WDR",
+        "U10",
+        "V10",
+        "GR",
+        "UV"
+      ],
+      "formatos_esperados": [
+        "CSV",
+        "JSON",
+        "API"
+      ]
+    }
+  ],
+  "secundarios_permitidos": "Sólo variables físicas o químicas calculadas con primarios simultáneos, misma estación o celda, mismo día/hora/minuto y unidades compatibles explícitamente."
+}

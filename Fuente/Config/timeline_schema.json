@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0-linea_horaria_tlalpowa",
+  "inicio": "1983-01-01 00:00",
+  "resolucion_base": "1 hora",
+  "segmentacion_visual": "semana",
+  "iman_semana": {
+    "activo_por_defecto": true,
+    "desactivar_temporalmente": "mantener Ctrl al soltar la barra o confirmar fecha"
+  },
+  "controles": {
+    "flecha_izquierda": "retrocede 1 dia",
+    "flecha_derecha": "avanza 1 dia",
+    "contador_derecho": "acepta AAAA-MM-DD HH:00"
+  },
+  "nota_epidemiologica": "Los boletines semanales se asignan a la semana mas proxima dentro de la linea horaria horaria; esta estructura queda preparada para integrar datos atmosfericos horarios."
+}

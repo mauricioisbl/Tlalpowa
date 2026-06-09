@@ -1,0 +1,170 @@
+id	name	lon	lat	kind	rank	population	population_year	elevation_m	admin1	admin2	country	notes	source	source_url
+# Catálogo extendido inicial para que los pines de poblados no dependan de centroides municipales. Coordenadas centrales aproximadas; sustituible por INEGI/GeoNames sin recompilar.
+san_andres_totoltepec	San Andrés Totoltepec	-99.166400	19.246500	pueblo originario	3	24985	2020	2520	Ciudad de México	Tlalpan	MX	Pueblo originario de Tlalpan; punto colocado en el casco urbano tradicional.	Tlalpowa_curado_extendido; INEGI_CPV_2020; MexicoCity_CDMX	https://mexicocity.cdmx.gob.mx/venues/san-andres-totoltepec/
+san_pedro_martir_tlalpan	San Pedro Mártir	-99.166100	19.263800	pueblo originario	3	0	2020	2360	Ciudad de México	Tlalpan	MX	Pueblo originario de Tlalpan; población puede completarse con catálogo INEGI de localidad/AGEB.	Tlalpowa_curado_extendido	
+santa_ursula_xitla	Santa Úrsula Xitla	-99.165500	19.285400	pueblo originario	3	0	2020	2280	Ciudad de México	Tlalpan	MX	Pueblo histórico del sur de Tlalpan.	Tlalpowa_curado_extendido	
+san_miguel_xicalco	San Miguel Xicalco	-99.180600	19.225900	pueblo originario	4	0	2020	2770	Ciudad de México	Tlalpan	MX	Pueblo originario en la zona alta de Tlalpan.	Tlalpowa_curado_extendido	
+magdalena_petlacalco	La Magdalena Petlacalco	-99.199700	19.223700	pueblo originario	4	0	2020	2860	Ciudad de México	Tlalpan	MX	Pueblo originario de Tlalpan.	Tlalpowa_curado_extendido	
+santo_tomas_ajusco	Santo Tomás Ajusco	-99.200500	19.222200	pueblo originario	4	0	2020	2900	Ciudad de México	Tlalpan	MX	Pueblo originario del Ajusco.	Tlalpowa_curado_extendido	
+san_miguel_ajusco	San Miguel Ajusco	-99.207800	19.209900	pueblo originario	4	0	2020	2950	Ciudad de México	Tlalpan	MX	Pueblo originario del Ajusco.	Tlalpowa_curado_extendido	
+san_miguel_topilejo	San Miguel Topilejo	-99.142900	19.203400	pueblo originario	4	0	2020	2750	Ciudad de México	Tlalpan	MX	Pueblo originario de Tlalpan.	Tlalpowa_curado_extendido	
+parres_el_guarda	Parres El Guarda	-99.175800	19.135400	pueblo originario	4	0	2020	3000	Ciudad de México	Tlalpan	MX	Pueblo originario y asentamiento sureño de la Ciudad de México.	Tlalpowa_curado_extendido	
+san_lorenzo_huipulco	San Lorenzo Huipulco	-99.148000	19.300000	pueblo originario	3	0	2020	2250	Ciudad de México	Tlalpan	MX	Pueblo histórico absorbido por la zona urbana.	Tlalpowa_curado_extendido	
+santa_maria_tepepan	Santa María Tepepan	-99.138800	19.288800	pueblo originario	3	0	2020	2250	Ciudad de México	Xochimilco	MX	Pueblo originario de Xochimilco.	Tlalpowa_curado_extendido	
+santiago_tepalcatlalpan	Santiago Tepalcatlalpan	-99.124300	19.263000	pueblo originario	3	0	2020	2360	Ciudad de México	Xochimilco	MX	Pueblo originario de Xochimilco.	Tlalpowa_curado_extendido	
+san_luis_tlaxialtemalco	San Luis Tlaxialtemalco	-99.034800	19.257800	pueblo originario	3	0	2020	2240	Ciudad de México	Xochimilco	MX	Pueblo originario chinampero.	Tlalpowa_curado_extendido	
+san_gregorio_atlapulco	San Gregorio Atlapulco	-99.050200	19.253500	pueblo originario	3	0	2020	2240	Ciudad de México	Xochimilco	MX	Pueblo originario chinampero.	Tlalpowa_curado_extendido	
+san_mateo_xalpa	San Mateo Xalpa	-99.112300	19.225600	pueblo originario	4	0	2020	2450	Ciudad de México	Xochimilco	MX	Pueblo originario de Xochimilco.	Tlalpowa_curado_extendido	
+santa_cruz_xochitepec	Santa Cruz Xochitepec	-99.129300	19.251200	pueblo originario	4	0	2020	2350	Ciudad de México	Xochimilco	MX	Pueblo originario de Xochimilco.	Tlalpowa_curado_extendido	
+santa_cruz_acalpixca	Santa Cruz Acalpixca	-99.078900	19.248500	pueblo originario	3	0	2020	2260	Ciudad de México	Xochimilco	MX	Pueblo originario de Xochimilco.	Tlalpowa_curado_extendido	
+san_lorenzo_atemoaya	San Lorenzo Atemoaya	-99.096400	19.244200	pueblo originario	4	0	2020	2350	Ciudad de México	Xochimilco	MX	Pueblo originario de Xochimilco.	Tlalpowa_curado_extendido	
+san_francisco_tlalnepantla	San Francisco Tlalnepantla	-99.125900	19.199100	pueblo originario	4	0	2020	2650	Ciudad de México	Xochimilco	MX	Pueblo originario de la zona serrana de Xochimilco.	Tlalpowa_curado_extendido	
+san_andres_ahuayucan	San Andrés Ahuayucan	-99.099700	19.227000	pueblo originario	4	0	2020	2440	Ciudad de México	Xochimilco	MX	Pueblo originario de Xochimilco.	Tlalpowa_curado_extendido	
+san_pedro_atocpan	San Pedro Atocpan	-99.049000	19.201200	pueblo originario	3	0	2020	2440	Ciudad de México	Milpa Alta	MX	Pueblo originario de Milpa Alta.	Tlalpowa_curado_extendido	
+villa_milpa_alta	Villa Milpa Alta	-99.023800	19.192300	pueblo originario / cabecera	3	0	2020	2420	Ciudad de México	Milpa Alta	MX	Cabecera histórica y pueblo originario de Milpa Alta.	Tlalpowa_curado_extendido	
+san_antonio_tecomitl	San Antonio Tecómitl	-98.999000	19.220100	pueblo originario	3	0	2020	2250	Ciudad de México	Milpa Alta	MX	Pueblo originario de Milpa Alta.	Tlalpowa_curado_extendido	
+san_pablo_oztotepec	San Pablo Oztotepec	-99.073100	19.185600	pueblo originario	4	0	2020	2600	Ciudad de México	Milpa Alta	MX	Pueblo originario de Milpa Alta.	Tlalpowa_curado_extendido	
+san_lorenzo_tlacoyucan	San Lorenzo Tlacoyucan	-99.033100	19.176900	pueblo originario	4	0	2020	2500	Ciudad de México	Milpa Alta	MX	Pueblo originario de Milpa Alta.	Tlalpowa_curado_extendido	
+santa_ana_tlacotenco	Santa Ana Tlacotenco	-98.996100	19.176900	pueblo originario	4	0	2020	2580	Ciudad de México	Milpa Alta	MX	Pueblo originario de Milpa Alta.	Tlalpowa_curado_extendido	
+san_jeronimo_miacatlan	San Jerónimo Miacatlán	-99.001700	19.192100	pueblo originario	4	0	2020	2450	Ciudad de México	Milpa Alta	MX	Pueblo originario de Milpa Alta.	Tlalpowa_curado_extendido	
+san_francisco_tecoxpa	San Francisco Tecoxpa	-98.990800	19.191700	pueblo originario	4	0	2020	2420	Ciudad de México	Milpa Alta	MX	Pueblo originario de Milpa Alta.	Tlalpowa_curado_extendido	
+san_agustin_ohtenco	San Agustín Ohtenco	-98.979500	19.184800	pueblo originario	4	0	2020	2430	Ciudad de México	Milpa Alta	MX	Pueblo originario de Milpa Alta.	Tlalpowa_curado_extendido	
+san_bartolome_xicomulco	San Bartolomé Xicomulco	-99.068400	19.206200	pueblo originario	4	0	2020	2500	Ciudad de México	Milpa Alta	MX	Pueblo originario de Milpa Alta.	Tlalpowa_curado_extendido	
+san_salvador_cuauhtenco	San Salvador Cuauhtenco	-99.098100	19.193100	pueblo originario	4	0	2020	2700	Ciudad de México	Milpa Alta	MX	Pueblo originario de Milpa Alta.	Tlalpowa_curado_extendido	
+san_nicolas_totolapan	San Nicolás Totolapan	-99.248200	19.299400	pueblo originario	3	0	2020	2480	Ciudad de México	La Magdalena Contreras	MX	Pueblo originario de Magdalena Contreras.	Tlalpowa_curado_extendido	
+la_magdalena_atlitic	La Magdalena Atlitic	-99.263800	19.306800	pueblo originario	3	0	2020	2520	Ciudad de México	La Magdalena Contreras	MX	Pueblo originario de Magdalena Contreras.	Tlalpowa_curado_extendido	
+san_bernabe_ocotepec	San Bernabé Ocotepec	-99.254500	19.320800	pueblo originario	3	0	2020	2480	Ciudad de México	La Magdalena Contreras	MX	Pueblo originario de Magdalena Contreras.	Tlalpowa_curado_extendido	
+san_jeronimo_aculco_lidice	San Jerónimo Aculco Lídice	-99.222900	19.334300	pueblo originario	3	0	2020	2350	Ciudad de México	La Magdalena Contreras	MX	Pueblo originario de Magdalena Contreras.	Tlalpowa_curado_extendido	
+san_lorenzo_acopilco	San Lorenzo Acopilco	-99.325900	19.331300	pueblo originario	4	0	2020	2850	Ciudad de México	Cuajimalpa de Morelos	MX	Pueblo originario de Cuajimalpa.	Tlalpowa_curado_extendido	
+san_mateo_tlaltenango	San Mateo Tlaltenango	-99.305700	19.335300	pueblo originario	4	0	2020	2700	Ciudad de México	Cuajimalpa de Morelos	MX	Pueblo originario de Cuajimalpa.	Tlalpowa_curado_extendido	
+san_pablo_chimalpa	San Pablo Chimalpa	-99.317800	19.362100	pueblo originario	4	0	2020	2750	Ciudad de México	Cuajimalpa de Morelos	MX	Pueblo originario de Cuajimalpa.	Tlalpowa_curado_extendido	
+san_pedro_cuajimalpa	San Pedro Cuajimalpa	-99.290500	19.358000	pueblo originario / cabecera	3	0	2020	2650	Ciudad de México	Cuajimalpa de Morelos	MX	Pueblo originario y cabecera histórica.	Tlalpowa_curado_extendido	
+santa_rosa_xochiac	Santa Rosa Xochiac	-99.291000	19.318800	pueblo originario	4	0	2020	2700	Ciudad de México	Álvaro Obregón	MX	Pueblo originario de Álvaro Obregón.	Tlalpowa_curado_extendido	
+san_bartolo_ameyalco	San Bartolo Ameyalco	-99.260000	19.341500	pueblo originario	4	0	2020	2600	Ciudad de México	Álvaro Obregón	MX	Pueblo originario de Álvaro Obregón.	Tlalpowa_curado_extendido	
+santa_lucia_xantepec	Santa Lucía Xantepec	-99.220400	19.371600	pueblo originario	3	0	2020	2400	Ciudad de México	Álvaro Obregón	MX	Pueblo originario de Álvaro Obregón.	Tlalpowa_curado_extendido	
+san_lorenzo_tezonco	San Lorenzo Tezonco	-99.067900	19.302600	pueblo originario	3	0	2020	2240	Ciudad de México	Iztapalapa	MX	Pueblo originario de Iztapalapa.	Tlalpowa_curado_extendido	
+santa_cruz_meyehualco	Santa Cruz Meyehualco	-99.037200	19.344800	pueblo originario	3	0	2020	2240	Ciudad de México	Iztapalapa	MX	Pueblo originario de Iztapalapa.	Tlalpowa_curado_extendido	
+santa_maria_aztahuacan	Santa María Aztahuacan	-99.028000	19.350000	pueblo originario	3	0	2020	2240	Ciudad de México	Iztapalapa	MX	Pueblo originario de Iztapalapa.	Tlalpowa_curado_extendido	
+santiago_acahualtepec	Santiago Acahualtepec	-98.988700	19.348400	pueblo originario	3	0	2020	2240	Ciudad de México	Iztapalapa	MX	Pueblo originario de Iztapalapa.	Tlalpowa_curado_extendido	
+san_sebastian_tecoloxtitlan	San Sebastián Tecoloxtitlán	-99.015400	19.366100	pueblo originario	4	0	2020	2240	Ciudad de México	Iztapalapa	MX	Pueblo originario de Iztapalapa.	Tlalpowa_curado_extendido	
+magdalena_mixhuca	Magdalena Mixhuca	-99.094200	19.406000	pueblo originario	3	0	2020	2240	Ciudad de México	Venustiano Carranza	MX	Pueblo originario urbano.	Tlalpowa_curado_extendido	
+penon_de_los_banos	Peñón de los Baños	-99.087000	19.443500	pueblo originario	3	0	2020	2240	Ciudad de México	Venustiano Carranza	MX	Pueblo originario urbano.	Tlalpowa_curado_extendido	
+santa_cruz_acayucan	Santa Cruz Acayucan	-99.164900	19.484000	pueblo originario	3	0	2020	2240	Ciudad de México	Azcapotzalco	MX	Pueblo originario de Azcapotzalco.	Tlalpowa_curado_extendido	
+san_juan_tlihuaca	San Juan Tlihuaca	-99.192200	19.494000	pueblo originario	3	0	2020	2240	Ciudad de México	Azcapotzalco	MX	Pueblo originario de Azcapotzalco.	Tlalpowa_curado_extendido	
+san_miguel_amantla	San Miguel Amantla	-99.198900	19.481200	pueblo originario	3	0	2020	2240	Ciudad de México	Azcapotzalco	MX	Pueblo originario de Azcapotzalco.	Tlalpowa_curado_extendido	
+santiago_ahuexotla	Santiago Ahuexotla	-99.183500	19.497400	pueblo originario	3	0	2020	2240	Ciudad de México	Azcapotzalco	MX	Pueblo originario de Azcapotzalco.	Tlalpowa_curado_extendido	
+santa_maria_malinalco	Santa María Malinalco	-99.176500	19.488800	pueblo originario	3	0	2020	2240	Ciudad de México	Azcapotzalco	MX	Pueblo originario de Azcapotzalco.	Tlalpowa_curado_extendido	
+san_lucas_xolox	San Lucas Xolox	-99.111900	19.491500	pueblo originario	3	0	2020	2240	Ciudad de México	Gustavo A. Madero	MX	Pueblo originario urbano.	Tlalpowa_curado_extendido	
+zumpango	Zumpango de Ocampo	-99.098000	19.797800	ciudad / cabecera municipal	2	280455	2020	2250	México	Zumpango	MX	Cabecera regional del norte metropolitano.	Tlalpowa_curado_extendido	
+teoloyucan	Teoloyucan	-99.181400	19.744300	ciudad / cabecera municipal	3	66656	2020	2280	México	Teoloyucan	MX	Cabecera municipal conurbada.	Tlalpowa_curado_extendido	
+coyotepec	Coyotepec	-99.207300	19.775200	pueblo / cabecera municipal	3	41240	2020	2300	México	Coyotepec	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+huehuetoca	Huehuetoca	-99.203600	19.829400	ciudad / cabecera municipal	2	163244	2020	2250	México	Huehuetoca	MX	Cabecera regional al norte de la ZMVM.	Tlalpowa_curado_extendido	
+tequixquiac	Tequixquiac	-99.146900	19.908500	pueblo / cabecera municipal	3	39033	2020	2250	México	Tequixquiac	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+apan	Apan	-98.450000	19.711100	ciudad / cabecera municipal	3	46466	2020	2480	Hidalgo	Apan	MX	Ciudad del altiplano pulquero.	Tlalpowa_curado_extendido	
+tepeapulco	Tepeapulco	-98.553700	19.785300	ciudad / cabecera municipal	3	56155	2020	2530	Hidalgo	Tepeapulco	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+ciudad_sahagun	Ciudad Sahagún	-98.580200	19.775100	ciudad	3	31418	2020	2450	Hidalgo	Tepeapulco	MX	Ciudad industrial.	Tlalpowa_curado_extendido	
+tizayuca	Tizayuca	-98.981400	19.839300	ciudad / cabecera municipal	2	168302	2020	2260	Hidalgo	Tizayuca	MX	Ciudad conurbada del eje México-Pachuca.	Tlalpowa_curado_extendido	
+tolcayuca	Tolcayuca	-98.916700	19.954400	pueblo / cabecera municipal	3	21261	2020	2370	Hidalgo	Tolcayuca	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+villa_de_tezontepec	Villa de Tezontepec	-98.819000	19.882800	pueblo / cabecera municipal	3	14321	2020	2320	Hidalgo	Villa de Tezontepec	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+temascalapa	Temascalapa	-98.900300	19.828000	pueblo / cabecera municipal	3	43173	2020	2350	México	Temascalapa	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+nopaltepec	Nopaltepec	-98.711700	19.777500	pueblo / cabecera municipal	4	10261	2020	2410	México	Nopaltepec	MX	Cabecera municipal cercana al corredor Teotihuacán-Apan.	Tlalpowa_curado_extendido	
+axapusco	Axapusco	-98.759500	19.724000	pueblo / cabecera municipal	3	29410	2020	2350	México	Axapusco	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+otumba	Otumba de Gómez Farías	-98.757000	19.699000	pueblo / cabecera municipal	3	36070	2020	2350	México	Otumba	MX	Cabecera histórica de la región de Teotihuacán.	Tlalpowa_curado_extendido	
+san_martin_de_las_piramides	San Martín de las Pirámides	-98.835200	19.706400	pueblo mágico / cabecera	3	29394	2020	2310	México	San Martín de las Pirámides	MX	Pueblo de la región teotihuacana.	Tlalpowa_curado_extendido	
+teotihuacan_cabecera	Teotihuacán de Arista	-98.871100	19.688900	pueblo / cabecera municipal	3	58309	2020	2270	México	Teotihuacán	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+acolman	Acolman de Nezahualcóyotl	-98.910800	19.638600	ciudad / cabecera municipal	3	171507	2020	2250	México	Acolman	MX	Cabecera municipal de la corona oriental.	Tlalpowa_curado_extendido	
+texcoco	Texcoco de Mora	-98.883000	19.513500	ciudad / cabecera municipal	2	277562	2020	2250	México	Texcoco	MX	Cabecera regional del oriente del Valle de México.	Tlalpowa_curado_extendido	
+chiconcuac	Chiconcuac de Juárez	-98.898000	19.559700	pueblo / cabecera municipal	3	27156	2020	2250	México	Chiconcuac	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+chimalhuacan	Chimalhuacán	-98.955000	19.421000	ciudad	2	705193	2020	2240	México	Chimalhuacán	MX	Ciudad conurbada del oriente metropolitano.	Tlalpowa_curado_extendido	
+los_reyes_la_paz	Los Reyes Acaquilpan	-98.982000	19.363600	ciudad / cabecera municipal	2	304088	2020	2250	México	La Paz	MX	Cabecera municipal conurbada.	Tlalpowa_curado_extendido	
+ixtapaluca	Ixtapaluca	-98.883300	19.318900	ciudad / cabecera municipal	2	542211	2020	2260	México	Ixtapaluca	MX	Cabecera municipal conurbada.	Tlalpowa_curado_extendido	
+chalco	Chalco de Díaz Covarrubias	-98.896900	19.264700	ciudad / cabecera municipal	2	400057	2020	2240	México	Chalco	MX	Cabecera regional del suroriente metropolitano.	Tlalpowa_curado_extendido	
+valle_de_chalco	Xico	-98.940800	19.291600	ciudad	2	391731	2020	2240	México	Valle de Chalco Solidaridad	MX	Ciudad conurbada del antiguo entorno lacustre de Xico.	Tlalpowa_curado_extendido	
+cocotitlan	Cocotitlán	-98.865700	19.230400	pueblo / cabecera municipal	4	15107	2020	2240	México	Cocotitlán	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+temamatla	Temamatla	-98.870500	19.203500	pueblo / cabecera municipal	4	15614	2020	2240	México	Temamatla	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+tenango_del_aire	Tenango del Aire	-98.856600	19.157800	pueblo / cabecera municipal	4	11972	2020	2400	México	Tenango del Aire	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+juchitepec	Juchitepec de Mariano Rivapalacio	-98.878300	19.100800	pueblo / cabecera municipal	3	27594	2020	2540	México	Juchitepec	MX	Cabecera municipal de la Sierra Nevada.	Tlalpowa_curado_extendido	
+amecameca	Amecameca de Juárez	-98.766700	19.123800	ciudad / cabecera municipal	3	53926	2020	2480	México	Amecameca	MX	Cabecera regional de los volcanes.	Tlalpowa_curado_extendido	
+tlalmanalco	Tlalmanalco de Velázquez	-98.803200	19.205700	pueblo / cabecera municipal	3	50336	2020	2400	México	Tlalmanalco	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+ayapango	Ayapango de Gabriel Ramos Millán	-98.799600	19.126900	pueblo / cabecera municipal	4	10128	2020	2450	México	Ayapango	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+ozumba	Ozumba de Alzate	-98.796700	19.036200	pueblo / cabecera municipal	3	30042	2020	2350	México	Ozumba	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+tepetlixpa	Tepetlixpa	-98.822800	19.029600	pueblo / cabecera municipal	3	19700	2020	2300	México	Tepetlixpa	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+ecatzingo	Ecatzingo	-98.751700	18.955100	pueblo / cabecera municipal	4	10293	2020	2390	México	Ecatzingo	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+atlautla	Atlautla	-98.778000	19.021000	pueblo / cabecera municipal	3	31374	2020	2400	México	Atlautla	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+temoaya	Temoaya	-99.595000	19.470800	pueblo / cabecera municipal	3	105766	2020	2680	México	Temoaya	MX	Cabecera municipal otomí.	Tlalpowa_curado_extendido	
+xalatlaco	Xalatlaco	-99.412500	19.178900	pueblo / cabecera municipal	3	30265	2020	2750	México	Xalatlaco	MX	Cabecera municipal en la sierra de las Cruces.	Tlalpowa_curado_extendido	
+tianguistenco	Santiago Tianguistenco	-99.466900	19.180800	ciudad / cabecera municipal	3	84941	2020	2620	México	Tianguistenco	MX	Cabecera regional.	Tlalpowa_curado_extendido	
+ocoyoacac	Ocoyoacac	-99.455000	19.271900	ciudad / cabecera municipal	3	72426	2020	2580	México	Ocoyoacac	MX	Cabecera municipal entre Toluca y CDMX.	Tlalpowa_curado_extendido	
+capulhuac	Capulhuac	-99.464400	19.193000	pueblo / cabecera municipal	3	37215	2020	2600	México	Capulhuac	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+almoloya_del_rio	Almoloya del Río	-99.487700	19.160800	pueblo / cabecera municipal	4	12782	2020	2590	México	Almoloya del Río	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+mexicaltzingo	Mexicaltzingo	-99.588300	19.210000	pueblo / cabecera municipal	4	13807	2020	2600	México	Mexicaltzingo	MX	Cabecera municipal del valle de Toluca.	Tlalpowa_curado_extendido	
+rayon_edomex	Santa María Rayón	-99.581500	19.148600	pueblo / cabecera municipal	4	15133	2020	2600	México	Rayón	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+tenango_del_valle	Tenango de Arista	-99.590800	19.104700	ciudad / cabecera municipal	3	90101	2020	2600	México	Tenango del Valle	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+calimaya	Calimaya de Díaz González	-99.616000	19.163200	pueblo / cabecera municipal	3	68841	2020	2690	México	Calimaya	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+chapultepec_edomex	Chapultepec	-99.561000	19.202000	pueblo / cabecera municipal	4	12277	2020	2600	México	Chapultepec	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+metepec_edomex	Metepec	-99.602900	19.252700	ciudad / cabecera municipal	2	242307	2020	2600	México	Metepec	MX	Ciudad y cabecera municipal del valle de Toluca.	Tlalpowa_curado_extendido	
+lerma	Lerma de Villada	-99.512300	19.285700	ciudad / cabecera municipal	2	170327	2020	2580	México	Lerma	MX	Cabecera industrial del valle de Toluca.	Tlalpowa_curado_extendido	
+san_mateo_atenco	San Mateo Atenco	-99.532500	19.267200	ciudad / cabecera municipal	3	97863	2020	2580	México	San Mateo Atenco	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+zinacantepec_ext	San Miguel Zinacantepec	-99.738400	19.284600	ciudad / cabecera municipal	2	203872	2020	2750	México	Zinacantepec	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+almoloya_de_juarez	Almoloya de Juárez	-99.756700	19.369200	ciudad / cabecera municipal	2	174587	2020	2650	México	Almoloya de Juárez	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+villa_victoria	Villa Victoria	-99.997300	19.442800	pueblo / cabecera municipal	3	108196	2020	2550	México	Villa Victoria	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+ixtlahuaca	Ixtlahuaca de Rayón	-99.767000	19.568600	ciudad / cabecera municipal	2	160139	2020	2540	México	Ixtlahuaca	MX	Cabecera regional mazahua.	Tlalpowa_curado_extendido	
+jocotitlan	Jocotitlán	-99.787800	19.706900	pueblo / cabecera municipal	3	69772	2020	2660	México	Jocotitlán	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+atlacomulco	Atlacomulco de Fabela	-99.874000	19.799200	ciudad / cabecera municipal	2	109384	2020	2570	México	Atlacomulco	MX	Cabecera regional del norte mexiquense.	Tlalpowa_curado_extendido	
+el_oro	El Oro de Hidalgo	-100.128100	19.802700	pueblo mágico / cabecera	3	36034	2020	2740	México	El Oro	MX	Cabecera municipal minera.	Tlalpowa_curado_extendido	
+san_felipe_del_progreso	San Felipe del Progreso	-99.953100	19.712700	ciudad / cabecera municipal	3	144924	2020	2570	México	San Felipe del Progreso	MX	Cabecera municipal mazahua.	Tlalpowa_curado_extendido	
+temascalcingo	Temascalcingo de José María Velasco	-100.006900	19.915100	pueblo / cabecera municipal	3	66999	2020	2380	México	Temascalcingo	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+acambay	Acambay de Ruíz Castañeda	-99.844800	19.955800	pueblo / cabecera municipal	3	67872	2020	2550	México	Acambay	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+jilotepec	Jilotepec de Molina Enríquez	-99.532000	19.951300	ciudad / cabecera municipal	2	87003	2020	2440	México	Jilotepec	MX	Cabecera regional del norte mexiquense.	Tlalpowa_curado_extendido	
+soyaniquilpan	Soyaniquilpan de Juárez	-99.499500	20.007700	pueblo / cabecera municipal	4	14363	2020	2390	México	Soyaniquilpan de Juárez	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+acanbay_san_juanico	San Juanico	-99.890200	19.993100	pueblo	4	0	2020	2500	México	Acambay	MX	Pueblo rural del norte mexiquense.	Tlalpowa_curado_extendido	
+villa_del_carbon	Villa del Carbón	-99.464000	19.728200	pueblo mágico / cabecera	3	51498	2020	2600	México	Villa del Carbón	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+tepotzotlan	Tepotzotlán	-99.223600	19.713000	pueblo mágico / cabecera	2	103696	2020	2250	México	Tepotzotlán	MX	Cabecera histórica conurbada.	Tlalpowa_curado_extendido	
+cuautitlan	Cuautitlán	-99.179400	19.672000	ciudad / cabecera municipal	2	178847	2020	2250	México	Cuautitlán	MX	Cabecera municipal conurbada.	Tlalpowa_curado_extendido	
+tultitlan	Tultitlán de Mariano Escobedo	-99.170000	19.646600	ciudad / cabecera municipal	2	516341	2020	2250	México	Tultitlán	MX	Cabecera municipal conurbada.	Tlalpowa_curado_extendido	
+coacalco	San Francisco Coacalco	-99.110300	19.632000	ciudad / cabecera municipal	2	293444	2020	2250	México	Coacalco de Berriozábal	MX	Cabecera municipal conurbada.	Tlalpowa_curado_extendido	
+tecamac	Tecámac de Felipe Villanueva	-98.968600	19.713600	ciudad / cabecera municipal	2	547503	2020	2250	México	Tecámac	MX	Cabecera municipal conurbada.	Tlalpowa_curado_extendido	
+ojo_de_agua	Ojo de Agua	-98.934000	19.680300	ciudad	3	242272	2020	2250	México	Tecámac	MX	Localidad urbana conurbada.	Tlalpowa_curado_extendido	
+cuautla	Cuautla	-98.957300	18.812600	ciudad / cabecera municipal	2	187118	2020	1290	Morelos	Cuautla	MX	Cabecera regional de Morelos.	Tlalpowa_curado_extendido	
+yautepec	Yautepec de Zaragoza	-99.067100	18.881900	ciudad / cabecera municipal	3	105780	2020	1210	Morelos	Yautepec	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+jiutepec	Jiutepec	-99.177500	18.881400	ciudad / cabecera municipal	2	215357	2020	1350	Morelos	Jiutepec	MX	Ciudad conurbada de Cuernavaca.	Tlalpowa_curado_extendido	
+temixco	Temixco	-99.225800	18.852500	ciudad / cabecera municipal	2	122263	2020	1280	Morelos	Temixco	MX	Ciudad conurbada de Cuernavaca.	Tlalpowa_curado_extendido	
+emiliano_zapata_morelos	Emiliano Zapata	-99.184200	18.840500	ciudad / cabecera municipal	3	107053	2020	1250	Morelos	Emiliano Zapata	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+xochitepec	Xochitepec	-99.234500	18.781000	pueblo / cabecera municipal	3	73539	2020	1120	Morelos	Xochitepec	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+tlaltizapan	Tlaltizapán de Zapata	-99.119500	18.686500	pueblo / cabecera municipal	3	52699	2020	950	Morelos	Tlaltizapán de Zapata	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+zacatepec	Zacatepec de Hidalgo	-99.189600	18.653700	ciudad / cabecera municipal	3	36398	2020	910	Morelos	Zacatepec	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+jojutla	Jojutla	-99.181600	18.614700	ciudad / cabecera municipal	3	57989	2020	890	Morelos	Jojutla	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+tepoztlan	Tepoztlán	-99.099700	18.986600	pueblo mágico / cabecera	3	54874	2020	1700	Morelos	Tepoztlán	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+yacapixtla	Yecapixtla	-98.866500	18.883100	pueblo / cabecera municipal	3	56620	2020	1580	Morelos	Yecapixtla	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+ocuituco	Ocuituco	-98.777500	18.878600	pueblo / cabecera municipal	4	18580	2020	1920	Morelos	Ocuituco	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+tetela_del_volcan	Tetela del Volcán	-98.729500	18.893300	pueblo / cabecera municipal	4	21482	2020	2100	Morelos	Tetela del Volcán	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+atlatlahucan	Atlatlahucan	-98.899500	18.934000	pueblo / cabecera municipal	4	24901	2020	1650	Morelos	Atlatlahucan	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+cuernavaca	Cuernavaca	-99.234200	18.921800	ciudad / capital estatal	1	378476	2020	1510	Morelos	Cuernavaca	MX	Capital estatal.	Tlalpowa_curado_extendido	
+pachuca	Pachuca de Soto	-98.762400	20.101100	ciudad / capital estatal	1	314331	2020	2400	Hidalgo	Pachuca de Soto	MX	Capital estatal.	Tlalpowa_curado_extendido	
+mineral_de_la_reforma	Mineral de la Reforma	-98.696400	20.058600	ciudad / cabecera municipal	2	202749	2020	2400	Hidalgo	Mineral de la Reforma	MX	Ciudad conurbada de Pachuca.	Tlalpowa_curado_extendido	
+real_del_monte	Mineral del Monte	-98.669200	20.139700	pueblo mágico / cabecera	3	14144	2020	2700	Hidalgo	Mineral del Monte	MX	Cabecera minera histórica.	Tlalpowa_curado_extendido	
+huasca	Huasca de Ocampo	-98.576200	20.203800	pueblo mágico / cabecera	4	17728	2020	2100	Hidalgo	Huasca de Ocampo	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+actopan_hidalgo	Actopan	-98.942900	20.269000	ciudad / cabecera municipal	3	61118	2020	2000	Hidalgo	Actopan	MX	Cabecera regional del Valle del Mezquital.	Tlalpowa_curado_extendido	
+ixmiquilpan	Ixmiquilpan	-99.217400	20.484900	ciudad / cabecera municipal	3	98991	2020	1700	Hidalgo	Ixmiquilpan	MX	Cabecera regional del Valle del Mezquital.	Tlalpowa_curado_extendido	
+tula_de_allende	Tula de Allende	-99.343800	20.051600	ciudad / cabecera municipal	2	115107	2020	2030	Hidalgo	Tula de Allende	MX	Cabecera regional y zona arqueológica.	Tlalpowa_curado_extendido	
+tepeji_del_rio	Tepeji del Río de Ocampo	-99.343500	19.904300	ciudad / cabecera municipal	3	90831	2020	2150	Hidalgo	Tepeji del Río de Ocampo	MX	Cabecera industrial.	Tlalpowa_curado_extendido	
+mixquiahuala	Mixquiahuala de Juárez	-99.213000	20.229300	ciudad / cabecera municipal	3	47108	2020	2000	Hidalgo	Mixquiahuala de Juárez	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+progreso_de_obregon	Progreso de Obregón	-99.190000	20.247000	pueblo / cabecera municipal	4	23174	2020	2000	Hidalgo	Progreso de Obregón	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+tulancingo	Tulancingo de Bravo	-98.369100	20.083600	ciudad / cabecera municipal	2	168369	2020	2180	Hidalgo	Tulancingo de Bravo	MX	Cabecera regional.	Tlalpowa_curado_extendido	
+santiago_tulantepec	Santiago Tulantepec	-98.357200	20.037500	ciudad / cabecera municipal	3	39461	2020	2180	Hidalgo	Santiago Tulantepec de Lugo Guerrero	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+cuautepec_hidalgo	Cuautepec de Hinojosa	-98.310400	20.035400	ciudad / cabecera municipal	3	60196	2020	2260	Hidalgo	Cuautepec de Hinojosa	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+puebla	Puebla de Zaragoza	-98.206300	19.043300	ciudad / capital estatal	1	1692181	2020	2140	Puebla	Puebla	MX	Capital estatal.	Tlalpowa_curado_extendido	
+san_andres_cholula	San Andrés Cholula	-98.305700	19.051300	ciudad / cabecera municipal	2	154448	2020	2140	Puebla	San Andrés Cholula	MX	Cabecera municipal conurbada de Puebla.	Tlalpowa_curado_extendido	
+san_pedro_cholula	San Pedro Cholula	-98.303500	19.063300	ciudad / cabecera municipal	2	138433	2020	2140	Puebla	San Pedro Cholula	MX	Cabecera histórica cholulteca.	Tlalpowa_curado_extendido	
+cuautlancingo	Cuautlancingo	-98.277000	19.089700	ciudad / cabecera municipal	2	137435	2020	2160	Puebla	Cuautlancingo	MX	Ciudad conurbada de Puebla.	Tlalpowa_curado_extendido	
+atlixco	Atlixco	-98.435100	18.908900	ciudad / cabecera municipal	2	141793	2020	1840	Puebla	Atlixco	MX	Cabecera regional.	Tlalpowa_curado_extendido	
+huejotzingo	Huejotzingo	-98.408500	19.158800	ciudad / cabecera municipal	3	90277	2020	2280	Puebla	Huejotzingo	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+texmelucan	San Martín Texmelucan	-98.433200	19.284300	ciudad / cabecera municipal	2	155738	2020	2250	Puebla	San Martín Texmelucan	MX	Cabecera regional entre Puebla y Tlaxcala.	Tlalpowa_curado_extendido	
+tlaxcala	Tlaxcala de Xicohténcatl	-98.237500	19.318900	ciudad / capital estatal	1	99715	2020	2230	Tlaxcala	Tlaxcala	MX	Capital estatal.	Tlalpowa_curado_extendido	
+apizaco	Apizaco	-98.143400	19.414900	ciudad / cabecera municipal	2	80948	2020	2400	Tlaxcala	Apizaco	MX	Ciudad ferroviaria y cabecera regional.	Tlalpowa_curado_extendido	
+huamantla	Huamantla	-97.922800	19.313600	ciudad / cabecera municipal	2	98764	2020	2500	Tlaxcala	Huamantla	MX	Cabecera municipal.	Tlalpowa_curado_extendido	
+calpulalpan	Calpulalpan	-98.569600	19.588300	ciudad / cabecera municipal	3	51017	2020	2580	Tlaxcala	Calpulalpan	MX	Cabecera occidental de Tlaxcala.	Tlalpowa_curado_extendido	
+queretaro_ext	Santiago de Querétaro	-100.389900	20.588800	ciudad / capital estatal	1	1049000	2020	1820	Querétaro	Querétaro	MX	Capital estatal y nodo regional.	Tlalpowa_curado_extendido	
+san_juan_del_rio_ext	San Juan del Río	-99.990100	20.387900	ciudad / cabecera municipal	2	297804	2020	1920	Querétaro	San Juan del Río	MX	Cabecera regional del Bajío.	Tlalpowa_curado_extendido	
+tequisquiapan_ext	Tequisquiapan	-99.891700	20.522200	pueblo mágico / cabecera	3	72487	2020	1880	Querétaro	Tequisquiapan	MX	Cabecera turística regional.	Tlalpowa_curado_extendido	
+amealco	Amealco de Bonfil	-100.144000	20.188000	pueblo mágico / cabecera	3	66794	2020	2620	Querétaro	Amealco de Bonfil	MX	Cabecera municipal.	Tlalpowa_curado_extendido	

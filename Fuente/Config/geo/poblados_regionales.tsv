@@ -1,0 +1,98 @@
+id	name	lon	lat	kind	rank	population	source
+# Corona regional externa a la ZMVM. Catálogo curado para que los pines no dependan del polígono ZMVM ni de centroides municipales; puede ampliarse o sustituirse por INEGI/GeoNames sin tocar el renderizador.
+toluca	Toluca de Lerdo	-99.655700	19.282600	ciudad / capital estatal	1	910608	catálogo_regional_curado
+metepec	Metepec	-99.602900	19.252700	ciudad / cabecera municipal	2	242307	catálogo_regional_curado
+zinacantepec	San Miguel Zinacantepec	-99.738400	19.284600	ciudad / cabecera municipal	2	203872	catálogo_regional_curado
+almoloya_juarez	Almoloya de Juárez	-99.758700	19.369700	pueblo / cabecera municipal	3	174587	catálogo_regional_curado
+temoaya	Temoaya	-99.590800	19.468900	pueblo / cabecera municipal	3	105766	catálogo_regional_curado
+otzolotepec	Villa Cuauhtémoc	-99.578300	19.415000	pueblo / cabecera municipal	3	88337	catálogo_regional_curado
+xonacatlan	Xonacatlán	-99.531900	19.405600	pueblo / cabecera municipal	3	52124	catálogo_regional_curado
+tenango_valle	Tenango de Arista	-99.590300	19.104400	ciudad / cabecera municipal	3	86417	catálogo_regional_curado
+calimaya	Calimaya de Díaz González	-99.617500	19.163900	pueblo / cabecera municipal	3	68489	catálogo_regional_curado
+mexicaltzingo	San Mateo Mexicaltzingo	-99.585600	19.208300	pueblo / cabecera municipal	4	13552	catálogo_regional_curado
+chapultepec_mex	Chapultepec	-99.564700	19.201700	pueblo / cabecera municipal	4	12563	catálogo_regional_curado
+san_antonio_isla	San Antonio la Isla	-99.566100	19.163600	pueblo / cabecera municipal	4	31496	catálogo_regional_curado
+rayon_mex	Santa María Rayón	-99.580600	19.148900	pueblo / cabecera municipal	4	15302	catálogo_regional_curado
+tianguistenco_centro	Santiago Tianguistenco de Galeana	-99.466900	19.180600	ciudad / cabecera municipal	3	84559	catálogo_regional_curado
+atizapan_santa_cruz	Santa Cruz Atizapán	-99.488600	19.176400	pueblo / cabecera municipal	4	11919	catálogo_regional_curado
+ocuilan	Ocuilan de Arteaga	-99.417500	18.977200	pueblo / cabecera municipal	4	36223	catálogo_regional_curado
+malinalco	Malinalco	-99.501900	18.948100	pueblo / cabecera municipal	4	28913	catálogo_regional_curado
+tenancingo	Tenancingo de Degollado	-99.593100	18.961100	ciudad / cabecera municipal	3	104677	catálogo_regional_curado
+villa_guerrero	Villa Guerrero	-99.640800	18.962800	pueblo / cabecera municipal	4	71349	catálogo_regional_curado
+ixtapan_sal	Ixtapan de la Sal	-99.677200	18.843900	ciudad / cabecera municipal	3	36405	catálogo_regional_curado
+coatepec_harinas	Coatepec Harinas	-99.768900	18.894700	pueblo / cabecera municipal	4	38825	catálogo_regional_curado
+atlacomulco	Atlacomulco de Fabela	-99.875600	19.798900	ciudad / cabecera municipal	3	109384	catálogo_regional_curado
+ixtlahuaca	Ixtlahuaca de Rayón	-99.766700	19.568900	ciudad / cabecera municipal	3	160139	catálogo_regional_curado
+jiquipilco	Jiquipilco	-99.608300	19.557500	pueblo / cabecera municipal	4	76449	catálogo_regional_curado
+jocotitlan	Jocotitlán	-99.788600	19.707800	pueblo / cabecera municipal	4	69417	catálogo_regional_curado
+el_oro	El Oro de Hidalgo	-100.133100	19.803300	pueblo / cabecera municipal	4	36593	catálogo_regional_curado
+san_felipe_progreso	San Felipe del Progreso	-99.952800	19.713600	pueblo / cabecera municipal	4	144924	catálogo_regional_curado
+acambay	Acambay de Ruíz Castañeda	-99.844200	19.956700	pueblo / cabecera municipal	4	67872	catálogo_regional_curado
+timilpan	San Andrés Timilpan	-99.733900	19.876700	pueblo / cabecera municipal	4	16135	catálogo_regional_curado
+jilotepec	Jilotepec de Molina Enríquez	-99.532800	19.952500	ciudad / cabecera municipal	3	87927	catálogo_regional_curado
+soyaniquilpan	San Francisco Soyaniquilpan	-99.530600	20.007500	pueblo / cabecera municipal	4	14323	catálogo_regional_curado
+polotitlan	Polotitlán de la Ilustración	-99.817200	20.223900	pueblo / cabecera municipal	4	14310	catálogo_regional_curado
+pachuca	Pachuca de Soto	-98.733300	20.116700	ciudad / capital estatal	1	314331	catálogo_regional_curado
+mineral_reforma	Mineral de la Reforma	-98.711900	20.097200	ciudad / cabecera municipal	2	202749	catálogo_regional_curado
+real_monte	Mineral del Monte	-98.671400	20.138300	pueblo / cabecera municipal	4	14324	catálogo_regional_curado
+mineral_chico	Mineral del Chico	-98.731400	20.214200	pueblo / cabecera municipal	4	8177	catálogo_regional_curado
+huasca	Huasca de Ocampo	-98.576100	20.204400	pueblo / cabecera municipal	4	17428	catálogo_regional_curado
+ometusco	Santiago Ometusco	-98.699200	19.721900	pueblo	4	0	catálogo_regional_curado
+ciudad_sahagun	Ciudad Sahagún	-98.583300	19.775000	ciudad industrial	3	31100	catálogo_regional_curado
+tepeapulco	Tepeapulco	-98.552200	19.786400	pueblo / cabecera municipal	4	56372	catálogo_regional_curado
+apan	Apan	-98.452200	19.710000	ciudad / cabecera municipal	3	46108	catálogo_regional_curado
+aljojuca	Aljojuca	-97.530600	19.099700	pueblo / cabecera municipal	4	6179	catálogo_regional_curado
+zempoala_hgo	Zempoala	-98.667200	19.915800	pueblo / cabecera municipal	4	57840	catálogo_regional_curado
+villa_tezontepec_2	Villa de Tezontepec	-98.819400	19.881900	pueblo / cabecera municipal	4	13708	catálogo_regional_curado
+tizayuca_2	Tizayuca	-98.983300	19.833300	ciudad / cabecera municipal	2	168302	catálogo_regional_curado
+tula	Tula de Allende	-99.343900	20.054400	ciudad / cabecera municipal	3	115107	catálogo_regional_curado
+tepeji	Tepeji del Río de Ocampo	-99.342200	19.905300	ciudad / cabecera municipal	3	90234	catálogo_regional_curado
+atotonilco_tula	Atotonilco de Tula	-99.218100	20.008900	pueblo / cabecera municipal	4	62904	catálogo_regional_curado
+atitalaquia	Atitalaquia	-99.220300	20.059700	pueblo / cabecera municipal	4	31928	catálogo_regional_curado
+tlahuelilpan	Tlahuelilpan	-99.231900	20.130600	pueblo / cabecera municipal	4	19671	catálogo_regional_curado
+tlaxcoapan	Tlaxcoapan	-99.220000	20.091400	pueblo / cabecera municipal	4	28945	catálogo_regional_curado
+mixquiahuala	Mixquiahuala de Juárez	-99.213600	20.230600	ciudad / cabecera municipal	4	47776	catálogo_regional_curado
+progreso_obregon	Progreso de Obregón	-99.190600	20.248300	pueblo / cabecera municipal	4	23282	catálogo_regional_curado
+actopan	Actopan	-98.943600	20.269700	ciudad / cabecera municipal	3	61959	catálogo_regional_curado
+francisco_i_madero_hgo	Francisco I. Madero	-99.089400	20.242500	pueblo / cabecera municipal	4	36248	catálogo_regional_curado
+tulancingo	Tulancingo de Bravo	-98.369200	20.083600	ciudad / cabecera municipal	2	168369	catálogo_regional_curado
+cuautepec_hinojosa	Cuautepec de Hinojosa	-98.306700	20.035800	ciudad / cabecera municipal	3	60421	catálogo_regional_curado
+acatlan_hgo	Acatlán	-98.438300	20.145000	pueblo / cabecera municipal	4	22268	catálogo_regional_curado
+singuilucan	Singuilucan	-98.517500	19.966900	pueblo / cabecera municipal	4	15050	catálogo_regional_curado
+cuernavaca	Cuernavaca	-99.234200	18.918600	ciudad / capital estatal	1	378476	catálogo_regional_curado
+jiutepec	Jiutepec	-99.177800	18.882800	ciudad / cabecera municipal	2	215357	catálogo_regional_curado
+temixco	Temixco	-99.224700	18.852800	ciudad / cabecera municipal	2	122263	catálogo_regional_curado
+emiliano_zapata_mor	Emiliano Zapata	-99.184700	18.840600	ciudad / cabecera municipal	3	107053	catálogo_regional_curado
+xochitepec	Xochitepec	-99.230300	18.781900	ciudad / cabecera municipal	3	73162	catálogo_regional_curado
+yautepec	Yautepec de Zaragoza	-99.067200	18.881900	ciudad / cabecera municipal	3	102690	catálogo_regional_curado
+oaxtepec	Oaxtepec	-98.974200	18.908300	pueblo / zona urbana	4	0	catálogo_regional_curado
+tlayacapan	Tlayacapan	-98.982200	18.956100	pueblo / cabecera municipal	4	19238	catálogo_regional_curado
+totolapan	Totolapan	-98.920600	18.984400	pueblo / cabecera municipal	4	11873	catálogo_regional_curado
+tlalnepantla_mor	Tlalnepantla	-98.997800	19.009400	pueblo / cabecera municipal	4	7514	catálogo_regional_curado
+atlatlahucan	Atlatlahucan	-98.899200	18.935600	pueblo / cabecera municipal	4	25680	catálogo_regional_curado
+yecapixtla	Yecapixtla	-98.861400	18.883900	pueblo / cabecera municipal	4	56049	catálogo_regional_curado
+cuautla_mor	Cuautla	-98.956900	18.812600	ciudad / cabecera municipal	2	187118	catálogo_regional_curado
+ayala_mor	Ciudad Ayala	-98.984200	18.766900	ciudad / cabecera municipal	3	89769	catálogo_regional_curado
+jonacatepec	Jonacatepec de Leandro Valle	-98.803900	18.680300	pueblo / cabecera municipal	4	15590	catálogo_regional_curado
+jantetelco	Jantetelco	-98.777800	18.713900	pueblo / cabecera municipal	4	17794	catálogo_regional_curado
+zacualpan_amilpas	Zacualpan de Amilpas	-98.766700	18.783300	pueblo / cabecera municipal	4	10126	catálogo_regional_curado
+tetela_volcan	Tetela del Volcán	-98.729400	18.893900	pueblo / cabecera municipal	4	20856	catálogo_regional_curado
+ocuituco	Ocuituco	-98.773900	18.877200	pueblo / cabecera municipal	4	18924	catálogo_regional_curado
+miacatlan	Miacatlán	-99.358600	18.763900	pueblo / cabecera municipal	4	26637	catálogo_regional_curado
+mazatepec	Mazatepec	-99.365600	18.728600	pueblo / cabecera municipal	4	10088	catálogo_regional_curado
+puente_ixtla	Puente de Ixtla	-99.318100	18.616900	ciudad / cabecera municipal	3	66942	catálogo_regional_curado
+jojutla	Jojutla de Juárez	-99.180000	18.614700	ciudad / cabecera municipal	3	57409	catálogo_regional_curado
+zacatepec	Zacatepec de Hidalgo	-99.189200	18.654200	ciudad / cabecera municipal	3	36387	catálogo_regional_curado
+puebla	Puebla de Zaragoza	-98.206300	19.041400	ciudad / capital estatal	1	1692181	catálogo_regional_curado
+san_pedro_cholula	San Pedro Cholula	-98.303900	19.064200	ciudad / cabecera municipal	3	138433	catálogo_regional_curado
+san_andres_cholula	San Andrés Cholula	-98.307500	19.051400	ciudad / cabecera municipal	3	154448	catálogo_regional_curado
+cuautlancingo	Cuautlancingo	-98.273600	19.087200	ciudad / cabecera municipal	3	112225	catálogo_regional_curado
+amozoc	Amozoc de Mota	-98.045600	19.046400	ciudad / cabecera municipal	3	125876	catálogo_regional_curado
+huejotzingo	Huejotzingo	-98.408300	19.158600	ciudad / cabecera municipal	3	90062	catálogo_regional_curado
+san_martin_texmelucan	San Martín Texmelucan de Labastida	-98.433300	19.283300	ciudad / cabecera municipal	2	155738	catálogo_regional_curado
+calpulalpan	Calpulalpan	-98.569700	19.588600	ciudad / cabecera municipal	3	51241	catálogo_regional_curado
+nanacamilpa	Nanacamilpa	-98.536100	19.493900	pueblo / cabecera municipal	4	17268	catálogo_regional_curado
+tlaxcala	Tlaxcala de Xicohténcatl	-98.239700	19.318900	ciudad / capital estatal	2	99896	catálogo_regional_curado
+santa_ana_chiautempan	Santa Ana Chiautempan	-98.193300	19.306400	ciudad / cabecera municipal	3	73973	catálogo_regional_curado
+apizaco	Apizaco	-98.144200	19.413300	ciudad / cabecera municipal	3	80541	catálogo_regional_curado
+huamantla	Huamantla	-97.920800	19.315000	ciudad / cabecera municipal	3	98299	catálogo_regional_curado

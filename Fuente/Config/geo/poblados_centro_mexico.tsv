@@ -1,0 +1,73 @@
+id	name	lon	lat	kind	rank	population	source
+# Catálogo curado complementario: ciudades y pueblos visibles fuera de la ZMVM para que el mapa tenga pines regionales aun antes de instalar GeoNames/INEGI completos.
+queretaro	Santiago de Querétaro	-100.389900	20.588800	ciudad / capital estatal	1	1049000	catálogo_centro_mexico_curado
+san_juan_del_rio	San Juan del Río	-99.990100	20.387900	ciudad / cabecera municipal	2	297804	catálogo_centro_mexico_curado
+tequisquiapan	Tequisquiapan	-99.891700	20.522200	pueblo / cabecera municipal	3	72487	catálogo_centro_mexico_curado
+amealco	Amealco de Bonfil	-100.144700	20.187200	pueblo / cabecera municipal	4	66841	catálogo_centro_mexico_curado
+cadereyta_queretaro	Cadereyta de Montes	-99.816700	20.696700	pueblo / cabecera municipal	4	69477	catálogo_centro_mexico_curado
+huichapan	Huichapan	-99.651100	20.375000	pueblo / cabecera municipal	4	45621	catálogo_centro_mexico_curado
+ixmiquilpan	Ixmiquilpan	-99.216900	20.484200	ciudad / cabecera municipal	3	98222	catálogo_centro_mexico_curado
+actopan_hgo	Actopan	-98.942900	20.269700	ciudad / cabecera municipal	3	61134	catálogo_centro_mexico_curado
+zimpan	Zimapán	-99.383100	20.738900	pueblo / cabecera municipal	4	39247	catálogo_centro_mexico_curado
+atotonilco_el_grande	Atotonilco el Grande	-98.668300	20.286900	pueblo / cabecera municipal	4	28000	catálogo_centro_mexico_curado
+mineral_del_monte	Mineral del Monte	-98.671900	20.138900	pueblo / cabecera municipal	4	14000	catálogo_centro_mexico_curado
+huasca	Huasca de Ocampo	-98.576700	20.203300	pueblo / cabecera municipal	4	17000	catálogo_centro_mexico_curado
+mixquiahuala	Mixquiahuala de Juárez	-99.213900	20.229200	ciudad / cabecera municipal	4	48000	catálogo_centro_mexico_curado
+progreso_obregon	Progreso de Obregón	-99.190800	20.248300	pueblo / cabecera municipal	4	23000	catálogo_centro_mexico_curado
+tepeji	Tepeji del Río de Ocampo	-99.343100	19.905800	ciudad / cabecera municipal	3	90200	catálogo_centro_mexico_curado
+ciudad_sahagun	Ciudad Sahagún	-98.582200	19.775000	ciudad / zona industrial	3	31000	catálogo_centro_mexico_curado
+apan	Apan	-98.453900	19.710600	ciudad / cabecera municipal	4	46900	catálogo_centro_mexico_curado
+tulancingo	Tulancingo de Bravo	-98.367400	20.083600	ciudad / cabecera municipal	2	168000	catálogo_centro_mexico_curado
+zacualtipan	Zacualtipán	-98.656100	20.650800	pueblo / cabecera municipal	4	39000	catálogo_centro_mexico_curado
+calpulalpan	Calpulalpan	-98.568900	19.588300	ciudad / cabecera municipal	3	51172	catálogo_centro_mexico_curado
+san_pablo_del_monte	San Pablo del Monte	-98.170600	19.118300	ciudad / cabecera municipal	3	82800	catálogo_centro_mexico_curado
+zacatelco	Zacatelco	-98.240300	19.215300	ciudad / cabecera municipal	4	45000	catálogo_centro_mexico_curado
+contla	Contla de Juan Cuamatzi	-98.166700	19.333300	pueblo / cabecera municipal	4	41000	catálogo_centro_mexico_curado
+ixtacuixtla	Ixtacuixtla de Mariano Matamoros	-98.379700	19.326100	pueblo / cabecera municipal	4	38000	catálogo_centro_mexico_curado
+zacatlan	Zacatlán	-97.961100	19.935800	ciudad / cabecera municipal	3	87000	catálogo_centro_mexico_curado
+chignahuapan	Chignahuapan	-98.031100	19.838600	ciudad / cabecera municipal	3	66000	catálogo_centro_mexico_curado
+huauchinango	Huauchinango	-98.051700	20.173300	ciudad / cabecera municipal	3	103000	catálogo_centro_mexico_curado
+teziutlan	Teziutlán	-97.360800	19.817200	ciudad / cabecera municipal	3	103583	catálogo_centro_mexico_curado
+zacapoaxtla	Zacapoaxtla	-97.588900	19.872800	pueblo / cabecera municipal	4	57000	catálogo_centro_mexico_curado
+puebla	Heroica Puebla de Zaragoza	-98.206300	19.041400	ciudad / capital estatal	1	1692000	catálogo_centro_mexico_curado
+cholula	San Pedro Cholula	-98.303500	19.061300	ciudad / cabecera municipal	2	138433	catálogo_centro_mexico_curado
+san_andres_cholula	San Andrés Cholula	-98.300000	19.050000	ciudad / cabecera municipal	2	154448	catálogo_centro_mexico_curado
+atlixco	Atlixco	-98.435300	18.908300	ciudad / cabecera municipal	3	141793	catálogo_centro_mexico_curado
+amozoc	Amozoc	-98.044400	19.043100	ciudad / cabecera municipal	3	125876	catálogo_centro_mexico_curado
+tepeaca	Tepeaca	-97.901400	18.966900	ciudad / cabecera municipal	3	84763	catálogo_centro_mexico_curado
+acajete_pue	Acajete	-97.952500	19.111400	pueblo / cabecera municipal	4	68000	catálogo_centro_mexico_curado
+san_martin_texmelucan	San Martín Texmelucan	-98.434700	19.284400	ciudad / cabecera municipal	2	155738	catálogo_centro_mexico_curado
+huejotzingo	Huejotzingo	-98.409700	19.158300	ciudad / cabecera municipal	3	90200	catálogo_centro_mexico_curado
+izucar	Izúcar de Matamoros	-98.466700	18.600000	ciudad / cabecera municipal	3	82400	catálogo_centro_mexico_curado
+tehuacan	Tehuacán	-97.392800	18.461700	ciudad / cabecera municipal	2	327312	catálogo_centro_mexico_curado
+tecali	Tecali de Herrera	-97.970000	18.900000	pueblo / cabecera municipal	4	22000	catálogo_centro_mexico_curado
+temixco	Temixco	-99.226400	18.852800	ciudad / cabecera municipal	3	122263	catálogo_centro_mexico_curado
+jiutepec	Jiutepec	-99.177800	18.881400	ciudad / cabecera municipal	3	215357	catálogo_centro_mexico_curado
+emiliano_zapata_mor	Emiliano Zapata	-99.184700	18.836700	ciudad / cabecera municipal	4	107053	catálogo_centro_mexico_curado
+xochitepec	Xochitepec	-99.231100	18.781100	pueblo / cabecera municipal	4	73539	catálogo_centro_mexico_curado
+tepoztlan	Tepoztlán	-99.100800	18.984700	pueblo / cabecera municipal	4	54387	catálogo_centro_mexico_curado
+yautepec	Yautepec de Zaragoza	-99.061700	18.881900	ciudad / cabecera municipal	3	105780	catálogo_centro_mexico_curado
+yecapixtla	Yecapixtla	-98.866700	18.883300	pueblo / cabecera municipal	4	52200	catálogo_centro_mexico_curado
+jojulta	Jojutla	-99.180300	18.614700	ciudad / cabecera municipal	4	57000	catálogo_centro_mexico_curado
+zacatepec	Zacatepec de Hidalgo	-99.194400	18.654700	ciudad / cabecera municipal	4	36000	catálogo_centro_mexico_curado
+puente_de_ixtla	Puente de Ixtla	-99.318900	18.614700	pueblo / cabecera municipal	4	66000	catálogo_centro_mexico_curado
+tetela_del_volcan	Tetela del Volcán	-98.729200	18.893100	pueblo / cabecera municipal	4	21000	catálogo_centro_mexico_curado
+cuernavaca	Cuernavaca	-99.234200	18.918600	ciudad / capital estatal	1	378476	catálogo_centro_mexico_curado
+cuautla	Cuautla	-98.955600	18.812600	ciudad / cabecera municipal	2	194786	catálogo_centro_mexico_curado
+valle_de_bravo	Valle de Bravo	-100.131300	19.195000	pueblo / cabecera municipal	4	61559	catálogo_centro_mexico_curado
+temascaltpec	Temascaltepec	-100.043600	19.044700	pueblo / cabecera municipal	4	35800	catálogo_centro_mexico_curado
+tejupilco	Tejupilco de Hidalgo	-100.151700	18.905800	ciudad / cabecera municipal	4	79500	catálogo_centro_mexico_curado
+ixtapan_de_la_sal	Ixtapan de la Sal	-99.676900	18.843900	pueblo / cabecera municipal	4	36200	catálogo_centro_mexico_curado
+malinalco	Malinalco	-99.496700	18.948300	pueblo / cabecera municipal	4	28300	catálogo_centro_mexico_curado
+tenancingo	Tenancingo de Degollado	-99.592800	18.961400	ciudad / cabecera municipal	3	104677	catálogo_centro_mexico_curado
+tenango_del_valle	Tenango del Valle	-99.590000	19.104700	ciudad / cabecera municipal	4	90000	catálogo_centro_mexico_curado
+lerma	Lerma de Villada	-99.510600	19.285000	ciudad / cabecera municipal	3	170327	catálogo_centro_mexico_curado
+ocoyoacac	Ocoyoacac	-99.457200	19.272500	ciudad / cabecera municipal	4	72000	catálogo_centro_mexico_curado
+tianguistenco	Santiago Tianguistenco	-99.466700	19.183300	ciudad / cabecera municipal	4	84259	catálogo_centro_mexico_curado
+ixtlahuaca	Ixtlahuaca de Rayón	-99.766700	19.568900	ciudad / cabecera municipal	4	160000	catálogo_centro_mexico_curado
+almoloya_de_juarez	Almoloya de Juárez	-99.759400	19.369400	pueblo / cabecera municipal	4	174587	catálogo_centro_mexico_curado
+el_oro	El Oro de Hidalgo	-100.133300	19.800000	pueblo / cabecera municipal	4	36800	catálogo_centro_mexico_curado
+san_felipe_del_progreso	San Felipe del Progreso	-99.952800	19.712800	pueblo / cabecera municipal	4	145000	catálogo_centro_mexico_curado
+temoaya	Temoaya	-99.593100	19.470800	pueblo / cabecera municipal	4	105766	catálogo_centro_mexico_curado
+jilotepec	Jilotepec de Molina Enríquez	-99.532800	19.951900	ciudad / cabecera municipal	3	88700	catálogo_centro_mexico_curado
+atlacomulco	Atlacomulco de Fabela	-99.873900	19.798900	ciudad / cabecera municipal	3	109384	catálogo_centro_mexico_curado

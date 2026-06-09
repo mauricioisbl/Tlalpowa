@@ -1,0 +1,2614 @@
+
+
+
+
+
+#include "TableEngine.hpp"
+
+#include <cstring>
+#include <initializer_list>
+
+
+
+namespace epi {
+
+
+
+namespace {
+
+
+
+struct HeaderYear {
+
+    int year = 0;
+    double x = 0.0;
+};
+
+
+
+
+struct HeaderGroup {
+    int first_col = 0;
+    int last_col = 0;
+    double x0 = 0.0;
+    double x1 = 0.0;
+
+    std::string label;
+    std::string norm;
+    std::string disease_id;
+    std::string disease;
+    std::string cie10;
+
+    Rect label_box;
+    Rect cie10_box;
+    double confidence = 0.0;
+
+    std::vector<HeaderYear> years;
+};
+
+
+
+struct HeaderSpan {
+
+    std::string text;
+    Rect box;
+    bool found = false;
+};
+
+
+
+struct ColumnGroupRange {
+    int first_col = 0;
+    int last_col = 0;
+};
+
+
+
+
+double median_value(std::vector<double> values) {
+
+    if (values.empty()) return 0.0;
+    std::sort(values.begin(), values.end());
+
+    const size_t mid = values.size() / 2;
+
+    if (values.size() % 2 == 1) return values[mid];
+
+    return (values[mid - 1] + values[mid]) * 0.5;
+}
+
+
+
+bool has_norm_word(const std::string& norm, const char* word) {
+
+    const size_t wl = std::strlen(word);
+
+    if (wl == 0) return false;
+    size_t p = 0;
+
+    while ((p = norm.find(word, p)) != std::string::npos) {
+        const bool left = (p == 0 || norm[p - 1] == ' ');
+        const size_t e = p + wl;
+
+        const bool right = (e >= norm.size() || norm[e] == ' ');
+
+        if (left && right) return true;
+        p = e;
+    }
+
+    return false;
+}
+
+
+
+bool has_any_norm_word(const std::string& norm, std::initializer_list<const char*> words) {
+
+    for (const char* w : words) if (has_norm_word(norm, w)) return true;
+
+    return false;
+}
+
+
+
+bool is_norm_sex_only(const std::string& norm) {
+
+    return norm == "m" || norm == "f" || norm == "masc" || norm == "fem" ||
+           norm == "masculino" || norm == "femenino";
+}
+
+
+
+bool is_norm_year_20xx_exact(const std::string& norm) {
+
+    return norm.size() == 4 && norm[0] == '2' && norm[1] == '0' &&
+
+           std::isdigit(static_cast<unsigned char>(norm[2])) &&
+           std::isdigit(static_cast<unsigned char>(norm[3]));
+}
+
+
+
+int first_year_20xx(const std::string& text) {
+
+    for (size_t i = 0; i + 3 < text.size(); ++i) {
+
+        if (text[i] == '2' && text[i + 1] == '0' &&
+
+            std::isdigit(static_cast<unsigned char>(text[i + 2])) &&
+
+            std::isdigit(static_cast<unsigned char>(text[i + 3]))) {
+
+            return 2000 + (text[i + 2] - '0') * 10 + (text[i + 3] - '0');
+        }
+    }
+
+    return 0;
+}
+
+
+
+
+bool is_semantic_sem_header(const std::string& norm) {
+
+    if (norm.empty()) return false;
+
+    const bool has_sem = contains_norm(norm, "sem") || contains_norm(norm, "semana");
+    const bool has_acum = contains_norm(norm, "acum") || contains_norm(norm, "acumulado");
+
+    const bool sex_only = is_norm_sex_only(norm);
+
+    return has_sem && !has_acum && !sex_only;
+}
+
+
+
+
+std::vector<ColumnGroupRange> fallback_column_groups(int n) {
+
+    std::vector<ColumnGroupRange> groups;
+
+    if (n <= 0) return groups;
+
+
+    for (int first = 0; first < n; first += 4) {
+
+        groups.push_back({first, std::min(n - 1, first + 3)});
+    }
+
+    return groups;
+}
+
+std::vector<ColumnGroupRange> fallback_column_groups_from_role_headers(int n, const std::vector<std::string>& local_norms) {
+    std::vector<ColumnGroupRange> groups;
+    if (n <= 0 || static_cast<int>(local_norms.size()) < n) return groups;
+
+    int sem_headers = 0;
+    int acum_headers = 0;
+    int sex_headers = 0;
+    for (int i = 0; i < n; ++i) {
+        const std::string& norm = local_norms[static_cast<size_t>(i)];
+        const bool has_sem = contains_norm(norm, "sem") || contains_norm(norm, "semana");
+        const bool has_acum = contains_norm(norm, "acum") || contains_norm(norm, "acumulado");
+        if (has_sem && !has_acum) ++sem_headers;
+        if (has_acum) ++acum_headers;
+        if (is_norm_sex_only(norm)) ++sex_headers;
+    }
+
+    const int minimum_repeated = std::max(2, n / 5);
+    if (sex_headers <= std::max(1, n / 10) && sem_headers >= minimum_repeated && acum_headers >= minimum_repeated) {
+        for (int first = 0; first < n; first += 2) groups.push_back({first, std::min(n - 1, first + 1)});
+        if (groups.size() >= 2) return groups;
+    }
+
+    if (sex_headers == 0 && acum_headers == 0 && sem_headers >= std::max(3, n / 2)) {
+        for (int first = 0; first < n; ++first) groups.push_back({first, first});
+        if (groups.size() >= 3) return groups;
+    }
+
+    groups.clear();
+    return groups;
+}
+
+std::vector<ColumnGroupRange> edomex_legacy_column_groups(int n, const std::string& header_norm) {
+    std::vector<ColumnGroupRange> groups;
+    if (n <= 0) return groups;
+    const bool has_sem = contains_norm(header_norm, "sem") || contains_norm(header_norm, "semana");
+    if (contains_norm(header_norm, "cie 10") || has_norm_word(header_norm, "cie") || has_norm_word(header_norm, "rev")) return groups;
+    const bool has_sex = contains_norm(header_norm, "masculino") || contains_norm(header_norm, "femenino") ||
+                         contains_norm(header_norm, "hombres") || contains_norm(header_norm, "mujeres");
+    if (!has_sem || has_sex) return groups;
+    for (int first = 0; first < n; first += 2) groups.push_back({first, std::min(n - 1, first + 1)});
+    return groups;
+}
+
+std::vector<ColumnGroupRange> edomex_modern_column_groups(int n,
+                                                          const std::string& header_norm,
+                                                          const std::vector<std::string>& local_norms,
+                                                          int doc_year) {
+    std::vector<ColumnGroupRange> groups;
+    if (n < 4 || doc_year < 2023) return groups;
+    if (!contains_norm(header_norm, "cie") && !contains_norm(header_norm, "rev")) return groups;
+
+    int sem_headers = 0;
+    int acum_headers = 0;
+    int sex_headers = 0;
+    for (int i = 0; i < n && i < static_cast<int>(local_norms.size()); ++i) {
+        const std::string& norm = local_norms[static_cast<size_t>(i)];
+        const bool has_sem = contains_norm(norm, "sem") || contains_norm(norm, "semana");
+        const bool has_acum = contains_norm(norm, "acum") || contains_norm(norm, "acumulado");
+        if (has_sem) ++sem_headers;
+        if (has_acum) ++acum_headers;
+        if (is_norm_sex_only(norm) ||
+            has_any_norm_word(norm, {"m", "f", "masc", "fem", "masculino", "femenino"})) ++sex_headers;
+    }
+
+    const int disease_groups = std::max(1, n / 4);
+    const bool header_has_sex = has_any_norm_word(header_norm, {"m", "f", "masc", "fem", "masculino", "femenino"});
+    const bool role_shape_matches =
+        sem_headers >= std::max(1, disease_groups / 2) &&
+        acum_headers >= std::max(2, disease_groups) &&
+        (sex_headers >= std::max(1, disease_groups / 2) || header_has_sex);
+    if (!role_shape_matches) return groups;
+
+    for (int first = 0; first < n; first += 4) groups.push_back({first, std::min(n - 1, first + 3)});
+    return groups;
+}
+
+bool is_non_epidemiological_column_group(const std::string& norm) {
+    if (norm.empty()) return false;
+    if (contains_norm(norm, "totales por jurisdiccion") || contains_norm(norm, "totales por")) return true;
+    if (contains_norm(norm, "total edo") || contains_norm(norm, "total estado")) return true;
+    if (contains_norm(norm, "suma por institucion") || contains_norm(norm, "por institucion")) return true;
+    if (contains_norm(norm, "institucion") || contains_norm(norm, "instituciones")) return true;
+    if (contains_norm(norm, "institu ciones") || contains_norm(norm, "otras institu")) return true;
+    if (contains_norm(norm, "acum desde la sem") || contains_norm(norm, "acumulado desde la sem")) return true;
+    if (contains_norm(norm, "acum desde") || contains_norm(norm, "acumulado desde")) return true;
+    if (contains_norm(norm, "i s e m") || contains_norm(norm, "i s s s t e")) return true;
+    if (contains_norm(norm, "i s s s") || contains_norm(norm, "i m s s")) return true;
+    if (contains_norm(norm, "isem") || contains_norm(norm, "imss") || contains_norm(norm, "issste")) return true;
+    if (contains_norm(norm, "isse") || contains_norm(norm, "my m")) return true;
+    if (contains_norm(norm, "difem") || contains_norm(norm, "pemex") || contains_norm(norm, "sedena")) return true;
+    if (contains_norm(norm, "oportunidades") || contains_norm(norm, "bienestar")) return true;
+    if (contains_norm(norm, "otras instituciones") || contains_norm(norm, "otras institu")) return true;
+    return false;
+}
+
+bool contains_any_norm(const std::string& norm, std::initializer_list<const char*> needles) {
+    for (const char* needle : needles) {
+        if (needle && contains_norm(norm, needle)) return true;
+    }
+    return false;
+}
+
+int norm_word_count(const std::string& norm) {
+    int count = 0;
+    bool in_word = false;
+    for (unsigned char ch : norm) {
+        const bool word = std::isalnum(ch) != 0;
+        if (word && !in_word) ++count;
+        in_word = word;
+    }
+    return count;
+}
+
+bool is_document_admin_noise_norm(const std::string& norm) {
+    if (norm.empty()) return true;
+    if (contains_any_norm(norm, {
+        "boletin epidemiologico",
+        "ciudad de mexico",
+        "salud publica",
+        "servicios de salud",
+        "secretaria de salud",
+        "gobierno de la ciudad",
+        "direccion de epidemiologia",
+        "subdireccion de analisis",
+        "subdireccion de sistemas",
+        "medicina preventiva",
+        "medina preventiva",
+        "epidemiologia y medina",
+        "preventiva epidemiologica",
+        "mexico preventiva",
+        "analisis e informacion",
+        "informacion epidemiologica",
+        "vigilancia epidemiologica",
+        "sistema unico",
+        "semana epidemiologica",
+        "casos por jurisdiccion",
+        "fuente sinave",
+        "jurisdiccion sanitaria"
+    })) return true;
+    return false;
+}
+
+bool has_epidemiology_label_signal_norm(const std::string& norm) {
+    if (norm.empty()) return false;
+    return contains_any_norm(norm, {
+        "absceso", "accidente", "alacran", "alcohol", "alzheimer", "amebiasis",
+        "anencefalia", "anorexia", "asma", "bocio", "brucelosis", "bulimia",
+        "candidiasis", "chancro", "chikungunya", "cirrosis", "cisticercosis",
+        "colera", "conjuntivitis", "covid", "dengue", "depresion", "desnutricion",
+        "diabetes", "difteria", "displasia", "encefalocele", "enfermedad",
+        "enteritis", "erisipela", "escabiosis", "faringitis", "fiebre",
+        "gastritis", "giardiasis", "gonococica", "hepatitis", "hiperplasia",
+        "hipertension", "infeccion", "infecciones", "influenza", "insuficiencia",
+        "intoxicacion", "lepra", "leptospirosis",
+        "linfogranuloma", "malaria", "meningitis", "mordedura", "neoplasia",
+        "neumonia", "neumonias", "obesidad", "oncocercosis", "otitis",
+        "paludismo", "papiloma", "paralisis", "parkinson", "parotiditis",
+        "quemadura", "rabia", "rickettsiosis", "rotavirus", "rubeola",
+        "salmonelosis", "sarampion", "shigelosis", "sida", "sifilis",
+        "sindrome", "tetanos", "tifo", "tos ferina", "toxoplasmosis",
+        "tricomoniasis", "tripanosomiasis", "tuberculosis", "tumor",
+        "ulcera", "ulceras", "varicela", "vih", "violencia", "vulvovaginitis", "zika"
+    });
+}
+
+bool looks_like_mixed_section_title_as_disease_norm(const std::string& norm) {
+    if (norm.empty()) return true;
+    if (contains_any_norm(norm, {
+        "casos nuevos notificados",
+        "nuevos notificados",
+        "notificados de enfermedades",
+        "notificados de otras enfermedades",
+        "casos por jurisdiccion",
+        "casos por de",
+        "enfermedades bajo vigilancia",
+        "enfermedades de transmision",
+        "enfermedades transmisibles",
+        "enfs trasmitidas",
+        "enfermedades trasmitidas",
+        "enfermedades no transmisibles",
+        "enfer inf del ap",
+        "enfermedades infecciosas",
+        "parasitaria del aparato",
+        "parasitarias del aparato",
+        "aparato digestivo",
+        "aparato respiratorio",
+        "displasias y tumor",
+        "displasias defectos",
+        "tumor malig cuello",
+        "prevenibles por virus",
+        "por vacunacion a",
+        "accidentes violencia",
+        "otras enfermedades pinto",
+        "totales por jurisdiccion",
+        "acum desde la sem",
+        "suma por institucion",
+        "por institucion",
+        "de otras enfermedades"
+    })) return true;
+
+    if (norm == "y infecciones" || norm == "neumonia y" ||
+        norm == "nuevos notificados de" ||
+        norm == "nuevos notificados de enfermedades" ||
+        norm == "notificados de enfermedades" ||
+        norm == "de otras enfermedades" ||
+        norm == "otras enfermedades no" ||
+        norm == "no defectos" ||
+        norm == "z o o n o s i s" ||
+        norm == "no defectos al" ||
+        norm == "intox alimen amibiasis" ||
+        norm == "displ cervic y severa y" ||
+        norm == "maligno displasia cervic leve y") return true;
+
+    const bool too_many_signals =
+        (contains_norm(norm, "faringitis") && contains_norm(norm, "neumonia")) ||
+        (contains_norm(norm, "cerebro") && contains_norm(norm, "gingivitis") && contains_norm(norm, "asma")) ||
+        (contains_norm(norm, "diabetes") && contains_norm(norm, "enfermedad no")) ||
+        (contains_norm(norm, "dengue") && contains_norm(norm, "paludismo") && contains_norm(norm, "transmitidas")) ||
+        (contains_norm(norm, "peaton") && contains_norm(norm, "alzheimer") && contains_norm(norm, "accid")) ||
+        (contains_norm(norm, "desnutri") && norm_word_count(norm) <= 4);
+    if (too_many_signals) return true;
+
+    if (norm_word_count(norm) >= 7 && contains_norm(norm, "enfermedad") &&
+        (contains_norm(norm, "por") || contains_norm(norm, "de"))) return true;
+    return false;
+}
+
+bool is_generic_or_unusable_disease_label_norm(const std::string& norm) {
+    if (norm.empty()) return true;
+    if (is_document_admin_noise_norm(norm)) return true;
+    if (looks_like_mixed_section_title_as_disease_norm(norm)) return true;
+    if (norm.size() <= 3) return true;
+    if (norm == "mexico" || norm == "ciudad" || norm == "salud" || norm == "publica" ||
+        norm == "analisis" || norm == "informacion" || norm == "epidemiologica" ||
+        norm == "epidemiologico" || norm == "medicina" || norm == "preventiva" ||
+        norm == "enfermedad" || norm == "enfermedades" ||
+        norm == "de enfermedades" || norm == "por de enfermedades" ||
+        norm == "por de otras enfermedades" || norm == "de otras enfermedades" ||
+        norm == "epidemiologica del" || norm == "epidemiologico del" ||
+        norm == "semana epidemiologica del" || norm == "de mexico" ||
+        norm == "especiales de vigilancia" || norm == "transmisibles por vector" ||
+        norm == "subdireccion" || norm == "direccion" || norm == "sistemas" ||
+        norm == "sistema" || norm == "vigilancia" || norm == "fuente" ||
+        norm == "total" || norm == "grupo" || norm == "tipo" || norm == "vector" ||
+        norm == "sexual" || norm == "respiratorio" || norm == "digestivo" ||
+        norm == "transmisibles" || norm == "transmision" || norm == "del" ||
+        norm == "de" || norm == "la" || norm == "las" || norm == "los" ||
+        norm == "el" || norm == "en" || norm == "por" || norm == "con" ||
+        norm == "para" || norm == "sin" || norm == "y" || norm == "o" ||
+        norm == "por no") return true;
+    if (contains_any_norm(norm, {
+        "prevenibles por vacunacion",
+        "bajo vigilancia sindromatica",
+        "salud mental",
+        "neurologicas y de salud",
+        "enfermedades neurologicas",
+        "enfermedades infecciosas y",
+        "de enfermedades infecciosas",
+        "epidemiologica del",
+        "epidemiologico del",
+        "especiales de vigilancia",
+        "enfermedades transmisibles por vector",
+        "y neoplasias",
+        "y defectos",
+        "y accidentes",
+        "interes local"
+    })) return true;
+    if (contains_norm(norm, "eventos supuestamente") && !contains_norm(norm, "asociados")) return true;
+    if (norm_word_count(norm) <= 1 && !has_epidemiology_label_signal_norm(norm)) return true;
+    return false;
+}
+
+
+
+std::vector<ColumnGroupRange> infer_column_groups_from_geometry_and_headers(const std::vector<ColumnBand>& cols,
+
+
+                                                                             const std::vector<std::string>& local_norms) {
+
+    std::vector<ColumnGroupRange> groups;
+    const int n = static_cast<int>(cols.size());
+
+    if (n <= 0) return groups;
+
+    if (n <= 4) return {{0, n - 1}};
+
+    const auto role_groups_preferred = fallback_column_groups_from_role_headers(n, local_norms);
+    if (!role_groups_preferred.empty()) return role_groups_preferred;
+
+
+    std::vector<double> gaps;
+
+    gaps.reserve(static_cast<size_t>(n - 1));
+
+    for (int i = 1; i < n; ++i) {
+        const double gap = std::max(0.0, cols[i].x_mid - cols[i - 1].x_mid);
+
+        if (gap > 0.01) gaps.push_back(gap);
+    }
+    const double med = median_value(gaps);
+    const double threshold = std::max(med * 1.55, med + 13.0);
+
+
+    std::set<int> starts;
+
+    starts.insert(0);
+
+
+    for (int i = 1; i < n; ++i) {
+        const double gap = std::max(0.0, cols[i].x_mid - cols[i - 1].x_mid);
+
+        if (med > 0.0 && gap >= threshold) starts.insert(i);
+
+        if (i < static_cast<int>(local_norms.size()) && is_semantic_sem_header(local_norms[static_cast<size_t>(i)])) starts.insert(i);
+    }
+
+
+    std::vector<int> ordered(starts.begin(), starts.end());
+
+    std::sort(ordered.begin(), ordered.end());
+
+    for (size_t k = 0; k < ordered.size(); ++k) {
+        const int first = ordered[k];
+        const int last = (k + 1 < ordered.size()) ? ordered[k + 1] - 1 : n - 1;
+
+        if (last >= first) groups.push_back({first, last});
+    }
+
+    bool plausible = !groups.empty();
+    int covered = 0;
+
+    for (const auto& g : groups) {
+        covered += (g.last_col - g.first_col + 1);
+        const int sz = g.last_col - g.first_col + 1;
+
+        if (sz <= 0 || sz > 5) plausible = false;
+    }
+
+    if (!plausible || covered != n || (groups.size() == 1 && n > 4)) {
+
+        const auto role_groups = fallback_column_groups_from_role_headers(n, local_norms);
+        if (!role_groups.empty()) return role_groups;
+        return fallback_column_groups(n);
+    }
+
+
+    return groups;
+}
+
+
+
+int group_index_for_column(const std::vector<ColumnGroupRange>& groups, int col_index) {
+
+    for (int i = 0; i < static_cast<int>(groups.size()); ++i) {
+
+        if (col_index >= groups[static_cast<size_t>(i)].first_col && col_index <= groups[static_cast<size_t>(i)].last_col) return i;
+    }
+
+    return groups.empty() ? -1 : 0;
+}
+
+
+
+std::string role_key_from_column(const ColumnBand& col) {
+
+    if (col.period == "Sem") return "sem_total";
+
+    if (col.period == "Acum" && col.sex == "M") return "acum_m";
+
+    if (col.period == "Acum" && col.sex == "F") return "acum_f";
+
+    if (col.period == "Acum" && col.sex == "total" && col.role == "previous_year_accumulated") return "acum_total_previous";
+
+    if (col.period == "Acum" && col.sex == "total") return "acum_total";
+
+    return "unknown";
+}
+
+
+
+std::string friendly_missing_role(const std::string& key) {
+
+    if (key == "sem_total") return "Sem";
+
+    if (key == "acum_m") return "Acum_M";
+
+    if (key == "acum_f") return "Acum_F";
+
+    if (key == "acum_total_previous") return "Acum_total_anio_previo";
+
+    if (key == "acum_total") return "Acum_total";
+
+
+    return key;
+}
+
+
+
+
+std::string join_missing_roles(const std::vector<std::string>& missing) {
+    std::ostringstream os;
+
+    for (size_t i = 0; i < missing.size(); ++i) {
+
+        if (i) os << '|';
+
+        os << friendly_missing_role(missing[i]);
+    }
+
+    return os.str();
+}
+
+
+
+bool rect_has_area(const Rect& r) {
+
+    return r.width() > 0.01 && r.height() > 0.01;
+}
+
+
+int nearest_year(const std::vector<HeaderYear>& years, double x, int fallback);
+
+
+
+
+std::string join_pipe(const std::vector<std::string>& values) {
+    std::ostringstream os;
+    bool first = true;
+
+    for (const auto& v : values) {
+
+
+        if (trim(v).empty()) continue;
+
+        if (!first) os << '|';
+        first = false;
+
+        os << trim(v);
+    }
+
+
+    return os.str();
+}
+
+
+
+
+bool norm_looks_like_cie10_fragment(const std::string& norm) {
+    if (norm.empty()) return false;
+    std::string compact;
+    compact.reserve(norm.size());
+    for (unsigned char ch : norm) {
+        if (std::isspace(ch)) continue;
+        compact.push_back(static_cast<char>(std::toupper(ch)));
+    }
+    if (compact.size() < 3) return false;
+    const auto digit_or_o = [](char c) {
+        return std::isdigit(static_cast<unsigned char>(c)) || c == 'O';
+    };
+    return std::isalpha(static_cast<unsigned char>(compact[0])) && digit_or_o(compact[1]) && digit_or_o(compact[2]);
+}
+
+bool looks_like_header_noise(const std::string& norm) {
+    if (norm.empty()) return true;
+    if (is_numeric_token(norm)) return true;
+    if (is_norm_year_20xx_exact(norm)) return true;
+    if (norm == "sem" || norm == "semana" || norm == "acum" || norm == "acumulado") return true;
+    if (norm == "m" || norm == "f") return true;
+    if (contains_norm(norm, "cie 10") || norm == "cie" || norm == "rev" || norm == "excepto") return true;
+    if (norm_looks_like_cie10_fragment(norm)) return true;
+    if (contains_norm(norm, "jurisdiccion") || contains_norm(norm, "sanitaria")) return true;
+    if (norm == "total" || norm == "fuente") return true;
+    return false;
+}
+
+bool looks_like_table_title_line(const std::string& norm) {
+    if (norm.empty()) return true;
+    if (is_document_admin_noise_norm(norm)) return true;
+    if (is_generic_or_unusable_disease_label_norm(norm) && !has_epidemiology_label_signal_norm(norm)) return true;
+    if (contains_norm(norm, "vigilancia epidemiologica")) return true;
+    if (contains_norm(norm, "casos por jurisdiccion")) return true;
+    if (contains_norm(norm, "hasta la") && contains_norm(norm, "epidemiologica")) return true;
+    if (contains_norm(norm, "enfermedades transmitidas por") && contains_norm(norm, "epidemiologica")) return true;
+    if (contains_norm(norm, "cuadro")) return true;
+    if (contains_norm(norm, "jurisdiccion") || contains_norm(norm, "sanitaria")) return true;
+    if (contains_norm(norm, "servicios de salud") || contains_norm(norm, "direccion de epidemiologia")) return true;
+    if (contains_norm(norm, "subdireccion de sistemas")) return true;
+    if (contains_norm(norm, "infecciosas") && contains_norm(norm, "parasitarias")) return true;
+    if (contains_norm(norm, "aparato") && (contains_norm(norm, "digestivo") || contains_norm(norm, "respiratorio"))) return true;
+    if (contains_norm(norm, "transmision sexual")) return true;
+    if (contains_norm(norm, "transmisibles") && (contains_norm(norm, "no transmisibles") || norm == "transmisibles")) return true;
+    if (norm == "desnutricion" || norm == "neoplasias" || norm == "displasias" || norm == "intoxicaciones") return true;
+    if (contains_norm(norm, "defectos") && contains_norm(norm, "nacimiento")) return true;
+    if (contains_norm(norm, "paras ap digestiv") || contains_norm(norm, "paras digestiva")) return true;
+    if (contains_norm(norm, "enfermedades") &&
+        (contains_norm(norm, "transmisibles") || contains_norm(norm, "prevenibles") ||
+         contains_norm(norm, "digestivo") || contains_norm(norm, "respiratorio") ||
+         contains_norm(norm, "vector") || contains_norm(norm, "zoonosis") ||
+         contains_norm(norm, "exantematicas") || contains_norm(norm, "sindromatica") ||
+         contains_norm(norm, "no transmisibles") || contains_norm(norm, "nutricion") ||
+         contains_norm(norm, "neoplasias") || contains_norm(norm, "defectos") ||
+         contains_norm(norm, "accidentes") || contains_norm(norm, "interes local"))) return true;
+    return false;
+}
+
+std::string cleaned_disease_label_text(const std::string& raw) {
+    std::istringstream is(raw);
+    std::string tok;
+    std::ostringstream os;
+    bool first = true;
+    while (is >> tok) {
+        const std::string n = normalize_key(tok);
+        if (n.empty()) continue;
+        if (looks_like_header_noise(n)) continue;
+        if (contains_norm(n, "cie 10") || n == "cie" || n == "rev" || n == "excepto") continue;
+        if (!first) os << ' ';
+        first = false;
+        os << tok;
+    }
+    return trim(os.str());
+}
+
+std::string strip_parenthetical_disease_noise(const std::string& raw) {
+    std::string out;
+    out.reserve(raw.size());
+    int depth = 0;
+    for (unsigned char ch : raw) {
+        if (ch == '(' || ch == '[' || ch == '{') {
+            ++depth;
+            out.push_back(' ');
+            continue;
+        }
+        if (depth > 0) {
+            if (ch == ')' || ch == ']' || ch == '}') --depth;
+            continue;
+        }
+        if (ch == ',' || ch == ';' || ch == ':') out.push_back(' ');
+        else out.push_back(static_cast<char>(ch));
+    }
+    return trim(out);
+}
+
+bool is_leading_epidemiology_residue_word(const std::string& word) {
+    return word == "del" || word == "de" || word == "la" || word == "las" ||
+        word == "los" || word == "el" || word == "y" || word == "con" ||
+        word == "por" || word == "para" || word == "en";
+}
+
+std::string disease_label_match_norm(const std::string& raw) {
+    const std::string stripped = strip_parenthetical_disease_noise(raw);
+    std::istringstream is(normalize_key(stripped));
+    std::string tok;
+    std::vector<std::string> words;
+    while (is >> tok) {
+        if (tok.empty()) continue;
+        if (tok == "cie" || tok == "rev" || tok == "excepto") continue;
+        if (norm_looks_like_cie10_fragment(tok)) continue;
+        words.push_back(tok);
+    }
+
+    size_t start = 0;
+    while (start < words.size()) {
+        const std::string& word = words[start];
+        if (is_leading_epidemiology_residue_word(word)) {
+            ++start;
+            continue;
+        }
+        if (word == "mal" && start + 1 < words.size() && words[start + 1] == "intoxicacion") {
+            ++start;
+            continue;
+        }
+        break;
+    }
+
+    std::ostringstream os;
+    for (size_t i = start; i < words.size(); ++i) {
+        if (i > start) os << ' ';
+        os << words[i];
+    }
+    return trim(os.str());
+}
+
+
+
+
+
+HeaderSpan collect_header_span(const std::vector<Token>& toks, double x0, double x1, double y0, double y1, bool disease_only) {
+
+    std::vector<Token> parts;
+
+    for (const auto& t : toks) {
+
+        if (t.box.cx() < x0 || t.box.cx() > x1 || t.box.cy() < y0 || t.box.cy() > y1) continue;
+
+        if (disease_only && looks_like_header_noise(t.norm)) continue;
+
+        parts.push_back(t);
+    }
+
+    std::sort(parts.begin(), parts.end(), [](const Token& a, const Token& b) {
+
+
+        if (std::abs(a.box.cy() - b.box.cy()) > 4.0) return a.box.cy() < b.box.cy();
+
+        return a.box.x0 < b.box.x0;
+    });
+    HeaderSpan span;
+    std::ostringstream os;
+
+    for (size_t i = 0; i < parts.size(); ++i) {
+
+        if (i) os << ' ';
+        os << parts[i].text;
+
+        if (!span.found) { span.box = parts[i].box; span.found = true; }
+        else span.box.include(parts[i].box);
+    }
+
+    span.text = trim(os.str());
+
+    if (span.text.empty()) span.found = false;
+
+    return span;
+}
+
+
+
+std::string collect_header_text(const std::vector<Token>& toks, double x0, double x1, double y0, double y1, bool disease_only) {
+
+    return collect_header_span(toks, x0, x1, y0, y1, disease_only).text;
+}
+
+HeaderSpan collect_cie10_span(const std::vector<Token>& toks, double x0, double x1, double y0, double y1);
+
+struct HeaderLineCandidate {
+    std::vector<Token> tokens;
+    Rect box;
+    double y = 0.0;
+    std::string text;
+    std::string norm;
+};
+
+std::vector<HeaderLineCandidate> collect_semantic_header_lines(const std::vector<Token>& toks,
+                                                               double x0,
+                                                               double x1,
+                                                               double y0,
+                                                               double y1) {
+    std::vector<Token> filtered;
+    filtered.reserve(toks.size());
+    for (const auto& t : toks) {
+        if (t.box.cx() < x0 || t.box.cx() > x1 || t.box.cy() < y0 || t.box.cy() > y1) continue;
+        if (looks_like_header_noise(t.norm)) continue;
+        filtered.push_back(t);
+    }
+    std::sort(filtered.begin(), filtered.end(), [](const Token& a, const Token& b) {
+        if (std::abs(a.box.cy() - b.box.cy()) > 4.5) return a.box.cy() < b.box.cy();
+        return a.box.x0 < b.box.x0;
+    });
+
+    std::vector<HeaderLineCandidate> lines;
+    for (const auto& t : filtered) {
+        if (lines.empty() || std::abs(lines.back().y - t.box.cy()) > 5.2) {
+            HeaderLineCandidate line;
+            line.y = t.box.cy();
+            line.box = t.box;
+            line.tokens.push_back(t);
+            lines.push_back(std::move(line));
+        } else {
+            auto& line = lines.back();
+            const double n = static_cast<double>(line.tokens.size());
+            line.y = (line.y * n + t.box.cy()) / (n + 1.0);
+            line.box.include(t.box);
+            line.tokens.push_back(t);
+        }
+    }
+
+    for (auto& line : lines) {
+        std::sort(line.tokens.begin(), line.tokens.end(), [](const Token& a, const Token& b) { return a.box.x0 < b.box.x0; });
+        std::ostringstream os;
+        for (size_t i = 0; i < line.tokens.size(); ++i) {
+            if (i) os << ' ';
+            os << line.tokens[i].text;
+        }
+        line.text = cleaned_disease_label_text(os.str());
+        line.norm = normalize_key(line.text);
+    }
+
+    lines.erase(std::remove_if(lines.begin(), lines.end(), [](const HeaderLineCandidate& line) {
+        if (line.text.empty() || line.norm.empty()) return true;
+        if (looks_like_table_title_line(line.norm)) return true;
+        return false;
+    }), lines.end());
+    return lines;
+}
+
+HeaderSpan collect_disease_label_span(const std::vector<Token>& toks,
+                                      double x0,
+                                      double x1,
+                                      double y0,
+                                      double y1,
+                                      double table_top) {
+    const HeaderSpan cie_span = collect_cie10_span(toks, x0, x1, y0, y1);
+    double label_ceiling = y1;
+    if (cie_span.found) label_ceiling = std::min(label_ceiling, std::max(y0, cie_span.box.y0 - 2.0));
+    if (table_top > 0.0) label_ceiling = std::min(label_ceiling, std::max(y0, table_top - 30.0));
+
+    auto lines = collect_semantic_header_lines(toks, x0, x1, y0, label_ceiling);
+    if (lines.empty()) return {};
+
+    std::sort(lines.begin(), lines.end(), [](const HeaderLineCandidate& a, const HeaderLineCandidate& b) {
+        return a.y < b.y;
+    });
+
+    int last = static_cast<int>(lines.size()) - 1;
+    while (last >= 0 && lines[static_cast<size_t>(last)].box.y1 > label_ceiling + 0.5) --last;
+    if (last < 0) return {};
+
+    int first = last;
+    size_t combined_chars = lines[static_cast<size_t>(last)].text.size();
+    while (first > 0) {
+        const auto& prev = lines[static_cast<size_t>(first - 1)];
+        const auto& cur = lines[static_cast<size_t>(first)];
+        const double vertical_gap = std::max(0.0, cur.box.y0 - prev.box.y1);
+        if (vertical_gap > 18.0) break;
+        if (combined_chars + prev.text.size() + 1 > 135) break;
+        if ((last - (first - 1) + 1) > 4) break;
+        --first;
+        combined_chars += prev.text.size() + 1;
+    }
+
+    HeaderSpan out;
+    std::ostringstream os;
+    for (int i = first; i <= last; ++i) {
+        const auto& line = lines[static_cast<size_t>(i)];
+        if (!line.text.empty()) {
+            if (!out.found) { out.box = line.box; out.found = true; }
+            else out.box.include(line.box);
+            if (os.tellp() > 0) os << ' ';
+            os << line.text;
+        }
+    }
+    out.text = cleaned_disease_label_text(os.str());
+    if (out.text.empty()) out.found = false;
+    return out;
+}
+
+
+
+
+
+HeaderSpan collect_cie10_span(const std::vector<Token>& toks, double x0, double x1, double y0, double y1) {
+
+    std::vector<Token> parts;
+
+    auto token_has_cie10 = [](const std::string& raw) {
+
+        std::string upper = raw;
+        std::transform(upper.begin(), upper.end(), upper.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+
+        for (size_t i = 0; i < upper.size(); ++i) {
+
+            if (!std::isalpha(static_cast<unsigned char>(upper[i]))) continue;
+
+            if (i > 0 && std::isalnum(static_cast<unsigned char>(upper[i - 1]))) continue;
+            size_t j = i + 1;
+
+            while (j < upper.size() && std::isspace(static_cast<unsigned char>(upper[j]))) ++j;
+
+            if (j + 1 < upper.size() &&
+                (std::isdigit(static_cast<unsigned char>(upper[j])) || upper[j] == 'O') &&
+                (std::isdigit(static_cast<unsigned char>(upper[j + 1])) || upper[j + 1] == 'O')) return true;
+        }
+
+        return false;
+    };
+
+    for (const auto& t : toks) {
+
+        if (t.box.cx() < x0 || t.box.cx() > x1 || t.box.cy() < y0 || t.box.cy() > y1) continue;
+
+        if (!token_has_cie10(t.text) && !contains_norm(t.norm, "cie")) continue;
+
+        parts.push_back(t);
+    }
+
+    std::sort(parts.begin(), parts.end(), [](const Token& a, const Token& b) {
+
+        if (std::abs(a.box.cy() - b.box.cy()) > 4.0) return a.box.cy() < b.box.cy();
+
+        return a.box.x0 < b.box.x0;
+
+    });
+    HeaderSpan span;
+    std::ostringstream os;
+
+    for (size_t i = 0; i < parts.size(); ++i) {
+
+        if (i) os << ' ';
+        os << parts[i].text;
+
+        if (!span.found) { span.box = parts[i].box; span.found = true; }
+        else span.box.include(parts[i].box);
+    }
+
+    span.text = trim(os.str());
+
+    if (span.text.empty()) span.found = false;
+
+    return span;
+}
+
+
+
+
+std::string infer_role_from_header(const std::string& header_norm, int pos_in_group, int group_size, int doc_year, int& source_year, const HeaderGroup* group, double x_mid) {
+
+    (void)doc_year;
+    std::string sex_hint = "total";
+
+    if (has_any_norm_word(header_norm, {"m", "masc", "masculino", "masculinos", "hombres", "varones"})) sex_hint = "M";
+
+    else if (has_any_norm_word(header_norm, {"f", "fem", "femenino", "femeninos", "mujeres"})) sex_hint = "F";
+
+    const bool has_sem = contains_norm(header_norm, "sem") || contains_norm(header_norm, "semana");
+
+    const bool has_acum = contains_norm(header_norm, "acum") || contains_norm(header_norm, "acumulado");
+
+
+
+
+    if (group_size >= 4) {
+
+        if (pos_in_group == 0) return "Sem|total|weekly_incidence";
+
+        if (pos_in_group == 1) return "Acum|M|current_year_accumulated_male";
+
+        if (pos_in_group == 2) return "Acum|F|current_year_accumulated_female";
+
+        return "Acum|total|previous_year_accumulated";
+    }
+
+    if (group_size == 3) {
+
+        if (pos_in_group == 0) return "Sem|total|weekly_incidence";
+
+        if (pos_in_group == 1) return "Acum|M|current_year_accumulated_male";
+
+        return "Acum|F|current_year_accumulated_female";
+    }
+
+
+
+    if (group_size == 2 && sex_hint == "total") {
+        if (pos_in_group == 0) return "Sem|total|weekly_incidence";
+        return "Acum|total|accumulated";
+    }
+    if (has_sem && (pos_in_group == 0 || sex_hint == "total" || !has_acum)) return "Sem|total|weekly_incidence";
+
+    if (has_acum && group_size <= 2 && pos_in_group >= 1) return "Acum|total|accumulated";
+
+    if (sex_hint == "M") return "Acum|M|current_year_accumulated_male";
+
+    if (sex_hint == "F") return "Acum|F|current_year_accumulated_female";
+
+
+
+    if (group_size == 2) {
+
+        if (pos_in_group == 0) return "Sem|total|weekly_incidence";
+
+        return "Acum|total|accumulated";
+    }
+
+    if (has_sem) return "Sem|total|weekly_incidence";
+
+    if (has_acum) return "Acum|total|accumulated";
+
+
+    if (source_year == 0 && group) source_year = nearest_year(group->years, x_mid, doc_year);
+
+    return (pos_in_group == 0 ? "Sem|total|weekly_incidence" : "Acum|total|accumulated");
+}
+
+
+
+void apply_role_triplet(ColumnBand& col, const std::string& triplet) {
+    const size_t p1 = triplet.find('|');
+
+    if (p1 == std::string::npos) { col.period = triplet; return; }
+    const size_t p2 = triplet.find('|', p1 + 1);
+    col.period = triplet.substr(0, p1);
+
+    if (p2 == std::string::npos) {
+        col.sex = triplet.substr(p1 + 1);
+
+        return;
+    }
+    col.sex = triplet.substr(p1 + 1, p2 - p1 - 1);
+    col.role = triplet.substr(p2 + 1);
+}
+
+
+
+
+std::string compact_cie10_code(std::string raw) {
+    std::string code;
+
+    code.reserve(raw.size());
+
+    for (unsigned char ch : raw) {
+
+        if (std::isspace(ch)) continue;
+
+        if (ch == ',' || ch == ';' || ch == ':' || ch == '(' || ch == ')' || ch == '[' || ch == ']') continue;
+
+
+        code.push_back(static_cast<char>(std::toupper(ch)));
+    }
+
+    for (size_t i = 1; i < code.size(); ++i) {
+
+
+        if (code[i] == 'O') code[i] = '0';
+    }
+
+    while (!code.empty() && (code.back() == '.' || code.back() == '-')) code.pop_back();
+
+    return code;
+}
+
+
+
+
+std::string extract_cie10_codes(const std::string& text) {
+    std::string upper = text;
+    std::transform(upper.begin(), upper.end(), upper.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+
+    std::set<std::string> codes;
+
+    auto skip_spaces = [&](size_t& i) {
+        while (i < upper.size() && std::isspace(static_cast<unsigned char>(upper[i]))) ++i;
+    };
+
+    auto digit_or_o = [&](char c) {
+        return std::isdigit(static_cast<unsigned char>(c)) || c == 'O';
+    };
+
+    auto push_digit = [](std::string& code, char c) {
+        code.push_back(c == 'O' ? '0' : c);
+    };
+
+    auto word_at = [&](size_t i, const char* word) {
+        const size_t n = std::strlen(word);
+        if (i + n > upper.size()) return false;
+        for (size_t k = 0; k < n; ++k) {
+            if (upper[i + k] != word[k]) return false;
+        }
+        const bool left = (i == 0 || !std::isalnum(static_cast<unsigned char>(upper[i - 1])));
+        const bool right = (i + n >= upper.size() || !std::isalnum(static_cast<unsigned char>(upper[i + n])));
+        return left && right;
+    };
+
+    auto parse_tail = [&](size_t& i, char implied_letter, std::string& code) {
+        skip_spaces(i);
+        if (i >= upper.size()) return false;
+
+        if (std::isalpha(static_cast<unsigned char>(upper[i]))) {
+            code.push_back(upper[i++]);
+            skip_spaces(i);
+        } else {
+            code.push_back(implied_letter);
+        }
+
+        if (i + 1 >= upper.size() || !digit_or_o(upper[i]) || !digit_or_o(upper[i + 1])) return false;
+        push_digit(code, upper[i++]);
+        push_digit(code, upper[i++]);
+        skip_spaces(i);
+
+        if (i < upper.size() && upper[i] == '.') {
+            const size_t dot = i++;
+            skip_spaces(i);
+            if (i < upper.size() && std::isalnum(static_cast<unsigned char>(upper[i]))) {
+                code.push_back('.');
+                code.push_back(upper[i++]);
+            } else {
+                i = dot;
+            }
+        }
+
+        return true;
+    };
+
+    bool excluding = false;
+
+    for (size_t i = 0; i < upper.size(); ++i) {
+        if (word_at(i, "CIE")) {
+            excluding = false;
+        }
+        if (word_at(i, "EXCEPTO") || word_at(i, "EXCEP")) {
+            excluding = true;
+            continue;
+        }
+
+        if (!std::isalpha(static_cast<unsigned char>(upper[i]))) continue;
+        if (i > 0 && std::isalnum(static_cast<unsigned char>(upper[i - 1]))) continue;
+
+        const char first_letter = upper[i];
+        size_t j = i + 1;
+        std::string code;
+        code.reserve(14);
+
+        if (!parse_tail(j, first_letter, code)) continue;
+        size_t k = j;
+        skip_spaces(k);
+
+        if (k < upper.size() && upper[k] == '-') {
+            ++k;
+            std::string hi;
+            hi.reserve(7);
+            if (parse_tail(k, first_letter, hi)) {
+                code.push_back('-');
+                code += hi;
+                j = k;
+            }
+        }
+
+        if (!code.empty() && !excluding) codes.insert(compact_cie10_code(code));
+        i = j > i ? j - 1 : i;
+    }
+
+    std::ostringstream os;
+    bool first = true;
+    for (const auto& code : codes) {
+        if (!first) os << '|';
+        first = false;
+        os << code;
+    }
+    return os.str();
+}
+
+
+
+std::vector<HeaderYear> collect_years(const std::vector<Token>& toks, double x0, double x1, double y0, double y1) {
+
+    std::vector<HeaderYear> years;
+
+    for (const auto& t : toks) {
+
+        if (t.box.cx() < x0 || t.box.cx() > x1 || t.box.cy() < y0 || t.box.cy() > y1) continue;
+
+        const int year = first_year_20xx(t.norm);
+
+        if (year > 0) years.push_back({year, t.box.cx()});
+    }
+
+    return years;
+}
+
+
+
+int nearest_year(const std::vector<HeaderYear>& years, double x, int fallback) {
+    double best = std::numeric_limits<double>::max();
+
+
+    int out = fallback;
+
+    for (const auto& y : years) {
+        const double d = std::abs(y.x - x);
+
+        if (d < best) {
+            best = d;
+
+            out = y.year;
+        }
+    }
+
+    return out;
+}
+
+
+
+int previous_distinct_year(const std::vector<HeaderYear>& years, int current_year) {
+
+    int best = 0;
+
+    for (const auto& y : years) {
+
+        if (current_year > 0 && y.year >= current_year) continue;
+
+        best = std::max(best, y.year);
+    }
+
+    return best;
+}
+
+
+
+std::string synthetic_disease_label(const std::string& label, const std::string& fallback) {
+
+    const std::string clean = trim(label);
+
+    if (!clean.empty()) return clean;
+
+    return fallback;
+}
+
+
+
+std::string jurisdiction_name_by_id(const Config& config, const std::string& id) {
+
+
+    for (const auto& j : config.jurisdictions()) {
+
+        if (j.id == id) return j.canonical;
+    }
+
+    return id;
+}
+
+
+
+
+bool is_total_jurisdiction_id(const std::string& id) {
+
+    return id == "total" || id == "edomex_total";
+}
+
+
+
+bool is_edomex_jurisdiction_id(const std::string& id) {
+
+    return id.rfind("edomex_", 0) == 0 && !is_total_jurisdiction_id(id);
+}
+
+
+
+std::set<std::string> cdmx_expected_jurisdictions() {
+
+    return {
+        "gustavo_a_madero","azcapotzalco","iztacalco","coyoacan","alvaro_obregon","magdalena_contreras","cuajimalpa","tlalpan",
+        "iztapalapa","xochimilco","milpa_alta","tlahuac","miguel_hidalgo","benito_juarez","cuauhtemoc","venustiano_carranza"
+    };
+}
+
+
+
+std::set<std::string> edomex_expected_jurisdictions() {
+
+
+
+    return {
+        "edomex_atlacomulco","edomex_ixtlahuaca","edomex_jilotepec","edomex_tenango_del_valle","edomex_toluca",
+
+        "edomex_xonacatlan","edomex_tejupilco","edomex_tenancingo","edomex_valle_de_bravo","edomex_atizapan",
+        "edomex_cuautitlan","edomex_naucalpan","edomex_teotihuacan","edomex_tlalnepantla","edomex_zumpango",
+        "edomex_amecameca","edomex_ecatepec","edomex_nezahualcoyotl","edomex_texcoco"
+    };
+}
+
+
+
+std::set<std::string> expected_jurisdictions_for_rows(const std::vector<RowBand>& rows) {
+
+    const auto cdmx = cdmx_expected_jurisdictions();
+    const auto edomex = edomex_expected_jurisdictions();
+    int cdmx_hits = 0;
+    int edomex_hits = 0;
+
+    std::set<std::string> dynamic;
+
+    for (const auto& r : rows) {
+
+        if (is_total_jurisdiction_id(r.jurisdiction_id)) continue;
+
+        if (cdmx.count(r.jurisdiction_id)) ++cdmx_hits;
+
+        if (edomex.count(r.jurisdiction_id)) ++edomex_hits;
+
+        dynamic.insert(r.jurisdiction_id);
+    }
+
+    if (edomex_hits >= 6 && edomex_hits >= cdmx_hits) return edomex;
+
+    if (cdmx_hits >= 6) return cdmx;
+
+
+
+    return dynamic;
+}
+
+}
+
+
+
+
+std::vector<TableEngine::Line> TableEngine::make_lines(const PageText& page) const {
+
+    std::vector<Token> toks = page.tokens;
+
+
+    std::sort(toks.begin(), toks.end(), [](const Token& a, const Token& b) {
+
+        if (std::abs(a.box.cy() - b.box.cy()) > 3.0) return a.box.cy() < b.box.cy();
+
+        return a.box.x0 < b.box.x0;
+
+    });
+
+    std::vector<Line> lines;
+    const double y_tol = 4.2;
+
+    for (const auto& t : toks) {
+        bool placed = false;
+
+        for (auto& line : lines) {
+
+            if (std::abs(line.y - t.box.cy()) <= y_tol) {
+
+                line.tokens.push_back(t);
+                line.box.include(t.box);
+                line.y = (line.y * (line.tokens.size() - 1) + t.box.cy()) / static_cast<double>(line.tokens.size());
+                placed = true;
+                break;
+            }
+        }
+
+        if (!placed) {
+            Line l;
+            l.index = static_cast<int>(lines.size());
+
+            l.y = t.box.cy();
+            l.box = t.box;
+
+            l.tokens.push_back(t);
+
+
+            lines.push_back(std::move(l));
+        }
+    }
+
+    for (auto& l : lines) {
+        std::sort(l.tokens.begin(), l.tokens.end(), [](const Token& a, const Token& b){ return a.box.x0 < b.box.x0; });
+        std::ostringstream text;
+
+        for (size_t i=0; i<l.tokens.size(); ++i) {
+
+            if (i) text << ' ';
+
+            text << l.tokens[i].text;
+        }
+        l.text = text.str();
+
+
+        l.norm = normalize_key(l.text);
+    }
+
+    std::sort(lines.begin(), lines.end(), [](const Line& a, const Line& b){ return a.y < b.y; });
+
+    for (size_t i=0; i<lines.size(); ++i) lines[i].index = static_cast<int>(i);
+
+    return lines;
+}
+
+
+
+
+std::vector<RowBand> TableEngine::detect_rows(const std::vector<Line>& lines) const {
+
+    std::vector<RowBand> rows;
+
+    std::set<std::string> seen;
+
+    for (const auto& l : lines) {
+        auto j = config_.match_jurisdiction_line(l.norm);
+
+        if (!j) continue;
+
+
+        if (seen.count(j->id)) continue;
+
+        RowBand r;
+        r.jurisdiction_id = j->id;
+        r.jurisdiction = j->canonical;
+        bool first_label_token = true;
+        Rect label;
+        bool matched_label_span = false;
+        Rect matched_label;
+        for (size_t i = 0; i < l.tokens.size() && !matched_label_span; ++i) {
+            if (is_numeric_token(l.tokens[i].text)) continue;
+            std::string fragment;
+            Rect fragment_box;
+            bool have_fragment_box = false;
+            for (size_t k = i; k < l.tokens.size() && k < i + 4; ++k) {
+                if (is_numeric_token(l.tokens[k].text)) break;
+                if (!fragment.empty()) fragment.push_back(' ');
+                fragment += l.tokens[k].text;
+                if (!have_fragment_box) { fragment_box = l.tokens[k].box; have_fragment_box = true; }
+                else fragment_box.include(l.tokens[k].box);
+                const std::string fragment_norm = normalize_key(fragment);
+                for (const auto& alias_norm : j->aliases_norm) {
+                    if (!alias_norm.empty() && contains_norm(fragment_norm, alias_norm)) {
+                        matched_label = fragment_box;
+                        matched_label_span = true;
+                        break;
+                    }
+                }
+                if (matched_label_span) break;
+            }
+        }
+
+        for (const auto& tok : l.tokens) {
+
+            if (is_numeric_token(tok.text)) break;
+
+            if (first_label_token) { label = tok.box; first_label_token = false; }
+            else label.include(tok.box);
+        }
+        r.label_box = matched_label_span ? matched_label : (first_label_token ? l.box : label);
+        r.y_mid = l.y;
+        r.line_index = l.index;
+
+        rows.push_back(r);
+
+        seen.insert(j->id);
+    }
+
+    if (rows.size() < 10) return {};
+
+
+    std::sort(rows.begin(), rows.end(), [](const RowBand& a, const RowBand& b){ return a.y_mid < b.y_mid; });
+
+    for (size_t i=0; i<rows.size(); ++i) {
+
+
+        const double prev = (i == 0) ? rows[i].y_mid - 10.0 : rows[i-1].y_mid;
+
+        const double next = (i + 1 == rows.size()) ? rows[i].y_mid + 10.0 : rows[i+1].y_mid;
+
+        rows[i].y0 = (prev + rows[i].y_mid) * 0.5;
+
+        rows[i].y1 = (rows[i].y_mid + next) * 0.5;
+    }
+
+    return rows;
+}
+
+
+
+
+
+
+
+
+std::vector<std::vector<RowBand>> TableEngine::detect_row_blocks(const std::vector<Line>& lines) const {
+
+    std::vector<std::vector<RowBand>> blocks;
+    std::vector<RowBand> current;
+    std::set<std::string> seen_in_block;
+    double previous_row_y = -1.0;
+
+    auto finalize_block = [&]() {
+        if (current.size() >= 10) {
+            std::sort(current.begin(), current.end(), [](const RowBand& a, const RowBand& b){ return a.y_mid < b.y_mid; });
+            for (size_t i = 0; i < current.size(); ++i) {
+                const double prev = (i == 0) ? current[i].y_mid - 10.0 : current[i - 1].y_mid;
+                const double next = (i + 1 == current.size()) ? current[i].y_mid + 10.0 : current[i + 1].y_mid;
+                current[i].y0 = (prev + current[i].y_mid) * 0.5;
+                current[i].y1 = (current[i].y_mid + next) * 0.5;
+            }
+            blocks.push_back(current);
+        }
+        current.clear();
+        seen_in_block.clear();
+        previous_row_y = -1.0;
+    };
+
+    auto row_from_line = [&](const Line& l, const Jurisdiction& j) -> RowBand {
+        RowBand r;
+        r.jurisdiction_id = j.id;
+        r.jurisdiction = j.canonical;
+
+        bool first_label_token = true;
+        Rect label;
+        bool matched_label_span = false;
+        Rect matched_label;
+
+        for (size_t i = 0; i < l.tokens.size() && !matched_label_span; ++i) {
+            if (is_numeric_token(l.tokens[i].text)) continue;
+            std::string fragment;
+            Rect fragment_box;
+            bool have_fragment_box = false;
+            for (size_t k = i; k < l.tokens.size() && k < i + 4; ++k) {
+                if (is_numeric_token(l.tokens[k].text)) break;
+                if (!fragment.empty()) fragment.push_back(' ');
+                fragment += l.tokens[k].text;
+                if (!have_fragment_box) { fragment_box = l.tokens[k].box; have_fragment_box = true; }
+                else fragment_box.include(l.tokens[k].box);
+                const std::string fragment_norm = normalize_key(fragment);
+                for (const auto& alias_norm : j.aliases_norm) {
+                    if (!alias_norm.empty() && contains_norm(fragment_norm, alias_norm)) {
+                        matched_label = fragment_box;
+                        matched_label_span = true;
+                        break;
+                    }
+                }
+                if (matched_label_span) break;
+            }
+        }
+
+        for (const auto& tok : l.tokens) {
+            if (is_numeric_token(tok.text)) break;
+            if (first_label_token) { label = tok.box; first_label_token = false; }
+            else label.include(tok.box);
+        }
+
+        r.label_box = matched_label_span ? matched_label : (first_label_token ? l.box : label);
+        r.y_mid = l.y;
+        r.line_index = l.index;
+        return r;
+    };
+
+    for (const auto& l : lines) {
+        auto j = config_.match_jurisdiction_line(l.norm);
+        if (!j) continue;
+
+        const bool is_total = is_total_jurisdiction_id(j->id);
+        const bool repeated_inside_table = !is_total && seen_in_block.count(j->id) != 0;
+        const double vertical_gap = (previous_row_y < 0.0) ? 0.0 : (l.y - previous_row_y);
+
+        /*
+           Un boletín CDMX moderno puede alojar dos o tres cuadros en la misma
+           página. El algoritmo anterior imponía unicidad de alcaldía en toda la
+           página; eso hacía que sólo sobreviviera el primer cuadro y obligaba a
+           reprocesar páginas ya visitadas para descubrir los siguientes. Aquí la
+           unidad mínima de inferencia es el bloque jurisdiccional: cuando vuelve
+           a aparecer una alcaldía no-total dentro de una secuencia ya madura, se
+           cierra el cuadro actual y el siguiente se reconstruye en la misma
+           pasada de la página. No se reabre el PDF ni se vuelve a recorrer el
+           documento para extraer cuadros hermanos.
+        */
+        if (!current.empty() && current.size() >= 8 && (repeated_inside_table || vertical_gap > 58.0)) {
+            finalize_block();
+        }
+
+        if (!current.empty() && !is_total && seen_in_block.count(j->id) != 0) {
+            continue;
+        }
+
+        RowBand r = row_from_line(l, *j);
+        current.push_back(std::move(r));
+        if (!is_total) seen_in_block.insert(j->id);
+        previous_row_y = l.y;
+    }
+
+    finalize_block();
+
+    return blocks;
+}
+
+
+
+std::vector<Token> TableEngine::numeric_tokens_in_rows(const PageText& page, const std::vector<RowBand>& rows) const {
+
+    std::vector<Token> nums;
+
+    if (rows.empty()) return nums;
+
+    std::vector<double> label_rights;
+
+    for (const auto& r : rows) label_rights.push_back(r.label_box.x1);
+    std::sort(label_rights.begin(), label_rights.end());
+    const double min_label_right = label_rights.empty() ? 0.0 : label_rights[label_rights.size() / 2];
+
+    for (const auto& t : page.tokens) {
+
+        if (!is_numeric_token(t.text)) continue;
+
+        if (t.box.cx() <= min_label_right + 6.0) continue;
+
+        for (const auto& r : rows) {
+
+            if (t.box.cy() >= r.y0 && t.box.cy() <= r.y1) {
+
+                nums.push_back(t);
+
+
+                break;
+            }
+        }
+    }
+
+    return nums;
+}
+
+
+
+
+std::vector<ColumnBand> TableEngine::cluster_columns(const std::vector<Token>& nums, const PageText&, const std::vector<RowBand>& rows) const {
+
+
+    struct Cluster {
+
+        std::vector<Token> tokens;
+        double xsum = 0.0;
+        Rect box;
+    };
+
+    std::vector<Cluster> clusters;
+    const double x_tol = 7.5;
+
+    std::vector<Token> sorted = nums;
+
+    std::sort(sorted.begin(), sorted.end(), [](const Token& a, const Token& b){ return a.box.cx() < b.box.cx(); });
+
+    for (const auto& n : sorted) {
+        bool placed = false;
+
+        for (auto& c : clusters) {
+            const double mean = c.xsum / static_cast<double>(c.tokens.size());
+
+            if (std::abs(mean - n.box.cx()) <= x_tol) {
+
+                c.tokens.push_back(n);
+
+                c.xsum += n.box.cx();
+
+                c.box.include(n.box);
+                placed = true;
+                break;
+            }
+        }
+
+        if (!placed) {
+            Cluster c;
+
+            c.tokens.push_back(n);
+            c.xsum = n.box.cx();
+            c.box = n.box;
+
+            clusters.push_back(std::move(c));
+        }
+    }
+
+    std::vector<ColumnBand> cols;
+
+    for (auto& c : clusters) {
+
+        if (c.tokens.size() < std::max<size_t>(6, rows.size()/3)) continue;
+
+        ColumnBand col;
+        col.index = static_cast<int>(cols.size());
+        col.x_mid = c.xsum / static_cast<double>(c.tokens.size());
+        col.x0 = c.box.x0 - 4.0;
+        col.x1 = c.box.x1 + 4.0;
+
+        cols.push_back(col);
+    }
+
+
+
+    std::sort(cols.begin(), cols.end(), [](const ColumnBand& a, const ColumnBand& b){ return a.x_mid < b.x_mid; });
+
+    for (size_t i=0; i<cols.size(); ++i) cols[i].index = static_cast<int>(i);
+
+    if (cols.size() >= 2) {
+
+        for (size_t i=0; i<cols.size(); ++i) {
+            const double left = (i == 0) ? cols[i].x0 : (cols[i-1].x_mid + cols[i].x_mid) * 0.5;
+            const double right = (i + 1 == cols.size()) ? cols[i].x1 : (cols[i].x_mid + cols[i+1].x_mid) * 0.5;
+            cols[i].x0 = left;
+            cols[i].x1 = right;
+        }
+    }
+
+    return cols;
+}
+
+
+
+
+void TableEngine::assign_cells(TableCandidate& t, const std::vector<Token>& nums) const {
+
+    for (const auto& n : nums) {
+
+        const RowBand* row = nullptr;
+
+        for (const auto& r : t.rows) {
+
+            if (n.box.cy() >= r.y0 && n.box.cy() <= r.y1) { row = &r; break; }
+        }
+
+        if (!row) continue;
+
+        const ColumnBand* col = nullptr;
+
+        for (const auto& c : t.columns) {
+
+            if (n.box.cx() >= c.x0 && n.box.cx() <= c.x1) { col = &c; break; }
+        }
+
+
+        if (!col) continue;
+
+        const auto cell_key = std::make_pair(row->jurisdiction_id, col->index);
+
+
+        ParsedValue pv;
+        pv.raw = n.text;
+
+
+        pv.value = parse_epi_int(n.text);
+        pv.box = n.box;
+        auto it = t.cells.find(cell_key);
+
+        if (it != t.cells.end()) {
+
+            t.duplicate_cells.insert(cell_key);
+            const bool existing_valid = it->second.value.has_value();
+
+            const bool candidate_valid = pv.value.has_value();
+
+            if ((!existing_valid && candidate_valid) ||
+
+                (existing_valid == candidate_valid && pv.box.width() > it->second.box.width())) {
+                it->second = pv;
+            }
+            continue;
+        }
+        t.cells[cell_key] = pv;
+    }
+}
+
+
+
+std::string TableEngine::infer_period(const std::string& header_norm, int ordinal_mod) {
+
+    if (header_norm.find("acum") != std::string::npos) return "Acum";
+
+
+    if (header_norm.find("sem") != std::string::npos) return "Sem";
+
+    if (ordinal_mod == 0) return "Sem";
+
+    return "Acum";
+}
+
+
+
+std::string TableEngine::infer_sex(const std::string& header_norm) {
+
+    if (has_norm_word(header_norm, "m")) return "M";
+
+    if (has_norm_word(header_norm, "f")) return "F";
+
+    return "total";
+}
+
+
+
+static std::string fast_cuadro_title_from_norm(const std::string& header_norm) {
+    size_t p = header_norm.find("cuadro");
+
+    if (p == std::string::npos) return "Cuadro_detectado";
+    p += 6;
+
+    while (p < header_norm.size() && header_norm[p] == ' ') ++p;
+
+    if (p >= header_norm.size() || !std::isdigit(static_cast<unsigned char>(header_norm[p]))) return "Cuadro_detectado";
+    std::string n;
+
+    n.reserve(5);
+
+    while (p < header_norm.size() && std::isdigit(static_cast<unsigned char>(header_norm[p])) && n.size() < 2) n.push_back(header_norm[p++]);
+    size_t q = p;
+
+    while (q < header_norm.size() && header_norm[q] == ' ') ++q;
+
+
+    if (q < header_norm.size() && std::isdigit(static_cast<unsigned char>(header_norm[q]))) {
+
+        n.push_back(' ');
+
+        while (q < header_norm.size() && std::isdigit(static_cast<unsigned char>(header_norm[q])) && n.size() < 5) n.push_back(header_norm[q++]);
+    }
+
+    return n.empty() ? "Cuadro_detectado" : ("Cuadro " + n);
+}
+
+
+
+
+
+void TableEngine::infer_headers(TableCandidate& t, const PdfDocument& doc, const PageText& page) const {
+
+    if (t.rows.empty()) return;
+    const double header_y0 = 0.0;
+
+    const double header_y1 = std::max(0.0, t.rows.front().y0 - 2.0);
+
+    std::vector<Token> header_tokens;
+
+    for (const auto& tok : page.tokens) {
+
+        if (tok.box.cy() >= header_y0 && tok.box.cy() <= header_y1) header_tokens.push_back(tok);
+    }
+    std::string all_header;
+
+    for (const auto& h : header_tokens) all_header += h.text + " ";
+
+
+    std::string header_norm = normalize_key(all_header);
+    std::string title = fast_cuadro_title_from_norm(header_norm);
+    t.table_title = title;
+
+    t.table_id = safe_filename("p" + std::to_string(t.page) + "_" + title);
+
+
+    const double table_top = t.rows.front().y0;
+
+
+    const double disease_y0 = std::max(0.0, table_top - 120.0);
+    const double disease_y1 = std::max(0.0, table_top - 56.0);
+    const double role_y0 = std::max(0.0, table_top - 46.0);
+
+
+    std::vector<std::string> local_norm_hints;
+
+    local_norm_hints.reserve(t.columns.size());
+
+    for (const auto& col : t.columns) {
+        const double wx0 = col.x0 - 22.0;
+        const double wx1 = col.x1 + 22.0;
+        HeaderSpan local_span = collect_header_span(header_tokens, wx0, wx1, role_y0, header_y1, false);
+
+        if (!local_span.found) local_span = collect_header_span(header_tokens, wx0, wx1, header_y0, header_y1, false);
+
+
+        local_norm_hints.push_back(normalize_key(local_span.text));
+    }
+
+    const auto expected_for_table = expected_jurisdictions_for_rows(t.rows);
+    int edomex_row_hits = 0;
+    int cdmx_row_hits = 0;
+    for (const auto& id : expected_for_table) {
+        if (is_edomex_jurisdiction_id(id)) ++edomex_row_hits;
+        if (cdmx_expected_jurisdictions().count(id) != 0) ++cdmx_row_hits;
+    }
+    std::vector<ColumnGroupRange> column_groups;
+    bool edomex_legacy_institution_tail = false;
+    if (edomex_row_hits >= 8 && edomex_row_hits > cdmx_row_hits) {
+        std::string edomex_header_norm = header_norm;
+        std::string page_header_text;
+        std::string page_all_text;
+        for (const auto& tok : page.tokens) {
+            page_all_text += tok.text + " ";
+            if (tok.box.cy() <= table_top + 2.0) page_header_text += tok.text + " ";
+        }
+        edomex_header_norm = normalize_key(edomex_header_norm + " " + page_header_text);
+        const std::string edomex_page_norm = normalize_key(page_all_text);
+        column_groups = edomex_modern_column_groups(static_cast<int>(t.columns.size()), edomex_header_norm, local_norm_hints, doc.bulletin_year);
+        if (column_groups.empty()) {
+            column_groups = edomex_legacy_column_groups(static_cast<int>(t.columns.size()), edomex_header_norm);
+            edomex_legacy_institution_tail = !column_groups.empty() &&
+                (is_non_epidemiological_column_group(edomex_header_norm) ||
+                 is_non_epidemiological_column_group(edomex_page_norm) ||
+                 contains_norm(edomex_header_norm, "por institucion") ||
+                 contains_norm(edomex_page_norm, "por institucion") ||
+                 contains_norm(edomex_header_norm, "institucion") ||
+                 contains_norm(edomex_page_norm, "institucion") ||
+                 contains_norm(edomex_header_norm, "institu ciones") ||
+                 contains_norm(edomex_page_norm, "institu ciones") ||
+                 contains_norm(edomex_header_norm, "totales por jurisdiccion") ||
+                 contains_norm(edomex_page_norm, "totales por jurisdiccion") ||
+                 contains_norm(edomex_header_norm, "suma por institucion") ||
+                 contains_norm(edomex_page_norm, "suma por institucion") ||
+                 contains_norm(edomex_header_norm, "total edo") ||
+                 contains_norm(edomex_page_norm, "total edo") ||
+                 contains_norm(edomex_header_norm, "isem") ||
+                 contains_norm(edomex_page_norm, "isem") ||
+                 contains_norm(edomex_header_norm, "imss") ||
+                 contains_norm(edomex_page_norm, "imss") ||
+                 contains_norm(edomex_header_norm, "issste") ||
+                 contains_norm(edomex_page_norm, "issste") ||
+                 contains_norm(edomex_header_norm, "difem") ||
+                 contains_norm(edomex_page_norm, "difem"));
+        }
+    }
+    if (column_groups.empty()) {
+        column_groups = infer_column_groups_from_geometry_and_headers(t.columns, local_norm_hints);
+    }
+
+
+    std::vector<HeaderGroup> groups;
+
+    for (const auto& range : column_groups) {
+        HeaderGroup g;
+        g.first_col = range.first_col;
+        g.last_col = range.last_col;
+
+        g.x0 = t.columns[range.first_col].x0 - 24.0;
+
+
+        g.x1 = t.columns[range.last_col].x1 + 24.0;
+        HeaderSpan label_span;
+        if (edomex_row_hits >= 8 && edomex_row_hits > cdmx_row_hits) {
+            label_span = collect_disease_label_span(header_tokens, g.x0, g.x1, header_y0, header_y1, table_top);
+        } else {
+            label_span = collect_header_span(header_tokens, g.x0, g.x1, disease_y0, disease_y1, true);
+        }
+        if (!label_span.found) label_span = collect_header_span(header_tokens, g.x0, g.x1, disease_y0, disease_y1, true);
+        if (!label_span.found) label_span = collect_header_span(header_tokens, g.x0, g.x1, header_y0, disease_y1, true);
+        g.label = cleaned_disease_label_text(label_span.text);
+
+        if (label_span.found) g.label_box = label_span.box;
+
+
+        g.norm = normalize_key(g.label);
+        HeaderSpan group_all_span = collect_header_span(header_tokens, g.x0, g.x1, header_y0, header_y1, false);
+        std::string group_all = group_all_span.text;
+        const std::string group_all_norm = normalize_key(group_all);
+        const std::string group_match_norm = disease_label_match_norm(group_all);
+        const std::string preliminary_cie10 = extract_cie10_codes(group_all);
+        const size_t edomex_legacy_tail_index = groups.size();
+        const bool edomex_legacy_right_institution_tail =
+            edomex_legacy_institution_tail && t.page_box.x0 > 1.0;
+        const char* const edomex_legacy_right_tail_diseases[] = {
+            "Mordeduras por serpiente",
+            "Violencia intrafamiliar",
+            "Otras diversas"
+        };
+        const size_t edomex_legacy_right_tail_disease_count =
+            sizeof(edomex_legacy_right_tail_diseases) / sizeof(edomex_legacy_right_tail_diseases[0]);
+        if (edomex_legacy_right_institution_tail && edomex_legacy_tail_index < edomex_legacy_right_tail_disease_count) {
+            g.label = edomex_legacy_right_tail_diseases[edomex_legacy_tail_index];
+            g.norm = normalize_key(g.label);
+        }
+        const bool edomex_legacy_tail_group =
+            edomex_legacy_right_institution_tail && edomex_legacy_tail_index >= edomex_legacy_right_tail_disease_count;
+        const std::string label_match_norm = disease_label_match_norm(g.label);
+        const bool title_fragment_group =
+            (contains_norm(g.norm, "casos por jurisdiccion") ||
+             (contains_norm(g.norm, "hasta la") && contains_norm(g.norm, "epidemiologica")) ||
+             contains_norm(g.norm, "enfermedades transmitidas por") ||
+             (contains_norm(g.norm, "enfermedades transmitidas por") && contains_norm(g.norm, "epidemiologica")));
+        const bool has_cie10_evidence = !preliminary_cie10.empty();
+        const bool label_unusable = is_generic_or_unusable_disease_label_norm(g.norm);
+        const bool all_unusable = is_generic_or_unusable_disease_label_norm(group_all_norm);
+        const bool admin_noise_group =
+            !has_cie10_evidence &&
+            (is_document_admin_noise_norm(g.norm) ||
+             (label_unusable && is_document_admin_noise_norm(group_all_norm)));
+        const bool unsupported_synthetic_group =
+            !has_cie10_evidence &&
+            label_unusable &&
+            all_unusable;
+        if (edomex_legacy_tail_group ||
+            (edomex_row_hits >= 8 && label_unusable) ||
+            is_non_epidemiological_column_group(g.norm) ||
+            is_non_epidemiological_column_group(group_all_norm) ||
+            title_fragment_group ||
+            admin_noise_group ||
+            unsupported_synthetic_group) {
+            g.disease_id = "__skip_epidemiology_column__";
+            g.disease.clear();
+            g.cie10.clear();
+            g.confidence = 1.0;
+            groups.push_back(std::move(g));
+            continue;
+        }
+        g.cie10 = preliminary_cie10;
+        HeaderSpan cie_span = collect_cie10_span(header_tokens, g.x0, g.x1, header_y0, header_y1);
+
+        if (cie_span.found) g.cie10_box = cie_span.box;
+
+        g.years = collect_years(header_tokens, g.x0, g.x1, role_y0, header_y1);
+        auto disease = label_unusable ? std::optional<Disease>{} :
+            config_.match_disease_text(label_match_norm.empty() ? g.norm : label_match_norm);
+
+
+        if (!disease && !all_unusable && !group_match_norm.empty()) disease = config_.match_disease_text(group_match_norm);
+        if (!disease && !all_unusable) disease = config_.match_disease_text(group_all_norm);
+
+        auto disease_by_cie10 = config_.match_disease_cie10(g.cie10);
+
+        bool disease_from_cie10_only = false;
+        if (!disease && disease_by_cie10) {
+            disease = disease_by_cie10;
+            disease_from_cie10_only = true;
+        }
+        const bool disease_cie10_agrees = disease && disease_by_cie10 && disease_by_cie10->id == disease->id;
+
+        if (disease) {
+            g.disease_id = disease->id;
+
+            g.disease = disease->canonical;
+            const std::string configured_cie = join_pipe(disease->cie10);
+            g.cie10 = configured_cie.empty() ? g.cie10 : configured_cie;
+            g.confidence = disease_from_cie10_only && g.norm.empty() ? 0.93 : (disease_cie10_agrees ? 0.96 : 0.94);
+        } else {
+            if (edomex_row_hits >= 8 && !has_cie10_evidence) {
+                g.disease_id = "__skip_epidemiology_column__";
+                g.disease.clear();
+                g.cie10.clear();
+                g.confidence = 1.0;
+                groups.push_back(std::move(g));
+                continue;
+            }
+            const std::string label = synthetic_disease_label(
+                strip_parenthetical_disease_noise(g.label),
+                "Enfermedad no catalogada " + title + " grupo " + std::to_string(static_cast<int>(groups.size()) + 1));
+            const std::string label_norm = normalize_key(label);
+            const bool synthetic_has_signal =
+                has_epidemiology_label_signal_norm(label_norm) ||
+                has_epidemiology_label_signal_norm(group_all_norm);
+            if (is_generic_or_unusable_disease_label_norm(label_norm) || !synthetic_has_signal) {
+                g.disease_id = "__skip_epidemiology_column__";
+                g.disease.clear();
+                g.cie10.clear();
+                g.confidence = 1.0;
+                groups.push_back(std::move(g));
+                continue;
+            }
+
+
+            g.disease_id = safe_filename("auto_" + normalize_key(label));
+
+            g.disease = label;
+            g.confidence = g.norm.empty() ? 0.56 : 0.68;
+        }
+
+        groups.push_back(std::move(g));
+    }
+
+
+    for (auto& col : t.columns) {
+
+        const int group_index = group_index_for_column(column_groups, col.index);
+        const HeaderGroup* group = (group_index >= 0 && group_index < static_cast<int>(groups.size())) ? &groups[static_cast<size_t>(group_index)] : nullptr;
+        const int first_col = group ? group->first_col : 0;
+
+        const int last_col = group ? group->last_col : static_cast<int>(t.columns.size()) - 1;
+        const int group_size = std::max(1, last_col - first_col + 1);
+
+        const int pos_in_group = std::clamp(col.index - first_col, 0, group_size - 1);
+        col.group_index = group_index;
+
+        const double wx0 = col.x0 - 22.0;
+        const double wx1 = col.x1 + 22.0;
+        HeaderSpan local_span = collect_header_span(header_tokens, wx0, wx1, role_y0, header_y1, false);
+
+        if (!local_span.found) local_span = collect_header_span(header_tokens, wx0, wx1, header_y0, header_y1, false);
+        const std::string local = local_span.text;
+
+
+        const std::string local_norm = normalize_key(local);
+        col.header_text = trim(local);
+
+        if (local_span.found) col.header_box = local_span.box;
+        else col.header_box = {col.x0, role_y0, col.x1, std::max(role_y0 + 1.0, table_top - 1.0)};
+
+        if (group) {
+            col.disease_id = group->disease_id;
+            col.disease = group->disease;
+            col.cie10 = group->cie10;
+            col.disease_box = group->label_box;
+            col.cie10_box = group->cie10_box;
+            col.header_confidence = group->confidence;
+        } else {
+
+            col.disease_id = "auto_" + safe_filename(title);
+
+            col.disease = "Enfermedad no catalogada " + title;
+            col.header_confidence = 0.54;
+        }
+
+
+        int source_year = first_year_20xx(local_norm);
+
+        const int current_year = doc.bulletin_year > 0 ? doc.bulletin_year : (source_year > 0 ? source_year : 0);
+
+        const int previous_year = group ? previous_distinct_year(group->years, current_year) : 0;
+
+
+        apply_role_triplet(col, infer_role_from_header(local_norm, pos_in_group, group_size, current_year, source_year, group, col.x_mid));
+
+        col.expected_role = role_key_from_column(col);
+
+        if (col.period == "Sem") {
+
+            source_year = current_year > 0 ? current_year : source_year;
+
+        } else if (col.sex == "M" || col.sex == "F") {
+
+            source_year = current_year > 0 ? current_year : (group ? nearest_year(group->years, col.x_mid, source_year) : source_year);
+
+        } else if (col.role == "previous_year_accumulated") {
+
+            source_year = source_year > 0 ? source_year : (previous_year > 0 ? previous_year : (current_year > 1 ? current_year - 1 : current_year));
+        } else {
+
+            if (source_year == 0 && group) source_year = nearest_year(group->years, col.x_mid, current_year);
+
+            if (source_year == 0) source_year = current_year;
+        }
+
+        col.source_year = source_year > 0 ? std::to_string(source_year) : "";
+
+        if (col.cie10.empty()) col.cie10 = extract_cie10_codes(local);
+    }
+
+
+
+    for (int gi = 0; gi < static_cast<int>(column_groups.size()); ++gi) {
+
+        const auto& range = column_groups[static_cast<size_t>(gi)];
+
+        std::set<std::string> present_roles;
+
+        for (int ci = range.first_col; ci <= range.last_col && ci < static_cast<int>(t.columns.size()); ++ci) {
+
+            present_roles.insert(role_key_from_column(t.columns[static_cast<size_t>(ci)]));
+        }
+
+        std::vector<std::string> missing;
+
+        for (const std::string& expected : {std::string("sem_total"), std::string("acum_m"), std::string("acum_f"), std::string("acum_total_previous")}) {
+
+            if (present_roles.count(expected) == 0) missing.push_back(expected);
+        }
+
+        if (!missing.empty()) {
+
+
+            const std::string note = "pdf_layout_missing_columns=" + join_missing_roles(missing);
+
+            for (int ci = range.first_col; ci <= range.last_col && ci < static_cast<int>(t.columns.size()); ++ci) {
+
+                t.columns[static_cast<size_t>(ci)].group_layout_note = note;
+            }
+        }
+    }
+}
+
+
+
+std::string TableEngine::make_column_key(const ColumnBand& c) {
+
+    return c.disease_id + "|" + c.source_year + "|" + c.period + "|" + c.sex + "|col" + std::to_string(c.index);
+}
+
+
+
+
+
+void TableEngine::validate_and_materialize(TableCandidate& t, const PdfDocument& doc) const {
+
+    const std::set<std::string> non_total = expected_jurisdictions_for_rows(t.rows);
+    const int expected_present = static_cast<int>(non_total.size());
+
+    if (expected_present <= 0) return;
+
+
+    for (const auto& col : t.columns) {
+        if (col.disease_id == "__skip_epidemiology_column__") continue;
+
+        const auto key = make_column_key(col);
+        int present = 0;
+        int64_t sum = 0;
+        std::optional<int64_t> total;
+        bool invalid_numeric = false;
+        bool duplicate_cell = false;
+
+        std::set<std::string> present_ids;
+
+        std::set<std::string> missing_ids = non_total;
+
+        for (const auto& r : t.rows) {
+
+            if (t.duplicate_cells.count({r.jurisdiction_id, col.index}) > 0) duplicate_cell = true;
+
+            auto it = t.cells.find({r.jurisdiction_id, col.index});
+
+            if (it == t.cells.end()) continue;
+
+            if (!it->second.value) { invalid_numeric = true; continue; }
+
+            if (is_total_jurisdiction_id(r.jurisdiction_id)) total = *it->second.value;
+
+            else if (non_total.count(r.jurisdiction_id)) {
+                sum += *it->second.value;
+                present++;
+
+
+                present_ids.insert(r.jurisdiction_id);
+
+                missing_ids.erase(r.jurisdiction_id);
+            }
+        }
+
+
+
+        std::map<std::string, ParsedValue> values_by_jurisdiction;
+
+        for (const auto& r : t.rows) {
+
+            if (!non_total.count(r.jurisdiction_id)) continue;
+            auto it = t.cells.find({r.jurisdiction_id, col.index});
+
+            if (it != t.cells.end() && it->second.value) values_by_jurisdiction[r.jurisdiction_id] = it->second;
+        }
+
+
+        std::string source_year = col.source_year;
+        double confidence_penalty = 0.0;
+
+        if (source_year.empty()) {
+
+            source_year = std::to_string(doc.bulletin_year);
+            confidence_penalty += 0.10;
+        }
+
+        if (doc.bulletin_year <= 0 || doc.bulletin_week <= 0 || doc.bulletin_week > 53) confidence_penalty += 0.18;
+
+        if (col.header_confidence < 0.65) confidence_penalty += 0.10;
+
+        if (invalid_numeric) confidence_penalty += 0.05;
+
+        if (duplicate_cell) confidence_penalty += 0.04;
+
+
+
+        auto emit_one = [&](const std::string& jurisdiction_id, const std::string& jurisdiction_name, const ParsedValue& pv,
+                            const std::string& validation_rule, double extra_penalty) {
+
+
+            if (!pv.value) return;
+            Observation o;
+
+
+            o.pdf_file = doc.file_name;
+            o.pdf_id = doc.stable_id;
+
+            o.page = t.page;
+
+            o.bulletin_year = doc.bulletin_year;
+
+            o.bulletin_week = doc.bulletin_week;
+            o.table_id = t.table_id;
+            o.table_title = t.table_title;
+            o.disease_id = col.disease_id;
+            o.disease = col.disease;
+            o.cie10 = col.cie10;
+            o.jurisdiction_id = jurisdiction_id;
+            o.jurisdiction = jurisdiction_name;
+
+            o.source_year = source_year;
+
+            o.period = col.period;
+            o.sex = col.sex;
+            o.raw_value = pv.raw;
+
+            o.value = *pv.value;
+            o.confidence = std::clamp(0.65 + col.header_confidence * 0.30 + 0.04 - confidence_penalty - extra_penalty, 0.50, 0.99);
+            o.cell_box = pv.box;
+            o.validation_rule = validation_rule;
+
+            t.accepted.push_back(std::move(o));
+        };
+
+
+        auto emit = [&](const std::string& validation_rule, double extra_penalty) {
+
+            std::set<std::string> emitted;
+
+            for (const auto& r : t.rows) {
+
+                if (!non_total.count(r.jurisdiction_id)) continue;
+                auto it = values_by_jurisdiction.find(r.jurisdiction_id);
+
+                if (it == values_by_jurisdiction.end() || !it->second.value) continue;
+                emit_one(r.jurisdiction_id, r.jurisdiction, it->second, validation_rule, extra_penalty);
+
+                emitted.insert(r.jurisdiction_id);
+            }
+
+
+
+            for (const auto& [jurisdiction_id, pv] : values_by_jurisdiction) {
+
+                if (emitted.count(jurisdiction_id) || !non_total.count(jurisdiction_id) || !pv.value) continue;
+                emit_one(jurisdiction_id, jurisdiction_name_by_id(config_, jurisdiction_id), pv, validation_rule, extra_penalty);
+            }
+        };
+
+
+        if (values_by_jurisdiction.empty()) continue;
+
+        std::string prefix;
+
+
+        if (invalid_numeric) prefix += "non_numeric_cells_skipped;";
+
+        if (duplicate_cell) prefix += "duplicate_cell_best_token_kept;";
+
+        if (!col.group_layout_note.empty()) prefix += col.group_layout_note + ";";
+
+        if (doc.bulletin_year <= 0 || doc.bulletin_week <= 0 || doc.bulletin_week > 53) prefix += "week_unresolved;";
+
+        if (col.header_confidence < 0.65) prefix += "synthetic_or_low_confidence_header;";
+
+
+        if (present == expected_present && total && sum == *total) {
+            emit(prefix + "sum_" + std::to_string(expected_present) + "_jurisdictions_equals_total", 0.0);
+            continue;
+        }
+
+        if (present == expected_present - 1 && total && missing_ids.size() == 1 && *total >= sum) {
+            const int64_t delta = *total - sum;
+
+
+            ParsedValue imputed;
+            imputed.raw = "[imputed_from_total]";
+            imputed.value = delta;
+            values_by_jurisdiction[*missing_ids.begin()] = imputed;
+            emit(prefix + "sum_" + std::to_string(expected_present - 1) + "_jurisdictions_plus_one_imputed_equals_total", 0.16);
+            continue;
+        }
+
+        if (present == expected_present && !total) {
+
+            emit(prefix + "observed_" + std::to_string(expected_present) + "_jurisdictions_total_absent_review", 0.20);
+
+            continue;
+        }
+
+        if (total && present == expected_present) {
+            emit(prefix + "total_mismatch_kept_total_only_as_check;sum=" + std::to_string(sum) + ";total=" + std::to_string(*total), 0.18);
+            continue;
+        }
+
+        if (total) {
+
+            emit(prefix + "partial_column_kept_total_only_as_check;present=" + std::to_string(present) + ";total=" + std::to_string(*total), 0.28);
+        } else {
+
+            emit(prefix + "partial_column_kept_total_absent;present=" + std::to_string(present), 0.30);
+        }
+    }
+}
+
+
+
+
+
+std::vector<TableCandidate> TableEngine::reconstruct_page(const PdfDocument& doc, const PageText& page) const {
+
+    std::vector<TableCandidate> out;
+    const auto build_table = [&](const PageText& source_page, const Rect& source_box, const std::string& id_suffix) -> std::optional<TableCandidate> {
+        auto lines = make_lines(source_page);
+
+        auto rows = detect_rows(lines);
+
+        if (rows.size() < 10) return std::nullopt;
+
+        auto nums = numeric_tokens_in_rows(source_page, rows);
+
+        auto cols = cluster_columns(nums, source_page, rows);
+
+        if (cols.size() < 3) return std::nullopt;
+
+        TableCandidate t;
+        t.page = source_page.page;
+
+        t.page_box = source_box;
+
+        t.rows = std::move(rows);
+
+        t.columns = std::move(cols);
+        assign_cells(t, nums);
+        infer_headers(t, doc, source_page);
+        if (!id_suffix.empty()) t.table_id += "_" + id_suffix;
+
+
+        validate_and_materialize(t, doc);
+        return t;
+    };
+
+    double page_right = page.width;
+    for (const auto& tok : page.tokens) page_right = std::max(page_right, tok.box.x1);
+    page_right = std::max(page_right, page.width);
+
+    const auto page_lines = make_lines(page);
+    const auto row_blocks = detect_row_blocks(page_lines);
+
+    if (row_blocks.size() >= 2) {
+        std::vector<TableCandidate> segmented_tables;
+        segmented_tables.reserve(row_blocks.size());
+
+        for (size_t bi = 0; bi < row_blocks.size(); ++bi) {
+            const auto& block = row_blocks[bi];
+            if (block.size() < 10) continue;
+
+            const double previous_bottom = (bi == 0 || row_blocks[bi - 1].empty()) ? 0.0 : row_blocks[bi - 1].back().y1;
+            const double next_top = (bi + 1 < row_blocks.size() && !row_blocks[bi + 1].empty()) ? row_blocks[bi + 1].front().y0 : page.height;
+            const double header_margin = std::clamp(page.height * 0.16, 72.0, 165.0);
+            const double seg_y0 = std::max(0.0, std::max(previous_bottom + 2.0, block.front().y0 - header_margin));
+            const double seg_y1 = std::min(page.height, std::max(block.back().y1 + 18.0, std::min(next_top - 2.0, block.back().y1 + 42.0)));
+            if (seg_y1 <= seg_y0 + 20.0) continue;
+
+            PageText segment = page;
+            segment.tokens.clear();
+            segment.tokens.reserve(page.tokens.size() / row_blocks.size() + 96);
+            for (const auto& tok : page.tokens) {
+                const double cy = tok.box.cy();
+                if (cy >= seg_y0 && cy <= seg_y1) segment.tokens.push_back(tok);
+            }
+            if (segment.tokens.empty()) continue;
+
+            auto table = build_table(segment, {0.0, seg_y0, page_right, seg_y1}, "bloque" + std::to_string(static_cast<int>(bi) + 1));
+            if (table && (!table->accepted.empty() || !table->quarantine.empty())) {
+                segmented_tables.push_back(std::move(*table));
+            }
+        }
+
+        size_t segmented_accepted = 0;
+        for (const auto& t : segmented_tables) segmented_accepted += t.accepted.size();
+        if (segmented_tables.size() >= 2 && segmented_accepted > 0) {
+            return segmented_tables;
+        }
+    }
+
+    const Rect full_box{0, 0, page_right, page.height};
+    std::optional<TableCandidate> full_table = build_table(page, full_box, "");
+
+    const std::string pdf_name_norm = normalize_key(doc.file_name + " " + path_utf8(doc.pdf_path));
+    const bool edomex_pdf =
+        pdf_name_norm.find("edomex") != std::string::npos ||
+        (pdf_name_norm.find("estado") != std::string::npos && pdf_name_norm.find("mexico") != std::string::npos);
+    if (edomex_pdf && doc.bulletin_year > 0 && doc.bulletin_year < 2023 && page_right > 0.0) {
+        auto legacy_split_x = [&]() -> double {
+            const auto lines = make_lines(page);
+            std::vector<double> label_xs;
+            label_xs.reserve(48);
+            for (const auto& line : lines) {
+                if (line.tokens.empty()) continue;
+                for (size_t i = 0; i < line.tokens.size(); ++i) {
+                    if (is_numeric_token(line.tokens[i].text)) continue;
+                    std::string fragment;
+                    Rect label_box;
+                    bool have_box = false;
+                    for (size_t k = i; k < line.tokens.size() && k < i + 4; ++k) {
+                        if (is_numeric_token(line.tokens[k].text)) break;
+                        if (!fragment.empty()) fragment.push_back(' ');
+                        fragment += line.tokens[k].text;
+                        if (!have_box) { label_box = line.tokens[k].box; have_box = true; }
+                        else label_box.include(line.tokens[k].box);
+                        if (config_.match_jurisdiction_line(normalize_key(fragment))) {
+                            label_xs.push_back(label_box.x0);
+                            i = k;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (label_xs.size() < 16) return page_right * 0.5;
+            std::sort(label_xs.begin(), label_xs.end());
+            struct XCluster { double sum = 0.0; int count = 0; };
+            std::vector<XCluster> clusters;
+            for (double x : label_xs) {
+                if (clusters.empty() || std::abs(x - clusters.back().sum / std::max(1, clusters.back().count)) > 28.0) {
+                    clusters.push_back({x, 1});
+                } else {
+                    clusters.back().sum += x;
+                    clusters.back().count += 1;
+                }
+            }
+            std::vector<std::pair<double,int>> centers;
+            centers.reserve(clusters.size());
+            for (const auto& c : clusters) {
+                if (c.count >= 8) centers.push_back({c.sum / static_cast<double>(c.count), c.count});
+            }
+            if (centers.size() < 2) return page.width * 0.5;
+            std::sort(centers.begin(), centers.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+            double left_label = centers.front().first;
+            double right_label = 0.0;
+            for (size_t i = 1; i < centers.size(); ++i) {
+                if (centers[i].first - left_label > 120.0) {
+                    right_label = centers[i].first;
+                    break;
+                }
+            }
+            if (right_label <= 0.0) return page.width * 0.5;
+            const double gap = right_label - left_label;
+            const double left_padding = std::clamp(gap * 0.10, 18.0, 55.0);
+            return right_label - left_padding;
+        };
+        const double mid = legacy_split_x();
+        const double gutter = std::max(5.0, std::min(12.0, page.width * 0.006));
+        auto crop_half = [&](double x0, double x1) {
+            PageText half = page;
+            half.tokens.clear();
+            half.width = std::max(page.width, x1);
+            half.tokens.reserve(page.tokens.size() / 2 + 16);
+            for (const auto& tok : page.tokens) {
+                const double cx = tok.box.cx();
+                if (cx >= x0 && cx <= x1) half.tokens.push_back(tok);
+            }
+            return half;
+        };
+        const PageText left = crop_half(0.0, mid + gutter);
+        const PageText right = crop_half(mid + gutter, page_right);
+        std::vector<TableCandidate> split_tables;
+        auto left_table = build_table(left, {0.0, 0.0, mid + gutter, page.height}, "edomex_izq");
+        auto right_table = build_table(right, {mid + gutter, 0.0, page_right, page.height}, "edomex_der");
+        if (left_table) split_tables.push_back(std::move(*left_table));
+        if (right_table) split_tables.push_back(std::move(*right_table));
+        size_t split_accepted = 0;
+        for (const auto& t : split_tables) {
+            split_accepted += t.accepted.size();
+        }
+        const size_t full_accepted = full_table ? full_table->accepted.size() : 0;
+        if (split_tables.size() >= 2 && split_accepted >= std::max<size_t>(full_accepted, 1)) {
+            return split_tables;
+        }
+    }
+    if (!full_table) return out;
+    TableCandidate t = std::move(*full_table);
+
+    out.push_back(std::move(t));
+
+    return out;
+}
+
+}

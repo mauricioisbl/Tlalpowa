@@ -1,0 +1,18 @@
+{
+  "id": "zmvm",
+  "title": "Valle de Mexico - ZMVM operativa",
+  "current_geometry_scope": "84 demarcaciones y municipios de la Zona Metropolitana del Valle de Mexico",
+  "target_geometry_scope": "84 demarcaciones y municipios metropolitanos del Valle de Mexico",
+  "source_name": "Areas geoestadisticas municipales 2020 filtradas al ambito POZMVM",
+  "source_author": "INEGI / SEDATU POZMVM",
+  "source_portal": "INEGI servicios geograficos; POZMVM SEDATU",
+  "source_url": "https://lcidsig.inegi.org.mx/server/rest/services/Hosted/Areas_geoestadisticas_municipales_2020/FeatureServer/0",
+  "source_reference_url": "https://pozmvm.sedatu.gob.mx/?page_id=333",
+  "source_license": "Uso publico institucional",
+  "notes": "Los boletines epidemiologicos CDMX reportan por alcaldia; los municipios externos se dibujan como contexto metropolitano y quedan listos para integrar fuentes estatales o atmosfericas. El visor vivo usa ZMVM + 50 km para contexto de baja resolución y el GeoJSON local opera como respaldo cuando la capa cartográfica OpenStreetMap/OpenMaps no entrega delimitaciones.",
+  "render_extent_asset": "zmvm_buffer_50km.geojson",
+  "render_extent_scope": "union geometrica de la ZMVM con buffer metrico de 50 km desde su perimetro, simplificada para contexto ligero",
+  "render_extent_crs_workflow": "EPSG:4326 -> EPSG:32614 -> buffer 50000 m -> simplify -> EPSG:4326",
+  "zmvm_buffer_20km": "Perímetro metropolitano ZMVM ampliado a 20 km para carga cartográfica base ligera y contexto espacial extendido.",
+  "zmvm_buffer_50km": "Perímetro metropolitano ZMVM ampliado a 50 km para contexto cartográfico externo de baja resolución; no debe dibujarse como línea visible."
+}

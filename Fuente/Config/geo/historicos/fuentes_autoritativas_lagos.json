@@ -1,0 +1,43 @@
+{
+  "politica": "solo_fuentes_oficiales_cdmx_repsa_sin_respaldo_generado",
+  "descripcion": "La capa historica lacustre no debe pintar manchas, parches raster, poligonos aproximados ni geometria generada por Tlalpowa. Solo se aceptan archivos oficiales: Lago de Texcoco 1519 GeoJSON de Datos Abiertos CDMX/IPDP y Cuenca-Lagos KMZ/KML de REPSA/UNAM. Si faltan, la capa queda vacia hasta que se descarguen o el usuario los coloque localmente.",
+  "fuentes_aceptadas": [
+    {
+      "id": "cdmx_lago_texcoco_1519_geojson",
+      "nombre": "Lago de Texcoco 1519 GeoJSON",
+      "url": "https://datos.cdmx.gob.mx/dataset/b8f7ada4-6a3a-46ff-8dcb-d9ba00d4c58b/resource/5f5de1e3-e530-460d-9829-0f1c61099b7e/download/lago-de-texcoco-1519.json",
+      "formatos_locales_aceptados": [
+        "lago-de-texcoco-1519.geojson",
+        "lago-de-texcoco-1519.json",
+        "Lago de Texcoco 1519.geojson",
+        "Lago de Texcoco 1519.json"
+      ],
+      "ventana_temporal_visual": "1500-1530",
+      "profundidad_maxima_visual_m": 5.0,
+      "regla_render": "perimetro_geojson_real_con_velo_minimo_no_reconstructivo"
+    },
+    {
+      "id": "repsa_cuenca_lagos_kmz",
+      "nombre": "Cuenca-Lagos.kmz",
+      "url_https": "https://www.repsa.unam.mx/documentos/Cuenca-Lagos.kmz",
+      "url_http": "http://www.repsa.unam.mx/documentos/Cuenca-Lagos.kmz",
+      "formatos_locales_aceptados": [
+        "Cuenca-Lagos.kmz",
+        "Cuenca-Lagos.kml",
+        "repsa_cuenca_lagos.kmz",
+        "repsa_cuenca_lagos.kml"
+      ],
+      "ventana_temporal_visual": "1500-1530",
+      "regla_render": "perimetro_kmz_real_con_velo_minimo_no_reconstructivo"
+    }
+  ],
+  "fuentes_retiradas_del_render": [
+    "thomas_kole_tenochtitlan_patch.png",
+    "tenochtitlan.blend como raster automatico",
+    "valle_mexico_lagos_tlalpowa.kml",
+    "valle_mexico_lagos_tlalpowa.kmz",
+    "poligonos_curados_internos_de_historical_lacustrine_bodies",
+    "huellas_maximas_aproximadas",
+    "nucleos_de_profundidad_generados_por_escalamiento"
+  ]
+}

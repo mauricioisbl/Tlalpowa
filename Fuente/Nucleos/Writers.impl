@@ -1,0 +1,837 @@
+
+
+#include "Writers.hpp"
+#include "TemporalBlocks.hpp"
+#include <chrono>
+
+
+
+namespace epi {
+
+
+
+
+OutputStore::OutputStore(fs::path root) : root_(std::move(root)), write_root_(root_) {}
+
+
+
+namespace {
+
+
+
+constexpr size_t kEpidemiologyImportFlushRows = 384;
+constexpr size_t kExpectedCdmxObservationKeys = 131072;
+constexpr size_t kEpidemiologySessionKeyCap = 131072;
+
+
+int epidemiology_live_flush_interval_ms() {
+    const std::string raw = getenv_utf8_or_empty("TLALPOWA_EPI_LIVE_FLUSH_MS");
+    if (!raw.empty()) {
+        try {
+            const int v = std::stoi(raw);
+            if (v >= 0 && v <= 5000) return v;
+        } catch (...) {
+        }
+    }
+    return 90;
+}
+
+constexpr size_t kEpidemiologyLiveFlushRows = 896;
+
+void epidemiology_session_key_insert_bounded(std::unordered_set<std::uint64_t>& keys, std::uint64_t key) {
+    // El antirrepetición pesado vive en IXIPTLAH y se alimenta por shard; el
+    // OutputStore sólo retiene una ventana caliente intra-sesión para cortar
+    // duplicados inmediatos sin reservar millones de celdas hash residentes.
+    if (keys.size() >= kEpidemiologySessionKeyCap) {
+        keys.clear();
+        keys.reserve(kExpectedCdmxObservationKeys);
+    }
+    keys.insert(key);
+}
+
+
+
+
+bool is_epidemiology_ixiptlah_record(IxiptlahRecordType type, std::uint32_t schema) {
+
+
+    return type == IxiptlahRecordType::MonthlyEpidemiologyBatch && schema == 1;
+}
+
+
+
+
+std::vector<fs::path> monthly_ixiptlah_files_in_exact_dir(const fs::path& dir) {
+
+
+    std::vector<fs::path> out;
+    std::error_code ec;
+
+
+    if (!fs::exists(dir, ec) || ec) return out;
+
+
+    for (fs::directory_iterator it(dir, fs::directory_options::skip_permission_denied, ec), end; it != end && !ec; it.increment(ec)) {
+        std::error_code item_ec;
+
+
+        if (it->is_regular_file(item_ec) && !item_ec && lower_ascii(path_utf8(it->path().extension())) == kIxiptlahExtension) {
+
+
+            out.push_back(it->path());
+        }
+    }
+
+
+    std::sort(out.begin(), out.end(), [](const fs::path& a, const fs::path& b) {
+
+
+        return path_utf8(a.filename()) < path_utf8(b.filename());
+
+
+    });
+
+
+    return out;
+}
+
+
+
+
+bool replace_file_with_ready_file(const fs::path& ready, const fs::path& target) {
+    std::error_code ec;
+
+
+    ensure_dir(target.parent_path());
+
+
+    fs::rename(ready, target, ec);
+
+
+    if (!ec) return true;
+
+
+    ec.clear();
+
+
+    fs::copy_file(ready, target, fs::copy_options::overwrite_existing, ec);
+
+
+    if (!ec) {
+
+
+        std::error_code cleanup_ec;
+
+
+        fs::remove(ready, cleanup_ec);
+
+
+        return true;
+    }
+
+
+    ec.clear();
+    fs::remove(target, ec);
+
+
+    if (ec) return false;
+
+
+    ec.clear();
+
+
+    fs::rename(ready, target, ec);
+
+
+    return !ec;
+}
+
+
+
+
+std::string entity_code_from_text(const std::string& text) {
+
+
+    const std::string n = normalize_key(text);
+
+
+    if (n == "hgo" || n.find("hidalgo") != std::string::npos || n.find(" hgo ") != std::string::npos) return "HGO";
+
+
+    if (n.find("estado de mexico") != std::string::npos || n.find("edomex") != std::string::npos) return "MEX";
+
+
+    if (n == "mex") return "MEX";
+
+
+    if (n == "cmx" || n.find("ciudad de mexico") != std::string::npos || n.find("cdmx") != std::string::npos || n.find("cmx") != std::string::npos) return "CMX";
+
+
+    return "CMX";
+}
+
+
+
+
+std::string entity_code_for_observation(const Observation& o) {
+
+
+    if (o.pdf_id.size() == 3) return entity_code_from_text(" " + o.pdf_id + " ");
+
+
+    return entity_code_from_text(o.pdf_file + " " + o.table_id + " " + o.pdf_id);
+}
+
+
+
+
+std::string observation_key(const Observation& o) {
+
+
+    const std::string disease_key = o.disease_id.empty() ? normalize_key(o.disease) : o.disease_id;
+
+
+    const std::string jurisdiction_key = o.jurisdiction_id.empty() ? normalize_key(o.jurisdiction) : o.jurisdiction_id;
+
+
+    return entity_code_for_observation(o) + "|" + std::to_string(o.bulletin_year) + "|" + std::to_string(o.bulletin_week) + "|" +
+           std::to_string(o.page) + "|" + disease_key + "|" + jurisdiction_key + "|" +
+           o.period + "|" + o.sex + "|" + std::to_string(o.value);
+}
+
+
+
+
+std::string quarantine_key(const QuarantineItem& q) {
+
+
+    return q.pdf_id + "|" + std::to_string(q.page) + "|" + q.table_id + "|" +
+
+
+           q.column_key + "|" + q.reason + "|" + q.detail;
+}
+
+
+
+
+
+std::uint64_t fnv1a64(const std::string& s) noexcept {
+    std::uint64_t h = 1469598103934665603ull;
+
+
+    for (unsigned char c : s) {
+        h ^= static_cast<std::uint64_t>(c);
+        h *= 1099511628211ull;
+    }
+
+
+    return h ? h : 1ull;
+}
+
+
+
+
+std::uint64_t observation_key_hash(const Observation& o) {
+
+
+    return fnv1a64(observation_key(o));
+}
+
+
+
+
+std::uint64_t quarantine_key_hash(const QuarantineItem& q) {
+
+
+    return fnv1a64(quarantine_key(q));
+}
+
+
+
+
+std::string observation_metric(const Observation& o) {
+
+
+    if (o.period == "Sem") return "incidencia_semanal";
+
+
+    if (o.period == "SemDerivada") return "incidencia_semanal_derivada_sexo";
+
+
+    if (o.period == "Acum" && o.source_year != std::to_string(o.bulletin_year)) return "acumulado_anio_anterior";
+
+
+    if (o.period == "Acum" && (o.sex == "M" || o.sex == "F")) return "acumulado_anual_por_sexo";
+
+
+    if (o.period == "Acum") return "acumulado_anual";
+
+
+    return "valor";
+}
+
+
+
+
+int year_from_source_text(const std::string& text) {
+
+
+    for (size_t i = 0; i + 3 < text.size(); ++i) {
+
+
+        if (!std::isdigit(static_cast<unsigned char>(text[i])) ||
+            !std::isdigit(static_cast<unsigned char>(text[i + 1])) ||
+            !std::isdigit(static_cast<unsigned char>(text[i + 2])) ||
+
+            !std::isdigit(static_cast<unsigned char>(text[i + 3]))) continue;
+        const int y = std::stoi(text.substr(i, 4));
+
+
+        if (y >= 1800 && y <= 2300) return y;
+    }
+
+
+    return 0;
+}
+
+
+
+
+std::string header_value(const std::vector<std::string>& header, const std::vector<std::string>& row, const std::string& name) {
+
+
+    for (size_t i = 0; i < header.size() && i < row.size(); ++i) {
+
+
+        if (header[i] == name) return row[i];
+    }
+
+
+    return {};
+}
+
+
+
+
+std::string compact_id_from_name(const std::string& name) {
+
+
+    std::string key = normalize_key(name);
+
+
+    for (char& c : key) {
+
+
+        if (c == ' ') c = '_';
+    }
+
+
+    return key;
+}
+
+
+
+
+std::string normalized_hour(const std::string& hour) {
+
+
+    if (hour.size() >= 2 && std::isdigit(static_cast<unsigned char>(hour[0])) && std::isdigit(static_cast<unsigned char>(hour[1]))) return hour.substr(0, 2);
+
+
+    return "00";
+}
+
+
+
+
+void remove_legacy_generated_products(const fs::path& root) {
+    std::error_code ec;
+
+
+    if (!fs::exists(root, ec) || ec) return;
+
+
+    const std::set<std::string> legacy_names = {
+
+
+        "observations.csv", "observations.jsonl", "observaciones.csv", "observaciones.jsonl",
+
+
+        "quarantine.csv", "tables.jsonl", "cdmx_epiatmos.sqlite.sql", "cdmx_epiatmos.sql",
+
+
+        "resultados.json", "observaciones_completas.json", "DatosEpidemiologicosZMVM.json",
+
+
+        "web_observaciones.jsonl", "web_observaciones_ligero.jsonl", "web_observaciones_ligero_core.tsv",
+
+
+        "observaciones_en_vivo.jsonl", "observaciones_en_vivo_ligero.jsonl", "web_manifest.json",
+
+
+        "semanas.json", "web_semanas.json", "web_zmvm.geojson", "HistorialEpidemiologicoCDMX_generado.csv",
+
+
+        "observaciones_derivadas_sexo.jsonl", "atmosfera_archivos.json", "web_atmosfera_archivos.json"
+    };
+
+
+    const std::set<std::string> legacy_dirs = {"accepted", "base", "web", "progress", "quarantine", "decadas", "_last_good"};
+
+
+    for (fs::directory_iterator it(root, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec)) {
+
+
+        if (ec) { ec.clear(); continue; }
+
+
+        const std::string name = path_utf8(it->path().filename());
+        std::error_code item_ec;
+
+
+        if (it->is_directory(item_ec) && !item_ec && legacy_dirs.count(name)) {
+
+
+            fs::remove_all(it->path(), ec);
+
+
+            ec.clear();
+            continue;
+        }
+
+
+        if (it->is_regular_file(item_ec) && !item_ec) {
+
+
+            const std::string ext = lower_ascii(path_utf8(it->path().extension()));
+
+
+            if (ext == ".tsv" || ext == ".csv" || ext == ".json" || ext == ".jsonl" ||
+
+
+                legacy_names.count(name) || (name.rfind("tokens_", 0) == 0 && ext == ".jsonl") ||
+
+
+                (name.rfind("web_observaciones_", 0) == 0 && (ext == ".jsonl" || ext == ".json" || ext == ".tsv"))) {
+
+
+                fs::remove(it->path(), ec);
+
+
+                ec.clear();
+            }
+        }
+    }
+}
+
+}
+
+
+
+
+void OutputStore::open(bool resume) {
+    ensure_dir(root_);
+    remove_legacy_generated_products(root_);
+
+
+    epidemiology_batch_buffer_.clear();
+    staged_epidemiology_rebuild_ = false;
+
+
+    epidemiology_rebuild_root_.clear();
+
+
+    write_root_ = root_;
+
+
+
+
+    observation_keys_.clear();
+    observation_keys_.reserve(kExpectedCdmxObservationKeys);
+
+
+    if (!resume) {
+
+
+
+        staged_epidemiology_rebuild_ = false;
+        epidemiology_rebuild_root_ = root_ / "_epidemiology_rebuild_tmp";
+        std::error_code ec;
+
+        fs::remove_all(epidemiology_rebuild_root_, ec);
+
+
+        ec.clear();
+
+
+        epidemiology_rebuild_root_.clear();
+
+
+        write_root_ = root_;
+        temporal_close_append_streams();
+        (void)temporal_purge_epidemiology_records(root_);
+
+
+        for (const auto& p : temporal_tsv_files(root_)) fs::remove(p, ec);
+
+
+        for (const auto& p : temporal_csv_files(root_)) fs::remove(p, ec);
+
+
+        for (const auto& p : temporal_json_files(root_)) fs::remove(p, ec);
+    } else {
+        // IXIPTLAH-SM v9 evita el barrido de reanudación: leer todos los shards
+        // epidemiológicos sólo para poblar una tabla hash de salida duplicaba RAM
+        // y convertía una importación larga en O(histórico + nuevo). La dedupe
+        // exacta contra disco ocurre dentro de temporal_filter_new_epidemiology_rows().
+        load_existing_observations();
+        load_existing_quarantine();
+    }
+    opened_ = true;
+}
+
+
+
+
+void OutputStore::load_existing_observations() {
+    observation_count_ = 0;
+    observation_keys_.clear();
+    observation_keys_.reserve(kExpectedCdmxObservationKeys);
+    // No se rehidratan claves históricas en RAM. El lector IXIPTLAH ya deduplica
+    // contra cada archivo elemental al anexar, y cargar millones de claves aquí
+    // atrasaba la captura antes incluso de procesar la primera página nueva.
+}
+
+
+
+
+void OutputStore::load_existing_quarantine() {
+    quarantine_count_ = 0;
+
+
+    quarantine_keys_.clear();
+}
+
+
+
+
+void OutputStore::write_observation(const Observation& o) {
+    const std::uint64_t key = observation_key_hash(o);
+
+
+    if (observation_keys_.find(key) != observation_keys_.end()) return;
+
+
+    TemporalEpidemiologyRecord r;
+    r.entity = entity_code_for_observation(o);
+
+
+    r.year = o.bulletin_year;
+
+
+    r.epi_week = o.bulletin_week;
+    r.page = o.page;
+    r.disease = o.disease;
+
+    r.cie10 = o.cie10;
+    r.jurisdiction = o.jurisdiction;
+    r.period = o.period;
+
+    r.sex = o.sex.empty() ? (o.period == "Sem" ? "total" : o.sex) : o.sex;
+    r.value = o.value;
+
+
+    epidemiology_batch_buffer_.push_back(std::move(r));
+
+
+    if (epidemiology_batch_buffer_.size() >= kEpidemiologyImportFlushRows) {
+        flush_epidemiology_batch_buffer();
+    }
+
+
+    epidemiology_session_key_insert_bounded(observation_keys_, key);
+    ++observation_count_;
+}
+
+
+
+
+void OutputStore::write_quarantine(const QuarantineItem& q) {
+    const std::uint64_t key = quarantine_key_hash(q);
+
+
+    if (quarantine_keys_.find(key) != quarantine_keys_.end()) return;
+
+
+
+
+    quarantine_keys_.insert(key);
+    ++quarantine_count_;
+}
+
+
+
+
+void OutputStore::write_tokens_jsonl(const PdfDocument&) {
+
+}
+
+
+
+
+void OutputStore::append_table(const TableCandidate& t) {
+
+
+    if (!opened_) throw std::runtime_error("OutputStore no abierto.");
+
+
+    epidemiology_batch_buffer_.reserve(std::min<size_t>(
+
+
+        kEpidemiologyImportFlushRows + t.accepted.size(), kEpidemiologyImportFlushRows * 2));
+
+
+    for (const auto& o : t.accepted) {
+        const std::uint64_t key = observation_key_hash(o);
+
+
+        if (observation_keys_.find(key) != observation_keys_.end()) continue;
+
+
+        TemporalEpidemiologyRecord r;
+        r.entity = entity_code_for_observation(o);
+
+
+        r.year = o.bulletin_year;
+
+
+        r.epi_week = o.bulletin_week;
+        r.page = o.page;
+        r.disease = o.disease;
+
+        r.cie10 = o.cie10;
+        r.jurisdiction = o.jurisdiction;
+        r.period = o.period;
+
+        r.sex = o.sex.empty() ? (o.period == "Sem" ? "total" : o.sex) : o.sex;
+        r.value = o.value;
+
+
+        epidemiology_batch_buffer_.push_back(std::move(r));
+
+
+        epidemiology_session_key_insert_bounded(observation_keys_, key);
+        ++observation_count_;
+    }
+
+
+
+
+    if (!t.accepted.empty() && !epidemiology_batch_buffer_.empty()) {
+        const auto now = std::chrono::steady_clock::now();
+        const int live_ms = epidemiology_live_flush_interval_ms();
+        const bool first_live_flush = last_epidemiology_live_flush_.time_since_epoch().count() == 0;
+        const bool enough_rows = epidemiology_batch_buffer_.size() >= kEpidemiologyLiveFlushRows;
+        const bool enough_time = first_live_flush || live_ms == 0 ||
+            std::chrono::duration_cast<std::chrono::milliseconds>(now - last_epidemiology_live_flush_).count() >= live_ms;
+        if (enough_rows || enough_time) {
+            // Publicación viva amortizada: el primer bloque aparece inmediatamente;
+            // los siguientes se compactan por ventana corta para evitar tormentas de
+            // append/flush que saturen disco, heap e índices IXIPTLAH en boletines largos.
+            flush_epidemiology_batch_buffer();
+            temporal_flush_append_streams_if_due(120);
+            last_epidemiology_live_flush_ = now;
+        }
+    }
+
+
+    for (const auto& q : t.quarantine) write_quarantine(q);
+    const std::string force_flush = getenv_utf8_or_empty("TLALPOWA_FLUSH_EVERY_TABLE");
+
+
+    if (!force_flush.empty() && force_flush != "0") {
+        flush_epidemiology_batch_buffer();
+        temporal_flush_append_streams();
+    }
+}
+
+
+
+
+void OutputStore::flush_epidemiology_batch_buffer() {
+
+
+    if (epidemiology_batch_buffer_.empty()) return;
+
+
+
+
+    std::vector<TemporalEpidemiologyRecord> batch;
+    batch.swap(epidemiology_batch_buffer_);
+
+
+    if (staged_epidemiology_rebuild_) {
+
+
+        temporal_append_epidemiology_records_batch_exact_root(write_root_, batch);
+    } else {
+
+
+        temporal_append_epidemiology_records_batch(root_, batch);
+    }
+}
+
+
+
+
+void OutputStore::commit_epidemiology_rebuild() {
+
+
+    if (!staged_epidemiology_rebuild_ || epidemiology_rebuild_root_.empty()) return;
+
+
+
+    temporal_close_append_streams();
+
+
+    const std::vector<fs::path> staged_files = monthly_ixiptlah_files_in_exact_dir(epidemiology_rebuild_root_);
+
+
+    for (const fs::path& staged_file : staged_files) {
+
+
+        const fs::path target = root_ / staged_file.filename();
+
+
+        const fs::path ready = fs::path(target.wstring() + L".epi_ready");
+        std::error_code ec;
+
+
+        fs::remove(ready, ec);
+
+
+        ec.clear();
+
+
+        if (fs::exists(target, ec) && !ec && file_size_or_zero(target) > 0) {
+
+
+            fs::copy_file(target, ready, fs::copy_options::overwrite_existing, ec);
+
+
+            if (ec) throw std::runtime_error("No se pudo preparar fusion ixiptlah: " + path_utf8(target));
+
+
+            const IxiptlahRewriteStats purge = ixiptlah_rewrite_without_records(ready, is_epidemiology_ixiptlah_record);
+
+
+            if (purge.removed > 0 && !purge.rewritten) {
+
+
+                throw std::runtime_error("No se pudo limpiar epidemiologia en fusion ixiptlah: " + path_utf8(target));
+            }
+        }
+
+
+        const IxiptlahCopyStats copied = ixiptlah_append_selected_records_raw(ready, staged_file, is_epidemiology_ixiptlah_record);
+
+
+        if (copied.copied == 0 || copied.unreadable > 0 || !copied.target_touched) {
+
+
+            throw std::runtime_error("No se pudo copiar el nucleo epidemiologico nuevo hacia ixiptlah: " + path_utf8(target));
+        }
+
+
+        ixiptlah_close_all();
+
+
+        if (!replace_file_with_ready_file(ready, target)) {
+
+
+            throw std::runtime_error("No se pudo publicar fusion ixiptlah: " + path_utf8(target));
+        }
+    }
+
+    std::error_code ec;
+    fs::remove_all(epidemiology_rebuild_root_, ec);
+    staged_epidemiology_rebuild_ = false;
+
+
+    epidemiology_rebuild_root_.clear();
+
+
+    write_root_ = root_;
+}
+
+
+
+
+void OutputStore::flush_streams() {
+
+
+    // Boletines epidemiológicos: los aceptados se vuelcan a IXIPTLAH conforme
+    // aparecen. El buffer sólo amortigua micro-lotes; nunca debe retener una
+    // corrida completa ni depender de finalize() para existir en Datos.
+    flush_epidemiology_batch_buffer();
+    temporal_flush_append_streams_if_due(350);
+}
+
+
+
+
+void OutputStore::flush_live_outputs(const fs::path&, bool) {
+    // Vacía únicamente buffers ya materializados. No indexa ni reabre IXIPTLAH:
+    // esta función puede llamarse desde UI sin convertir el cierre en segunda pasada.
+    flush_epidemiology_batch_buffer();
+    flush_streams();
+}
+
+
+
+void OutputStore::write_derived_outputs(const fs::path&) {
+    // Derivados obsoletos deliberadamente inertes: la ruta canónica es IXIPTLAH
+    // preformado, append-only y consumible sin JSON intermedio.
+    flush_epidemiology_batch_buffer();
+}
+
+
+
+void OutputStore::finalize() {
+    // Cierre O(1) respecto al número de boletines ya leídos: solo se vuelcan
+    // lotes pendientes y se cierran streams; ningún archivo histórico se recorre otra vez.
+    flush_epidemiology_batch_buffer();
+    commit_epidemiology_rebuild();
+    temporal_flush_append_streams();
+    temporal_close_append_streams();
+}
+
+
+
+void OutputStore::write_obs_csv_header() {}
+
+
+
+void OutputStore::write_quarantine_csv_header() {}
+
+
+
+void OutputStore::write_sql_header() {}
+
+
+
+void OutputStore::write_results_json() const {}
+
+
+
+void OutputStore::write_master_csv() const {}
+
+
+
+void OutputStore::write_derived_sex_incidence() const {}
+
+
+
+void OutputStore::write_atmospheric_inventory() const {}
+
+}

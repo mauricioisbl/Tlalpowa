@@ -1,0 +1,53 @@
+icon_stem	grafia_antigua	aliases	nota
+Acatl	Acatl	Acatl|Acatlan|Acatlán|Acatlan de Osorio|Acatlán de Osorio|Acatlan de Juarez|Acatlán de Juárez|Acatepec|San Juan Acatitlan|San Juan Acatitlán|Acatitlan|Acatitlán	Caña/carrizo; equivalencias exactas para pueblos cuyo topónimo declarado deriva de acatl. No aplicar por subcadena.
+apantli	Apantli	Apantli|Apantla|Apan	Canal/acequia; sólo topónimos completos declarados.
+Atenco	Atenco	Atenco|San Salvador Atenco|San Mateo Atenco|San Lucas Atenco|San Sebastian Atenco|San Sebastián Atenco	Borde/orilla del agua; reutilización sólo por topónimo completo Atenco.
+Atl	Atl	Atl|Atlautla|Atlauhtla|Atlatlahucan	Agua; no aplicar automáticamente a todo topónimo con a-/atl-.
+Atotonilco	Atotonilco	Atotonilco|Atotonilco de Tula|Atotonilco el Grande|Atotonilco el Alto|Atotonilco de Tula Hidalgo|Atotonilco el Grande Hidalgo|Atotonilco el Alto Jalisco	Agua caliente; grafía antigua ATOTONILCO registrada. Glifo propio si existe.
+calli	Calli	Calli	Glifo calendárico/toponímico sólo por declaración exacta.
+cipactli	Cipactli	Cipactli	Glifo calendárico; no aplicar por heurística.
+Coacalco	Coacalco	Coacalco|San Francisco Coacalco|Coacalco de Berriozabal|Coacalco de Berriozábal|Coacalco Berriozabal|Coacalco Berriozábal|Coacalco de Berriozábal México	Casa de la serpiente; grafía COACALCO. Debe usar glifo propio, no coatl ni calli aislados.
+Coatepec	Coatepec	Coatepec|Coatepec Harinas|Coatepec de Harinas|San Lorenzo Coatepec	Serpiente-cerro; topónimo completo Coatepec. No sustituye todo compuesto con coatl.
+coatl	Coatl	Coatl	Serpiente; no aplicar a Coatepec/Coacalco cuando existe glifo propio.
+comitl	Comitl	Comitl|Comitlan|Comitlán|Comitan|Comitán|Comitan de Dominguez|Comitán de Domínguez|Santo Domingo de Comitan|Santo Domingo de Comitán|Santa Maria de Comitan|Santa María de Comitán	Olla/vasija; usar en Comitlan/Comitán si no existe glifo Contla específico.
+Contla	Contlan	Contla|Contlan|Contlán|Contla de Juan Cuamatzi|San Bernardino Contla	Topónimo CONTLAN/Contla ligado al elemento comitl; glifo propio Contla si existe.
+cozcacuauhtli	Cozcacuauhtli	Cozcacuauhtli	Glifo calendárico.
+cuauhtli	Cuauhtli	Cuauhtli|Cuauhtla|Cuautla|Quauhtla|Quahutla|Cuautla Morelos	Reutilización explícita indicada: Cuautla/Cuauhtla usa cuauhtli; no extender a todo cuauh-.
+cuetzpallin	Cuetzpallin	Cuetzpallin	Glifo calendárico.
+Ecatepec	Ehecatepec	Ecatepec|Ehecatepec|Ecatepec de Morelos|San Cristobal Ecatepec|San Cristóbal Ecatepec	Topónimo con glifo propio; no caer al ehecatl genérico.
+ehecatl	Ehecatl	Ehecatl	Viento; no aplicar a Ecatepec si existe Ecatepec.
+huitzilopuchco	Huitzilopochco	Huitzilopochco|Huitzilopuchco|Churubusco|San Mateo Churubusco	Grafía antigua del topónimo asociado.
+itzcuintli	Itzcuintli	Itzcuintli	Glifo calendárico.
+Itztlacoliuhqui	Itztlacoliuhqui	Itztlacoliuhqui	Glifo de deidad/concepto; sólo declaración explícita.
+malinalli	Malinalli	Malinalli|Malinalco|Santa Maria Malinalco|Santa María Malinalco|San Juan Malinaltongo|Malinaltongo	Malinalli; usar para topónimos Malinalco/Malinaltongo cuando no haya glifo específico.
+Malinalltepec	Malinalltepec	Malinalltepec|Malinaltepec	Topónimo específico; glifo propio si existe.
+mazatl	Mazatl	Mazatl	Glifo calendárico.
+miquiztli	Miquiztli	Miquiztli	Glifo calendárico.
+Mizquicuahuitl	Mizquicuahuitl	Mizquicuahuitl|Mixquic|San Andres Mixquic|San Andrés Mixquic	Topónimo/grafía tradicional explícita.
+Mizquicuahuitl_2	Mizquicuahuitl_2	Mizquicuahuitl_2	Variante visual sólo si se declara exactamente; no participa como alias del topónimo principal.
+nezahualcoyotl	Nezahualcoyotl	Nezahualcoyotl|Nezahualcóyotl|Ciudad Nezahualcoyotl|Ciudad Nezahualcóyotl	Glifo nominal explícito para el municipio/ciudad que lleva el nombre.
+ocelotl	Ocelotl	Ocelotl	Glifo calendárico.
+ojo	Ojo	Ojo	Icono común; no inferir por topónimo.
+Ollin	Ollin	Ollin	Glifo calendárico.
+ozomahtli	Ozomahtli	Ozomahtli	Glifo calendárico.
+Pantli	Pantli	Pantli	Bandera; alias exacto y raíz de una palabra curada.
+Quiahuitl	Quiahuitl	Quiahuitl	Glifo calendárico.
+Tecpatl	Tecpatl	Tecpatl	Glifo calendárico.
+tepetl	Tepetl	Tepetl|Tepec|Tepe	Cerro; fallback morfológico sólo cuando no existe glifo toponímico específico.
+Tlacatecuhtli	Tlacatecuhtli	Tlacatecuhtli	Glifo nominal explícito.
+Tlacatecuhtli_Nezahualcoyotl	Tlacatecuhtli Nezahualcoyotl	Tlacatecuhtli Nezahualcoyotl	Composición nominal explícita; no sustituye Nezahualcoyotl simple.
+Tochtepec	Tochtepec	Tochtepec|San Lorenzo Tochtepec|San Juan Bautista Tuxtepec|Tuxtepec|San Juan Tuxtepec|Tuxtepec Oaxaca	Topónimo TOCHTEPEC/Tuxtepec; conejo sobre cerro. Reutilización sólo por equivalencia completa.
+Tochtli	Tochtli	Tochtli	Glifo calendárico; no sustituye Tochtepec si existe glifo específico.
+tolloa	Tolloa	tolloa	Glifo raíz aislado; Tollocan/Toluca se resuelve con Toluca para evitar doble identidad.
+Toluca	Tollocan	Toluca|Toluca de Lerdo|Tollocan	Topónimo moderno/antiguo; Toluca de Lerdo debe resolver a Toluca.
+Totolli	Totolli	Totolli	Ave; no aplicar a Totoltepec si existe glifo específico.
+Totoltepec	Totoltepec	Totoltepec|San Andres Totoltepec|San Andrés Totoltepec|Santo Tomas Totoltepec|Santo Tomás Totoltepec|Santiago Totoltepec|San Miguel Totoltepec|San Pedro Totoltepec|Santa Cruz Totoltepec|San Francisco Totoltepec	Reutilización explícita para múltiples pueblos Totoltepec; no extender a cualquier -tepec.
+Xilotl	Xilotl	Xilotl|Xilotepec|Xilotzingo	Jilote/elote tierno; raíz curada xilo-.
+xochitepec	Xochitepec	Xochitepec|Xuchipec|San Juan Xochitepec|Santa Cruz Xochitepec|Xochitepec Morelos	Topónimo Xochitepec/Xuchipec; glifo propio si existe.
+xochitl	Xochitl	Xochitl|Xochimilco|Xochi	Flor; fallback xochi- sólo si no existe glifo propio como xochitepec.
+Xoco	Xoco	Xoco|San Sebastian Xoco|San Sebastián Xoco|Xocotitlan|Xocotitlán	Topónimo específico y raíz xoco-/xocotitlan curada.
+Yopico	Yopico	Yopico|Tetlanman Yopico|Santa Barbara Tetlanman Yopico|Santa Bárbara Tetlanman Yopico	Topónimo específico.
+Popoca	Popoca	Popoca|Popocatepetl|Popocatépetl	Humeante; raíz popoca- y volcán Popocatépetl.
+Tlalli	Tlalli	Tlalli|Tlalpan|Tlalnepantla|Tlalmanalco	Tierra; raíz tlal- curada si no hay glifo más específico.
+Tlalli_2	Tlalli_2	Tlalli_2	Variante visual explícita; no participa como alias genérico.
+Xictli	Xictli	Xictli|Xicotepec|Xico	Ombligo/centro; raíz xic- curada.
