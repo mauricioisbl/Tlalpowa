@@ -1,0 +1,21 @@
+# Metadatos y salidas tecnicas locales.
+/.vs/
+/Build/
+/out/
+/Fuente/
+/Dependencias/
+/*.log
+/*.obj
+
+# Datos descargados y configuracion especifica de esta maquina.
+/TLALPOWA/Descargas/
+/CORE/Dependencias/dependencies.local.json
+
+# Residuos habituales de editores y compiladores.
+**/.idea/
+**/.vscode/
+**/__pycache__/
+**/*.user
+**/*.suo
+**/*.pdb
+**/*.ilk

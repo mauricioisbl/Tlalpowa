@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildThisFileDirectory)Miausoft.Core.props" />
+  <PropertyGroup Label="Miausoft Output - Materias directo">
+    <MiausoftMateriasDir Condition="'$(MiausoftMateriasDir)'==''">E:\Biblioteca\.Materias\</MiausoftMateriasDir>
+    <MiausoftMateriasDir Condition="!HasTrailingSlash('$(MiausoftMateriasDir)')">$(MiausoftMateriasDir)\</MiausoftMateriasDir>
+    <OutDir>$(MiausoftMateriasDir)</OutDir>
+    <TargetExt>.exe</TargetExt>
+    <TargetFileName>$(TargetName)$(TargetExt)</TargetFileName>
+    <MiausoftFinalExe>$(MiausoftMateriasDir)$(TargetFileName)</MiausoftFinalExe>
+    <TargetPath>$(MiausoftFinalExe)</TargetPath>
+    <LocalDebuggerCommand>$(MiausoftFinalExe)</LocalDebuggerCommand>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <Link>
+      <OutputFile>$(MiausoftFinalExe)</OutputFile>
+      <ProgramDatabaseFile>$(MiausoftLinkRoot)$(MSBuildProjectName)\$(Platform)\$(Configuration)\$(TargetName).pdb</ProgramDatabaseFile>
+    </Link>
+  </ItemDefinitionGroup>
+  <Target Name="MiausoftEnsureMateriasDir" BeforeTargets="PrepareForBuild">
+    <MakeDir Directories="$(MiausoftMateriasDir)" />
+  </Target>
+  <Target Name="MiausoftCopyAndAssertMateriasExe" AfterTargets="Build">
+    <Error Condition="'$(TargetName)'==''" Text="Miausoft Output Materias requiere TargetName explícito." />
+    <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(MiausoftFinalExe)" SkipUnchangedFiles="false"
+          OverwriteReadOnlyFiles="true" Retries="3" RetryDelayMilliseconds="300"
+          Condition="Exists('$(TargetPath)') And '$(TargetPath)' != '$(MiausoftFinalExe)'" />
+    <Copy SourceFiles="$(OutDir)$(TargetFileName)" DestinationFiles="$(MiausoftFinalExe)" SkipUnchangedFiles="false"
+          OverwriteReadOnlyFiles="true" Retries="3" RetryDelayMilliseconds="300"
+          Condition="!Exists('$(MiausoftFinalExe)') And Exists('$(OutDir)$(TargetFileName)')" />
+    <Error Condition="!Exists('$(MiausoftFinalExe)')" Text="La compilación terminó pero no apareció el EXE final en .Materias: $(MiausoftFinalExe)." />
+    <Touch Files="$(MiausoftFinalExe)" AlwaysCreate="true" Condition="Exists('$(MiausoftFinalExe)')" />
+  </Target>
+</Project>

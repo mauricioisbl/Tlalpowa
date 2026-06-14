@@ -1,7 +1,0 @@
-base_syntax_cpp17_without_imgui=validated separately with g++ -std=c++17 -fsyntax-only Tlalpowa.cpp
-dead_helper_draw_side_scope_check=True
-side_catalog_void_tooltip_left=True
-removed_screenshot_strings_left=True
-remaining_SetTooltip_calls=26
-remaining_BeginTooltip_calls=9
-unused_long_i18n_entries=0

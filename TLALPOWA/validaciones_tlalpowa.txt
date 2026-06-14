@@ -1,0 +1,15 @@
+TLALPOWA · validaciones de esta entrega
+
+- Incidencia XY: orden cronológico ascendente, cap cronológico ampliado y configurable.
+- Incidencia XY: cache de puntos invalidada con firma graph_xy_points_v3.
+- O3/atmósfera-incidencia: caché persistente invalidado a pares v5 / binario PR2.
+- O3/atmósfera-incidencia: filas con exposición pendiente no bloquean el escaneo; pasan a reintento incremental.
+- O3/atmósfera-incidencia: puntos ya resueltos permanecen visibles mientras crecen los pares nuevos.
+- Datos Fuente/Tlalpowa: 38 TSV/JSON/JSONL/GEOJSON/KML/KMZ consolidados sin pérdida en tlalpowa_datos.json.
+- Datos Fuente/Tlalpowa: materialización automática en Build/runtime/config_consolidada antes de cargar catálogos, ZMVM, poblados, movilidad y políticas.
+- Datos Fuente/Tlalpowa: validación por sha256 por archivo heredado y manifiesto de runtime por id de paquete.
+
+[2026-06-13] Datos Territoriales
+- Agregada casilla lateral Datos Territoriales con árbol estado -> jurisdicción opcional -> municipio/alcaldía.
+- tlalpowa_datos.json materializa tlalpowa_territorial.json en runtime; Fuente no requiere TSV/GeoJSON territorial suelto.
+- ZMVM usa polígonos ya instalados por CVE_ENT 09/15; el resto queda trazable a INEGI Marco Geoestadístico/GeoBoundaries/importación externa.

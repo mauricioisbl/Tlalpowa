@@ -1,0 +1,6 @@
+{
+  "workspace": "C:\\MiausoftSuite",
+  "technical_root": "%LOCALAPPDATA%\\MiausoftSuite\\Tecnico",
+  "dependencies_dir": "C:\\ProgramData\\Miausoft\\deps",
+  "pdftotext": "C:\\ProgramData\\Miausoft\\deps\\poppler\\Library\\bin\\pdftotext.exe"
+}

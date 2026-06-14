@@ -1,9 +1,0 @@
-TLALPOWA catalogos/tooltips minimos
-fecha=2026-06-09
-syntax_no_imgui=ok
-grupos_atmosfericos=19
-max_palabras_etiqueta_compacta=2
-etiquetas_mayores_a_3=0
-side_tooltip_calls_en_bloque_revisado=2
-tooltips_atmosfericos_compactos=2
-tenochtitlan_tooltip_largo_activo=no

@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "repositories": {
+    "Tlalpowa": {
+      "url": "https://github.com/mauricioisbl/Tlalpowa.git",
+      "branch": "main"
+    },
+    "MiausoftSuite": {
+      "url": "https://github.com/mauricioisbl/MiausoftSuite.git",
+      "branch": "main"
+    }
+  }
+}

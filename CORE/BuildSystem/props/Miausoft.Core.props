@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!--
+    Miausoft.Core.props
+    Configuración común C++/Win32 para todos los ejecutables de Miausoft.
+
+    Política de directorio limpio:
+    - Ningún proyecto debe crear build/, dist/, x64/, _build/ ni _linked_release dentro de .Miausoft.
+    - Los .obj, .tlog, .pdb, .ilk, .res y salidas temporales de LINK se escriben en LOCALAPPDATA.
+    - La raíz .Miausoft recibe únicamente los EXE finales visibles.
+  -->
+
+  <PropertyGroup Label="Miausoft Core Paths">
+    <!-- CORE\BuildSystem\props\ -> CORE\BuildSystem\ -> CORE\ -> MiausoftSuite\ -->
+    <MiausoftRootDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\..\'))</MiausoftRootDir>
+    <MiausoftOutputDir Condition="'$(MiausoftOutputDir)'==''">$(MiausoftRootDir)</MiausoftOutputDir>
+    <MiausoftSendToDir Condition="'$(MiausoftSendToDir)'==''">$(APPDATA)\Microsoft\Windows\SendTo\</MiausoftSendToDir>
+    <MiausoftMateriasDir Condition="'$(MiausoftMateriasDir)'==''">$(MiausoftOutputDir)</MiausoftMateriasDir>
+    <MiausoftCacheRoot Condition="'$(MiausoftCacheRoot)'==''">$(LOCALAPPDATA)\MiausoftSuite\msvc_cache\</MiausoftCacheRoot>
+    <MiausoftCacheRoot Condition="'$(LOCALAPPDATA)'==''">$(MiausoftRootDir).msvc_cache\</MiausoftCacheRoot>
+    <MiausoftObjRoot Condition="'$(MiausoftObjRoot)'==''">$(MiausoftCacheRoot)obj\</MiausoftObjRoot>
+    <MiausoftLinkRoot Condition="'$(MiausoftLinkRoot)'==''">$(MiausoftCacheRoot)link\</MiausoftLinkRoot>
+    <MiausoftGeneratedRoot Condition="'$(MiausoftGeneratedRoot)'==''">$(MiausoftCacheRoot)generated\</MiausoftGeneratedRoot>
+    <MiausoftBuildDir>$(MiausoftObjRoot)$(MSBuildProjectName)\$(Platform)\$(Configuration)\</MiausoftBuildDir>
+    <MiausoftLogDir Condition="'$(MiausoftLogDir)'==''">$(MiausoftCacheRoot)logs\</MiausoftLogDir>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Miausoft Binary Defaults">
+    <CharacterSet>Unicode</CharacterSet>
+    <IntDir>$(MiausoftBuildDir)</IntDir>
+    <TargetExt>.exe</TargetExt>
+    <LinkIncremental>false</LinkIncremental>
+    <TreatWarningAsError>false</TreatWarningAsError>
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
+    <RunPostBuildEvent>Always</RunPostBuildEvent>
+  </PropertyGroup>
+
+  <ItemGroup Label="Miausoft Shared C Core">
+    <ClCompile Include="$(MiausoftRootDir)CORE\miausoft_core.c">
+      <Link>CORE\miausoft_core.c</Link>
+    </ClCompile>
+    <ClCompile Include="$(MiausoftRootDir)CORE\tlalpowa_common_runtime.c">
+      <Link>CORE\tlalpowa_common_runtime.c</Link>
+    </ClCompile>
+    <ClInclude Include="$(MiausoftRootDir)CORE\miausoft_core.h">
+      <Link>CORE\miausoft_core.h</Link>
+    </ClInclude>
+    <ClInclude Include="$(MiausoftRootDir)CORE\tlalpowa_common_runtime.h">
+      <Link>CORE\tlalpowa_common_runtime.h</Link>
+    </ClInclude>
+  </ItemGroup>
+
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalOptions>/utf-8 /MP %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(MiausoftRootDir)CORE;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4005;4100;4189;4505;4312;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <AdditionalDependencies>user32.lib;gdi32.lib;gdiplus.lib;comdlg32.lib;shell32.lib;ole32.lib;oleaut32.lib;advapi32.lib;shlwapi.lib;comctl32.lib;bcrypt.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <LargeAddressAware>true</LargeAddressAware>
+      <AdditionalOptions>/LARGEADDRESSAWARE /STACK:268435456,8388608 /HEAP:536870912,16777216 %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(MiausoftRootDir)CORE;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+    </Link>
+  </ItemDefinitionGroup>
+
+</Project>
