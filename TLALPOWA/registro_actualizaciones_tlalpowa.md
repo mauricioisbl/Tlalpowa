@@ -982,3 +982,53 @@ Corrección acumulativa del arranque posterior a la prueba en la que el velo se 
 ## 2026-06-13 · Catálogo territorial centralizado
 
 Se agregó la casilla lateral Datos Territoriales con estructura estado → jurisdicción opcional → municipio/alcaldía, respaldada por `tlalpowa_territorial.json` dentro del paquete `tlalpowa_datos.json`. La capa usa polígonos ZMVM ya instalados cuando existen y conserva actualización externa trazable para catálogos nacionales sin dispersar archivos.
+
+## 2026-06-14 — Unificación absoluta del grosor de progreso
+
+Se eliminó la divergencia visual entre la barra de progreso superior y la pista de importación. Todas las barras de progreso activas usan ahora `tlalpowa_import_track_visual_thickness()` como grosor canónico único; quedan incluidos el arranque, la barra superior de procesos, la barra compacta de importación y el progreso asíncrono interno de correlaciones.
+
+## 2026-06-14 — Progreso suite y sellos de panel
+
+- CORE expone `miausoft_progress_bar_thickness_px()` como grosor canónico de progreso de la suite.
+- `MiausoftVisualConfig.h` usa `MIAUSOFT_PROGRESS_BAR_PHI_POWER` para toda barra de progreso configurable desde el núcleo.
+- TLALPOWA conserva el grosor interno unificado de progreso y elimina sellos superpuestos que generaban franja/gap en la base de la barra superior y el footer.
+
+
+## 2026-06-14 · Restauración robusta del catálogo lateral
+
+- La barra lateral dejó de depender de que existan simultáneamente catálogo epidemiológico y atmosférico.
+- El arranque considera válido el catálogo lateral si hay catálogo atmosférico o epidemiológico disponible.
+- La barra lateral se dibuja cuando el hilo de catálogos ya no está mutando los mapas, aunque epidemiología esté vacía.
+- La bienvenida ya no exige `diseases.tsv` para permitir la interfaz si existen ramas atmosféricas, territoriales, históricas o de movilidad.
+- Se conservan las correcciones previas: grosor único de progreso desde CORE y eliminación de sellos internos en barra superior/footer.
+
+## 2026-06-14 · Catálogo lateral permanente y barra de progreso canónica
+
+- El catálogo lateral vuelve a dibujarse de forma permanente en el mapa y en las pestañas de gráficas: ya no queda condicionado por `startup_catalogs_loading` ni por `startup_catalogs_loaded`.
+- El mapa conserva la reserva lateral áurea, pero la ventana `pn.lat` siempre ocupa esa zona; si los catálogos aún están cargando, las familias estáticas quedan visibles y las listas se llenan cuando se publican los mapas.
+- La barra de progreso superior, la barra de bienvenida, la barra compacta de Importar/Configuración y la barra asíncrona de correlaciones usan `tlalpowa_draw_canonical_progress_rect`.
+- `accent_progress_bar_exact_no_intrinsic_gap`, usado dentro de Configuración > Importar, comparte la misma rutina de pista/relleno/pulso con la barra del panel superior.
+
+## 2026-06-14 · Corrección territorial de proyección y trazo
+
+Se corrigió el render territorial GPU para convertir las coordenadas finales con `DisplayPos + DisplaySize`, evitando desfases verticales cuando ImGui trabaja con coordenadas absolutas de viewport. La geometría municipal y estatal conserva la proyección Web Mercator común del mapa; la ruta binaria `.tlalgeo` también normaliza vértices compartidos y ahora recalcula sus envolventes después de canonizar puntos, para que selección, hover y descarte espacial queden sincronizados con la geometría ya canonizada.
+
+Se redujo apenas la densidad de vértices del trazo territorial mediante tolerancias subpíxel más agresivas, sin tocar el dato crudo ni eliminar polígonos. Las líneas de municipio/alcaldía quedan renderizadas a un tercio del grosor de estado en la ruta GPU: 1 px lógico contra 3 px lógicos, escalados por framebuffer para mantener la proporción en pantallas HiDPI.
+
+## 2026-06-14 · mapa por píxel visible y carga liviana
+
+- Ajusté el cálculo de Z satelital a la resolución física real de pantalla: usa `DisplayFramebufferScale` y sólo sube al siguiente Z cuando el texel visible superaría 1.18 px, evitando sobremuestreo caro sin volver borroso el mapa.
+- Reduje presupuestos de streaming por fotograma: menos descargas simultáneas, menos subidas de textura y caché residente más estricta.
+- El presupuesto de carga ahora depende del área física del mapa en pantalla, no de una constante fija.
+- Reduje la ventana de teselas y los márgenes de pitch desde C puro para no dibujar ni pedir teselas invisibles.
+- Bajé el coste del modelo histórico 3D: menos chunks residentes, menos uploads por fotograma y límite de memoria de stream de 48 MiB.
+- Subí levemente la tolerancia LOD territorial sin degradar la lectura: menos vértices para límites administrativos y misma alineación corregida.
+- Mantengo municipio/alcaldía a un tercio del grosor de estado.
+
+## 2026-06-14 - Streaming satelital sin huecos
+- Se estabilizo el cache residente de teselas: 128 texturas y LRU con retencion prolongada para que pan/zoom no borren teselas recien usadas.
+- Se sustituyo el mapa ordenado de teselas por `unordered_map`, reduciendo costo de busqueda en la ruta caliente.
+- Se aumento el streaming satelital controlado: hasta 6 solicitudes, 5 uploads y 6 descargas concurrentes, siempre limitado por area fisica real de pantalla.
+- Las teselas faltantes ya no dejan huecos: usan padres residentes hasta cinco niveles y, como ultimo respaldo, el underlay satelital embebido.
+- Se agrego margen de una tesela satelital alrededor del viewport para evitar bordes vacios al desplazar.
+- Se conserva solicitud directa del Z real de pantalla; no se descargan Z intermedios ni se baja resolucion por movimiento.

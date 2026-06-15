@@ -2106,9 +2106,9 @@ constexpr int kMapLodMaxSingleAdvance = 64;
 
 
 
-constexpr int kMaxTileRequestsPerFrame = 10;
+constexpr int kMaxTileRequestsPerFrame = 6;
 
-constexpr int kMaxTileTextureLoadsPerFrame = 10;
+constexpr int kMaxTileTextureLoadsPerFrame = 5;
 
 constexpr int kMaxTerrainTileRequestsPerFrame = 1;
 
@@ -2116,9 +2116,9 @@ constexpr int kMaxTerrainTileLoadsPerFrame = 1;
 
 
 constexpr int kMaxConcurrentTileDownloads = 6;
-constexpr int kSatelliteSandboxMaxTileRequestsPerFrame = 10;
-constexpr int kSatelliteSandboxMaxTileTextureLoadsPerFrame = 10;
-constexpr std::size_t kSatelliteSandboxTileDrawCap = 192;
+constexpr int kSatelliteSandboxMaxTileRequestsPerFrame = 6;
+constexpr int kSatelliteSandboxMaxTileTextureLoadsPerFrame = 5;
+constexpr std::size_t kSatelliteSandboxTileDrawCap = 128;
 
 constexpr int kSatelliteOfflineCoarseZoom = 5;
 constexpr int kSatelliteOfflineCoarseMaxZoom = 9;
@@ -2132,10 +2132,13 @@ constexpr int kMapVisibleTileSafetyMargin = 2;
 constexpr int kMapPitchTileSafetyMargin = 4;
 
 constexpr int kMapParentBackfillDepth = 1;
+constexpr int kMapSatelliteBackfillDepth = 5;
+constexpr std::uint64_t kMapResidentSoftKeepFrames = 360;
+constexpr std::uint64_t kMapResidentHardKeepFrames = 1800;
 
 constexpr std::size_t kMapTileDrawHardCap = 48;
 
-constexpr std::uintmax_t kMapTileCacheSoftLimitBytes = 128ull * 1024ull * 1024ull;
+constexpr std::uintmax_t kMapTileCacheSoftLimitBytes = 72ull * 1024ull * 1024ull;
 
 constexpr float kMinInteractiveZoom = 0.42f;
 
@@ -2198,9 +2201,90 @@ struct MapFeature {
     std::string admin1_id;
     std::string admin2_id;
     bool context = false;
-
     std::vector<std::vector<Point2>> rings;
+    std::vector<std::array<double, 4>> ring_bounds;
+    std::array<double, 4> bounds{0.0, 0.0, 0.0, 0.0};
+    bool bounds_valid = false;
 };
+
+void recompute_map_feature_bounds(MapFeature& feature) {
+    feature.ring_bounds.clear();
+    feature.bounds_valid = false;
+    for (const auto& ring : feature.rings) {
+        if (ring.empty()) continue;
+        std::array<double, 4> bounds{ring.front().x, ring.front().y, ring.front().x, ring.front().y};
+        for (const Point2& point : ring) {
+            bounds[0] = std::min(bounds[0], point.x);
+            bounds[1] = std::min(bounds[1], point.y);
+            bounds[2] = std::max(bounds[2], point.x);
+            bounds[3] = std::max(bounds[3], point.y);
+        }
+        feature.ring_bounds.push_back(bounds);
+        if (!feature.bounds_valid) {
+            feature.bounds = bounds;
+            feature.bounds_valid = true;
+        } else {
+            feature.bounds[0] = std::min(feature.bounds[0], bounds[0]);
+            feature.bounds[1] = std::min(feature.bounds[1], bounds[1]);
+            feature.bounds[2] = std::max(feature.bounds[2], bounds[2]);
+            feature.bounds[3] = std::max(feature.bounds[3], bounds[3]);
+        }
+    }
+}
+
+void recompute_map_feature_bounds(std::vector<MapFeature>& features) {
+    for (MapFeature& feature : features) recompute_map_feature_bounds(feature);
+}
+
+void normalize_shared_territorial_vertices(std::vector<MapFeature>& features) {
+    // Une vértices limítrofes submétricos sin adelgazar el Marco Geoestadístico.
+    constexpr double kSnapDegrees = 0.0000025;
+    struct Accumulator {
+        double x = 0.0;
+        double y = 0.0;
+        std::size_t count = 0;
+    };
+    struct VertexKey {
+        long long x = 0;
+        long long y = 0;
+        bool operator==(const VertexKey& other) const noexcept {
+            return x == other.x && y == other.y;
+        }
+    };
+    struct VertexKeyHash {
+        std::size_t operator()(const VertexKey& key) const noexcept {
+            const std::size_t hx = std::hash<long long>{}(key.x);
+            const std::size_t hy = std::hash<long long>{}(key.y);
+            return hx ^ (hy + 0x9e3779b97f4a7c15ULL + (hx << 6) + (hx >> 2));
+        }
+    };
+    std::unordered_map<VertexKey, Accumulator, VertexKeyHash> canonical;
+    canonical.reserve(1048576);
+    const auto key_for = [kSnapDegrees](const Point2& p) {
+        return VertexKey{std::llround(p.x / kSnapDegrees), std::llround(p.y / kSnapDegrees)};
+    };
+    for (const auto& feature : features) {
+        for (const auto& ring : feature.rings) {
+            for (const Point2& p : ring) {
+                Accumulator& a = canonical[key_for(p)];
+                a.x += p.x;
+                a.y += p.y;
+                ++a.count;
+            }
+        }
+    }
+    for (auto& feature : features) {
+        for (auto& ring : feature.rings) {
+            for (Point2& p : ring) {
+                const auto it = canonical.find(key_for(p));
+                if (it == canonical.end() || it->second.count == 0) continue;
+                p.x = it->second.x / static_cast<double>(it->second.count);
+                p.y = it->second.y / static_cast<double>(it->second.count);
+            }
+        }
+    }
+    recompute_map_feature_bounds(features);
+}
 
 
 
@@ -2517,7 +2601,9 @@ const char* tlac_campo_txt(int domain, int field);
 
 struct UiState {
 
-    std::vector<MapFeature> features;
+    std::shared_ptr<const std::vector<MapFeature>> features_ptr;
+
+    std::shared_ptr<const std::vector<MapFeature>> state_features_ptr;
 
     std::vector<MapFeature> buffer_features;
 
@@ -3157,8 +3243,6 @@ struct UiState {
     bool territorial_layer_enabled = false;
     bool territorial_show_labels = true;
     bool territorial_show_external_notice = true;
-    bool territorial_show_state_envelopes = true;
-    bool territorial_show_zmvm_polygons = true;
     std::set<std::string> selected_territorial_states;
     std::set<std::string> selected_territorial_municipalities;
     std::set<std::string> selected_territorial_jurisdictions;
@@ -6997,12 +7081,18 @@ std::atomic_bool g_map_tile_cache_pinned{false};
 
 
 
-void prune_resident_map_textures_locked(std::map<std::string, MapTileTexture>& cache) {
+void prune_resident_map_textures_locked(std::unordered_map<std::string, MapTileTexture>& cache) {
 
 
 
     if (g_map_tile_cache_pinned.load(std::memory_order_relaxed)) return;
-    if (cache.size() <= kMaxResidentMapTextures) return;
+
+    std::size_t resident_count = 0u;
+    for (const auto& [_, t] : cache) if (t.id != 0) ++resident_count;
+
+    const std::size_t soft_limit = kMaxResidentMapTextures;
+    const std::size_t hard_limit = kMaxResidentMapTextures + 48u;
+    if (resident_count <= soft_limit && cache.size() <= soft_limit * 3u) return;
 
     std::vector<std::string> keys;
 
@@ -7017,21 +7107,30 @@ void prune_resident_map_textures_locked(std::map<std::string, MapTileTexture>& c
 
     for (const auto& k : keys) {
 
-        if (cache.size() <= kMaxResidentMapTextures) break;
         auto it = cache.find(k);
 
         if (it == cache.end()) continue;
 
         MapTileTexture& t = it->second;
+        const std::uint64_t age = g_map_frame_counter > t.last_used_frame ? g_map_frame_counter - t.last_used_frame : 0ull;
 
-        if (g_map_frame_counter > t.last_used_frame + 4) {
-
-            if (t.id != 0) { glDeleteTextures(1, &t.id); t.id = 0; }
-            t.width = 0;
-            t.height = 0;
-
-            if (g_map_frame_counter > t.last_used_frame + 240) cache.erase(it);
+        if (t.id != 0) {
+            const bool soft_old = age > kMapResidentSoftKeepFrames && resident_count > soft_limit;
+            const bool hard_full = resident_count > hard_limit;
+            if (soft_old || hard_full) {
+                glDeleteTextures(1, &t.id);
+                t.id = 0;
+                t.width = 0;
+                t.height = 0;
+                if (resident_count > 0u) --resident_count;
+            }
         }
+
+        const bool empty_old = t.id == 0 && !t.requested && age > kMapResidentHardKeepFrames;
+        const bool empty_excess = t.id == 0 && !t.requested && cache.size() > soft_limit * 4u;
+        if (empty_old || empty_excess) cache.erase(it);
+
+        if (resident_count <= soft_limit && cache.size() <= soft_limit * 3u) break;
     }
 }
 
@@ -7048,9 +7147,9 @@ std::mutex& resident_map_tile_mutex() {
 
 
 
-std::map<std::string, MapTileTexture>& resident_map_tile_cache() {
+std::unordered_map<std::string, MapTileTexture>& resident_map_tile_cache() {
 
-    static std::map<std::string, MapTileTexture> cache;
+    static std::unordered_map<std::string, MapTileTexture> cache;
 
 
     return cache;
@@ -7633,6 +7732,21 @@ GeoBounds bounds_for_features(const std::vector<MapFeature>& features) {
     GeoBounds b;
 
     for (const auto& f : features) {
+        if (f.bounds_valid) {
+            if (!b.valid) {
+                b.lon_min = f.bounds[0];
+                b.lat_min = f.bounds[1];
+                b.lon_max = f.bounds[2];
+                b.lat_max = f.bounds[3];
+                b.valid = true;
+            } else {
+                b.lon_min = std::min(b.lon_min, f.bounds[0]);
+                b.lat_min = std::min(b.lat_min, f.bounds[1]);
+                b.lon_max = std::max(b.lon_max, f.bounds[2]);
+                b.lat_max = std::max(b.lat_max, f.bounds[3]);
+            }
+            continue;
+        }
 
         for (const auto& ring : f.rings) {
 
@@ -8124,6 +8238,13 @@ double map_scale_denominator(const MapViewport& view) {
 
 
 
+float map_framebuffer_pixel_ratio() {
+    const ImGuiIO& io = ImGui::GetIO();
+    const float s = std::max(io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
+    if (!std::isfinite(s) || s <= 0.0f) return 1.0f;
+    return std::clamp(s, 1.0f, 2.0f);
+}
+
 int web_tile_zoom_for_view(const MapViewport& view) {
     const double mpp = meters_per_screen_pixel(view);
     if (!std::isfinite(mpp) || mpp <= 0.0) return kMapOverviewTileZoom;
@@ -8134,11 +8255,14 @@ int web_tile_zoom_for_view(const MapViewport& view) {
 
     constexpr double pi = 3.14159265358979323846;
     constexpr double earth = 6378137.0;
+    const double device_mpp = mpp / static_cast<double>(map_framebuffer_pixel_ratio());
     const double native_z0_mpp = std::cos(lat * pi / 180.0) * 2.0 * pi * earth / 256.0;
-    const double raw_z = std::log2(native_z0_mpp / mpp);
+    const double raw_z = std::log2(native_z0_mpp / std::max(1.0e-12, device_mpp));
     if (!std::isfinite(raw_z)) return kMapOverviewTileZoom;
 
-    const int z = static_cast<int>(std::floor(raw_z + 0.5));
+    const int z_floor = static_cast<int>(std::floor(raw_z));
+    const double floor_texel_screen_px = std::exp2(raw_z - static_cast<double>(z_floor));
+    const int z = z_floor + (floor_texel_screen_px > 1.18 ? 1 : 0);
     return std::clamp(z, kMapOpenMapsMinTileZoom, kMapOpenMapsMaxTileZoom);
 }
 
@@ -8357,7 +8481,7 @@ void draw_tile_layer(ImDrawList* dl, const MapViewport& view, TileLayer layer, i
 
     const double bottom = draw_view.center_y + (draw_view.size.y * 0.5 - draw_view.pan.y) / draw_view.scale;
 
-    const int pitch_margin = (layer == TileLayer::Satellite) ? 0 : tlal_tile_margin(draw_view.pitch);
+    const int pitch_margin = (layer == TileLayer::Satellite) ? 1 : tlal_tile_margin(draw_view.pitch);
 
     const int tx0 = static_cast<int>(std::floor(std::min(left, right) / 256.0)) - pitch_margin;
 
@@ -8408,8 +8532,9 @@ void draw_tile_layer(ImDrawList* dl, const MapViewport& view, TileLayer layer, i
 
     dl->PushClipRect(draw_view.origin, ImVec2(draw_view.origin.x + draw_view.size.x, draw_view.origin.y + draw_view.size.y), true);
 
-    const bool satellite_offline = (layer == TileLayer::Satellite) && satellite_network_offline_now();
-    if (satellite_offline) draw_offline_satellite_underlay(dl, draw_view, std::min(alpha, 210));
+    const bool satellite_layer = (layer == TileLayer::Satellite);
+    const bool satellite_offline = satellite_layer && satellite_network_offline_now();
+    if (satellite_layer) draw_offline_satellite_underlay(dl, draw_view, std::min(alpha, satellite_offline ? 238 : 222));
 
     for (const auto& item : tile_order) {
 
@@ -8422,24 +8547,28 @@ void draw_tile_layer(ImDrawList* dl, const MapViewport& view, TileLayer layer, i
         float draw_v1 = 1.0f;
 
         if (draw_tile_id == 0 && layer == TileLayer::Satellite && draw_view.z > kMapOpenMapsMinTileZoom) {
-            const int parent_z = draw_view.z - 1;
-            const int parent_tx = static_cast<int>(floor_div_i64(static_cast<int64_t>(item.tx), 2));
-            const int parent_ty = static_cast<int>(floor_div_i64(static_cast<int64_t>(item.ty), 2));
-            const int child_qx = static_cast<int>(static_cast<int64_t>(item.tx) - static_cast<int64_t>(parent_tx) * 2);
-            const int child_qy = static_cast<int>(static_cast<int64_t>(item.ty) - static_cast<int64_t>(parent_ty) * 2);
+            const int max_backfill = std::min(kMapSatelliteBackfillDepth, draw_view.z - kMapOpenMapsMinTileZoom);
+            for (int depth = 1; depth <= max_backfill && draw_tile_id == 0; ++depth) {
+                const int parent_z = draw_view.z - depth;
+                const int divisor = 1 << depth;
+                const int parent_tx = static_cast<int>(floor_div_i64(static_cast<int64_t>(item.tx), divisor));
+                const int parent_ty = static_cast<int>(floor_div_i64(static_cast<int64_t>(item.ty), divisor));
+                const int child_qx = static_cast<int>(static_cast<int64_t>(item.tx) - static_cast<int64_t>(parent_tx) * divisor);
+                const int child_qy = static_cast<int>(static_cast<int64_t>(item.ty) - static_cast<int64_t>(parent_ty) * divisor);
 
-            MapTileTexture& parent_tile = map_tile_texture(layer, parent_z, parent_tx, parent_ty, false);
-            if (parent_tile.id != 0) {
-                constexpr float parent_span = 0.5f;
-                draw_tile_id = parent_tile.id;
-                draw_u0 = static_cast<float>(std::clamp(child_qx, 0, 1)) * parent_span;
-                draw_v0 = static_cast<float>(std::clamp(child_qy, 0, 1)) * parent_span;
-                draw_u1 = draw_u0 + parent_span;
-                draw_v1 = draw_v0 + parent_span;
+                MapTileTexture& parent_tile = map_tile_texture(layer, parent_z, parent_tx, parent_ty, false);
+                if (parent_tile.id != 0) {
+                    const float parent_span = 1.0f / static_cast<float>(divisor);
+                    draw_tile_id = parent_tile.id;
+                    draw_u0 = static_cast<float>(std::clamp(child_qx, 0, divisor - 1)) * parent_span;
+                    draw_v0 = static_cast<float>(std::clamp(child_qy, 0, divisor - 1)) * parent_span;
+                    draw_u1 = draw_u0 + parent_span;
+                    draw_v1 = draw_v0 + parent_span;
+                }
             }
         }
 
-        if (draw_tile_id == 0 && satellite_offline) {
+        if (draw_tile_id == 0 && layer == TileLayer::Satellite) {
             const PreviewTexture fallback = offline_satellite_texture_for_zoom(draw_view.z);
             if (fallback.id != 0) {
                 const int source_z = offline_satellite_source_zoom_for_view(draw_view.z);
@@ -10003,7 +10132,26 @@ void append_geojson_ring(const nlohmann::json& ring_json, MapFeature& feature) {
             ring.pop_back();
         }
 
-        if (ring.size() >= 3) feature.rings.push_back(std::move(ring));
+        if (ring.size() >= 3) {
+            std::array<double, 4> bounds{ring.front().x, ring.front().y, ring.front().x, ring.front().y};
+            for (const Point2& point : ring) {
+                bounds[0] = std::min(bounds[0], point.x);
+                bounds[1] = std::min(bounds[1], point.y);
+                bounds[2] = std::max(bounds[2], point.x);
+                bounds[3] = std::max(bounds[3], point.y);
+            }
+            if (!feature.bounds_valid) {
+                feature.bounds = bounds;
+                feature.bounds_valid = true;
+            } else {
+                feature.bounds[0] = std::min(feature.bounds[0], bounds[0]);
+                feature.bounds[1] = std::min(feature.bounds[1], bounds[1]);
+                feature.bounds[2] = std::max(feature.bounds[2], bounds[2]);
+                feature.bounds[3] = std::max(feature.bounds[3], bounds[3]);
+            }
+            feature.ring_bounds.push_back(bounds);
+            feature.rings.push_back(std::move(ring));
+        }
     }
 }
 
@@ -10081,7 +10229,98 @@ std::vector<MapFeature> load_geojson(const fs::path& path) {
         out.clear();
     }
 
+    normalize_shared_territorial_vertices(out);
     return out;
+}
+
+std::vector<MapFeature> load_tlalgeo(const fs::path& path) {
+    std::vector<MapFeature> out;
+    try {
+        std::ifstream in(path, std::ios::binary);
+        if (!in) return out;
+        char magic[8]{};
+        in.read(magic, sizeof(magic));
+        if (!in || std::memcmp(magic, "TLALGEO1", sizeof(magic)) != 0) return out;
+
+        const auto read_u16 = [&]() -> std::uint16_t {
+            std::uint16_t value = 0;
+            in.read(reinterpret_cast<char*>(&value), sizeof(value));
+            return value;
+        };
+        const auto read_u32 = [&]() -> std::uint32_t {
+            std::uint32_t value = 0;
+            in.read(reinterpret_cast<char*>(&value), sizeof(value));
+            return value;
+        };
+        const auto read_i32 = [&]() -> std::int32_t {
+            std::int32_t value = 0;
+            in.read(reinterpret_cast<char*>(&value), sizeof(value));
+            return value;
+        };
+        const auto read_string = [&]() -> std::string {
+            const std::uint16_t size = read_u16();
+            std::string value(size, '\0');
+            if (size > 0) in.read(value.data(), static_cast<std::streamsize>(size));
+            return value;
+        };
+
+        const std::uint32_t feature_count = read_u32();
+        if (!in || feature_count > 100000u) return {};
+        out.reserve(feature_count);
+        for (std::uint32_t feature_index = 0; feature_index < feature_count; ++feature_index) {
+            MapFeature feature;
+            feature.id = read_string();
+            feature.name = read_string();
+            feature.admin1_id = read_string();
+            feature.admin2_id = read_string();
+            const std::uint32_t ring_count = read_u32();
+            if (!in || ring_count > 100000u) return {};
+            feature.rings.reserve(ring_count);
+            feature.ring_bounds.reserve(ring_count);
+            for (std::uint32_t ring_index = 0; ring_index < ring_count; ++ring_index) {
+                const std::uint32_t point_count = read_u32();
+                if (!in || point_count < 3u || point_count > 10000000u) return {};
+                std::vector<Point2> ring;
+                ring.reserve(point_count);
+                for (std::uint32_t point_index = 0; point_index < point_count; ++point_index) {
+                    const double lon = static_cast<double>(read_i32()) / 10000000.0;
+                    const double lat = static_cast<double>(read_i32()) / 10000000.0;
+                    if (!in || !std::isfinite(lon) || !std::isfinite(lat)) return {};
+                    ring.push_back({lon, lat});
+                }
+                std::array<double, 4> bounds{ring.front().x, ring.front().y, ring.front().x, ring.front().y};
+                for (const Point2& point : ring) {
+                    bounds[0] = std::min(bounds[0], point.x);
+                    bounds[1] = std::min(bounds[1], point.y);
+                    bounds[2] = std::max(bounds[2], point.x);
+                    bounds[3] = std::max(bounds[3], point.y);
+                }
+                if (!feature.bounds_valid) {
+                    feature.bounds = bounds;
+                    feature.bounds_valid = true;
+                } else {
+                    feature.bounds[0] = std::min(feature.bounds[0], bounds[0]);
+                    feature.bounds[1] = std::min(feature.bounds[1], bounds[1]);
+                    feature.bounds[2] = std::max(feature.bounds[2], bounds[2]);
+                    feature.bounds[3] = std::max(feature.bounds[3], bounds[3]);
+                }
+                feature.ring_bounds.push_back(bounds);
+                feature.rings.push_back(std::move(ring));
+            }
+            if (!feature.name.empty() && !feature.rings.empty()) out.push_back(std::move(feature));
+        }
+        if (!in.eof() && !in.good()) return {};
+    } catch (...) {
+        out.clear();
+    }
+    return out;
+}
+
+std::vector<MapFeature> load_territorial_geometry(const fs::path& binary, const fs::path& geojson) {
+    std::vector<MapFeature> features = load_tlalgeo(binary);
+    if (features.empty()) features = load_geojson(geojson);
+    if (!features.empty()) normalize_shared_territorial_vertices(features);
+    return features;
 }
 
 
@@ -10129,6 +10368,16 @@ std::string territorial_state_id_from_name(const std::string& name) {
     if (k == "oaxaca") return "oaxaca";
     if (k == "veracruz" || k == "veracruz_de_ignacio_de_la_llave") return "veracruz";
     return k;
+}
+
+std::string territorial_state_id_from_inegi(const std::string& inegi) {
+    if (inegi == "09") return "cdmx";
+    if (inegi == "12") return "guerrero";
+    if (inegi == "13") return "hidalgo";
+    if (inegi == "15") return "edomex";
+    if (inegi == "17") return "morelos";
+    if (inegi == "21") return "puebla";
+    return {};
 }
 
 std::string territorial_municipality_id(const std::string& state_id, const std::string& name) {
@@ -10192,9 +10441,59 @@ void territorial_merge_downloaded_municipalities(std::vector<TerritorialStateSpe
     }
 }
 
+fs::path territorial_installed_geometry_path() {
+    return datos_root() / "territorio_centro_mexico.geojson";
+}
+
+fs::path territorial_installed_binary_path() {
+    return datos_root() / "territorio_centro_mexico.tlalgeo";
+}
+
+fs::path territorial_installed_catalog_path() {
+    return datos_root() / "territorio_centro_mexico_catalogo.json";
+}
+
+fs::path territorial_installed_states_path() {
+    return datos_root() / "estados_centro_mexico.geojson";
+}
+
+fs::path territorial_installed_states_binary_path() {
+    return datos_root() / "estados_centro_mexico.tlalgeo";
+}
+
+void territorial_merge_installed_geometry(std::vector<TerritorialStateSpec>& states) {
+    const fs::path catalog_path = territorial_installed_catalog_path();
+    const nlohmann::json catalog = nlohmann::json::parse(read_text_file(catalog_path), nullptr, false);
+    if (!catalog.is_array()) return;
+
+    std::unordered_map<std::string, std::vector<TerritorialMunicipalitySpec>> municipalities;
+    for (const nlohmann::json& item : catalog) {
+        if (!item.is_object()) continue;
+        const std::string state_code = item.value("CVE_ENT", std::string{});
+        const std::string name = item.value("NOMGEO", std::string{});
+        const std::string sid = territorial_state_id_from_inegi(state_code);
+        if (sid.empty() || name.empty()) continue;
+        municipalities[sid].push_back({territorial_municipality_id(sid, name), name});
+    }
+
+    for (TerritorialStateSpec& state : states) {
+        auto found = municipalities.find(state.id);
+        if (found == municipalities.end() || found->second.empty()) continue;
+        auto& items = found->second;
+        std::sort(items.begin(), items.end(), [](const auto& a, const auto& b) {
+            return normalize_key(a.name) < normalize_key(b.name);
+        });
+        items.erase(std::unique(items.begin(), items.end(), [](const auto& a, const auto& b) {
+            return a.id == b.id;
+        }), items.end());
+        state.municipalities = std::move(items);
+    }
+}
+
 std::vector<TerritorialStateSpec> load_territorial_catalog() {
     std::vector<TerritorialStateSpec> states = territorial_default_states();
     try { territorial_merge_downloaded_municipalities(states); } catch (...) {}
+    try { territorial_merge_installed_geometry(states); } catch (...) {}
     try {
         const fs::path p = territorial_embedded_catalog_path();
         std::error_code ec;
@@ -10225,6 +10524,10 @@ const std::vector<TerritorialStateSpec>& territorial_catalog_cached() {
     std::error_code ec;
     const fs::path p = territorial_downloaded_catalog_path();
     if (fs::exists(p, ec) && !ec) size = fs::file_size(p, ec);
+    const fs::path geometry = territorial_installed_geometry_path();
+    if (fs::exists(geometry, ec) && !ec) size ^= fs::file_size(geometry, ec);
+    const fs::path catalog = territorial_installed_catalog_path();
+    if (fs::exists(catalog, ec) && !ec) size ^= fs::file_size(catalog, ec);
     if (cache.empty() || size != last_size) {
         cache = load_territorial_catalog();
         last_size = size;
@@ -10243,10 +10546,21 @@ bool territorial_municipality_selected(const UiState& ui, const std::string& sid
 }
 
 bool territorial_zmvm_feature_selected(const UiState& ui, const MapFeature& f) {
-    if (!ui.territorial_layer_enabled || !ui.territorial_show_zmvm_polygons) return false;
-    const std::string sid = (f.admin1_id == "09") ? "cdmx" : ((f.admin1_id == "15") ? "edomex" : std::string{});
+    if (!ui.territorial_layer_enabled) return false;
+    const std::string sid = territorial_state_id_from_inegi(f.admin1_id);
     if (sid.empty()) return false;
     return territorial_municipality_selected(ui, sid, f.name);
+}
+
+bool territorial_state_has_visible_selection(const UiState& ui, const std::string& inegi) {
+    if (!ui.territorial_layer_enabled) return false;
+    const std::string sid = territorial_state_id_from_inegi(inegi);
+    if (sid.empty()) return false;
+    if (ui.selected_territorial_states.count(sid) > 0) return true;
+    const std::string prefix = sid + "/";
+    return std::any_of(ui.selected_territorial_municipalities.begin(),
+                       ui.selected_territorial_municipalities.end(),
+                       [&](const std::string& id) { return id.rfind(prefix, 0) == 0; });
 }
 
 std::vector<std::string> split_place_catalog_line(const std::string& line) {
@@ -18586,6 +18900,9 @@ std::vector<fs::path> mobility_icon_roots() {
     if (!cached_roots.empty() && g_map_frame_counter < last_probe_frame + 3600) return cached_roots;
 
     std::vector<fs::path> candidates = {
+        datos_root() / "icon",
+        datos_root() / "icons",
+        datos_root() / "Iconos",
         workspace_root() / "Recursos_Legado" / "movilidad_iconos",
         datos_externos_root() / L"Íconos",
         datos_externos_root() / L"íconos",
@@ -27913,6 +28230,22 @@ void request_atmospheric_hourly_snapshot_async(UiState& ui) {
             interval_end_hour);
 
         if (selected_pollutants.empty()) {
+            const bool snapshot_changed =
+                !ui.atmospheric_hourly_clouds.empty() ||
+                ui.atmosphere_snapshot_loading ||
+                ui.atmosphere_snapshot_requested_hour != target_hour ||
+                ui.atmosphere_snapshot_requested_minute != target_minute ||
+                ui.atmosphere_snapshot_requested_interval_active != interval_active ||
+                ui.atmosphere_snapshot_requested_interval_start_hour != interval_start_hour ||
+                ui.atmosphere_snapshot_requested_interval_end_hour != interval_end_hour ||
+                ui.atmosphere_snapshot_requested_filter_signature != filter_signature ||
+                ui.atmosphere_snapshot_hour != target_hour ||
+                ui.atmosphere_snapshot_minute != target_minute ||
+                ui.atmosphere_snapshot_interval_active != interval_active ||
+                ui.atmosphere_snapshot_interval_start_hour != interval_start_hour ||
+                ui.atmosphere_snapshot_interval_end_hour != interval_end_hour ||
+                ui.atmosphere_snapshot_filter_signature != filter_signature;
+            if (!snapshot_changed) return;
 
 
 
@@ -30837,6 +31170,12 @@ bool draw_chrome_system_button(ImDrawList* dl, const char* id, const ImVec2& a, 
 
 std::string compact_label(std::string s, size_t max_len);
 
+float tlalpowa_import_track_visual_thickness();
+bool tlalpowa_import_any_activity_active(const UiState& ui);
+void tlalpowa_draw_canonical_progress_rect(ImDrawList* dl, const ImVec2& a, const ImVec2& b,
+                                           float fraction, const ImVec4& accent, bool light_theme,
+                                           bool rounded, bool live_pulse = false);
+
 
 
 
@@ -30876,15 +31215,21 @@ void draw_top_bar(UiState& ui) {
     const ImU32 border = ui.light_theme ? IM_COL32(171, 187, 204, 132) : IM_COL32(82, 103, 125, 120);
 
     dl->AddRectFilledMultiColor(wp, ImVec2(wp.x + ws.x, wp.y + ws.y), toolbar_bg_top, toolbar_bg_top, toolbar_bg_bottom, toolbar_bg_bottom);
-    ImGui::GetForegroundDrawList()->AddRectFilled(ImVec2(wp.x, wp.y + ws.y - 1.5f), ImVec2(wp.x + ws.x, wp.y + ws.y + 2.0f), toolbar_bg_bottom, 0.0f);
+    /* No sellar hacia adentro: ForegroundDrawList se renderiza al final del frame
+       y antes cubría la base de la barra de progreso superior. */
+    {
+        const float y_seal = std::ceil(wp.y + ws.y);
+        ImGui::GetForegroundDrawList()->AddRectFilled(ImVec2(std::floor(wp.x), y_seal),
+                                                      ImVec2(std::ceil(wp.x + ws.x), y_seal + 1.0f),
+                                                      toolbar_bg_bottom, 0.0f);
+    }
     (void)border; 
 
     bool startup_essentials_ready = false;
     {
         std::lock_guard<std::mutex> lock(ui.mu);
         startup_essentials_ready = ui.startup_catalogs_loaded &&
-                                   !ui.diseases.empty() &&
-                                   !ui.pollutants.empty() &&
+                                   (!ui.pollutants.empty() || !ui.diseases.empty()) &&
                                    ui.startup_recent_data_ready &&
                                    ui.startup_hotdata_ready &&
                                    ui.startup_first_visible_hotdata_ready &&
@@ -30903,13 +31248,10 @@ void draw_top_bar(UiState& ui) {
     startup_progress = std::min(startup_time_progress, std::clamp(startup_progress, 0.0f, 1.0f));
     if (ui.app_uptime < kStartupSplashSolidSeconds ||
         (!startup_essentials_ready && ui.app_uptime < kStartupSplashMaximumSeconds)) {
-        const float progress_h = std::clamp(chrome_h * 0.075f, 2.0f, 5.0f);
+        const float progress_h = tlalpowa_import_track_visual_thickness();
         const float progress_y = wp.y + ws.y - progress_h;
-        dl->AddRectFilled(ImVec2(wp.x, progress_y), ImVec2(wp.x + ws.x, wp.y + ws.y),
-                          ui.light_theme ? IM_COL32(209, 218, 228, 255) : IM_COL32(31, 42, 54, 255));
-        dl->AddRectFilled(ImVec2(wp.x, progress_y),
-                          ImVec2(wp.x + ws.x * startup_progress, wp.y + ws.y),
-                          IM_COL32(133, 13, 55, 255));
+        tlalpowa_draw_canonical_progress_rect(dl, ImVec2(wp.x, progress_y), ImVec2(wp.x + ws.x, wp.y + ws.y),
+                                             startup_progress, ui.accent, ui.light_theme, false, false);
     }
     
 
@@ -31068,13 +31410,12 @@ void draw_top_bar(UiState& ui) {
             }
         }
         if (main_progress_visible) {
-            const float track_h = std::max(1.0f, chrome_h * kGoldenN5);
+            const float track_h = tlalpowa_import_track_visual_thickness();
             const float y0 = wp.y + ws.y - track_h;
             const ImVec2 a(wp.x, y0);
             const ImVec2 b(wp.x + ws.x, wp.y + ws.y);
-            dl->AddRectFilled(a, b, ui.light_theme ? IM_COL32(214, 222, 232, 238) : IM_COL32(34, 44, 55, 238), 0.0f);
-            dl->AddRectFilled(a, ImVec2(a.x + (b.x - a.x) * std::clamp(main_progress_fraction, 0.0f, 1.0f), b.y),
-                              u32(ui.accent, 0.96f), 0.0f);
+            tlalpowa_draw_canonical_progress_rect(dl, a, b, main_progress_fraction, ui.accent, ui.light_theme, false,
+                                                 tlalpowa_import_any_activity_active(ui));
             if (ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) && ImGui::GetIO().MousePos.y >= y0 - 2.0f) {
                 ImGui::SetTooltip("%3.0f%% | %s", std::clamp(main_progress_fraction, 0.0f, 1.0f) * 100.0f,
                                   main_progress_label.empty() ? "Proceso activo" : main_progress_label.c_str());
@@ -32083,16 +32424,14 @@ void accent_progress_bar(float fraction, const ImVec2& size, const char* overlay
 
     const float avail = std::max(1.0f, ImGui::GetContentRegionAvail().x);
     const float w = size.x < 0.0f ? avail : (size.x > 0.0f ? size.x : avail);
-    const float h = size.y > 0.0f ? size.y : 3.0f;
+    const float h = size.y > 0.0f ? size.y : tlalpowa_import_track_visual_thickness();
 
     const ImVec2 p = ImGui::GetCursorScreenPos();
 
     ImDrawList* dl = ImGui::GetWindowDrawList();
     const ImVec2 a(p.x, p.y);
     const ImVec2 b(p.x + w, p.y + h);
-    dl->AddRectFilled(a, b, IM_COL32(224, 230, 238, 188), h * 0.5f);
-
-    if (pct > 0.0f) dl->AddRectFilled(a, ImVec2(a.x + w * pct, b.y), u32(accent, 0.76f), h * 0.5f);
+    tlalpowa_draw_canonical_progress_rect(dl, a, b, pct, accent, tlalpowa_current_style_light(), true, false);
 
     ImGui::Dummy(ImVec2(w, h + 1.0f));
 
@@ -32206,6 +32545,38 @@ ImportProgressEdgeState import_progress_edge_state(const UiState& ui, const Pipe
 
 float tlalpowa_import_track_visual_thickness();
 
+ImU32 tlalpowa_canonical_progress_track_color(bool light_theme) {
+    return light_theme ? IM_COL32(224, 230, 238, 188) : IM_COL32(34, 44, 55, 238);
+}
+
+ImU32 tlalpowa_canonical_progress_fill_color(const ImVec4& accent) {
+    return u32(accent, 0.76f);
+}
+
+void tlalpowa_draw_canonical_progress_rect(ImDrawList* dl, const ImVec2& a, const ImVec2& b,
+                                           float fraction, const ImVec4& accent, bool light_theme,
+                                           bool rounded, bool live_pulse) {
+    if (!dl || b.x <= a.x || b.y <= a.y) return;
+    const float pct = std::clamp(fraction, 0.0f, 1.0f);
+    const float h = std::max(1.0f, b.y - a.y);
+    const float w = std::max(1.0f, b.x - a.x);
+    const float r = rounded ? h * 0.5f : 0.0f;
+    dl->AddRectFilled(a, b, tlalpowa_canonical_progress_track_color(light_theme), r);
+    if (pct > 0.0f) {
+        const ImVec2 fb(a.x + w * pct, b.y);
+        dl->AddRectFilled(a, fb, tlalpowa_canonical_progress_fill_color(accent), r);
+    }
+    if (live_pulse && pct < 0.997f && w > 48.0f) {
+        const double t = ImGui::GetTime();
+        const float span = std::clamp(w * 0.118f, 30.0f, 132.0f);
+        const float travel = std::max(1.0f, w + span * 2.0f);
+        const float head = a.x - span + static_cast<float>(std::fmod(t * 190.0, static_cast<double>(travel)));
+        const float x0 = std::clamp(head, a.x, b.x);
+        const float x1 = std::clamp(head + span, a.x, b.x);
+        if (x1 > x0) dl->AddRectFilled(ImVec2(x0, a.y), ImVec2(x1, b.y), u32(accent, 0.34f), r);
+    }
+}
+
 void accent_progress_bar_exact_no_intrinsic_gap(float fraction, const ImVec2& size, const char* overlay, const ImVec4& accent, bool live_pulse = false) {
     
     const float pct = std::clamp(fraction, 0.0f, 1.0f);
@@ -32216,19 +32587,9 @@ void accent_progress_bar_exact_no_intrinsic_gap(float fraction, const ImVec2& si
     ImDrawList* dl = ImGui::GetWindowDrawList();
     const ImVec2 a(p.x, p.y);
     const ImVec2 b(p.x + w, p.y + h);
-    dl->AddRectFilled(a, b, IM_COL32(224, 230, 238, 188), h * 0.5f);
-    if (pct > 0.0f) dl->AddRectFilled(a, ImVec2(a.x + w * pct, b.y), u32(accent, 0.76f), h * 0.5f);
-    if (live_pulse && pct < 0.997f && w > 48.0f) {
-        /* Pulso de vida no semántico: sólo evidencia que el hilo sigue reportando/respirando.
-           Nunca altera progreso real ni contadores, y evita la ilusión visual de bloqueo en CSV enormes. */
-        const double t = ImGui::GetTime();
-        const float span = std::clamp(w * 0.118f, 30.0f, 132.0f);
-        const float travel = std::max(1.0f, w + span * 2.0f);
-        const float head = a.x - span + static_cast<float>(std::fmod(t * 190.0, static_cast<double>(travel)));
-        const float x0 = std::clamp(head, a.x, b.x);
-        const float x1 = std::clamp(head + span, a.x, b.x);
-        if (x1 > x0) dl->AddRectFilled(ImVec2(x0, a.y), ImVec2(x1, b.y), u32(accent, 0.34f), h * 0.5f);
-    }
+    /* Misma barra que el panel superior: grosor, pista, relleno y pulso salen de
+       una única rutina canónica, sin fórmulas paralelas por ventana. */
+    tlalpowa_draw_canonical_progress_rect(dl, a, b, pct, accent, tlalpowa_current_style_light(), true, live_pulse);
     if (overlay && overlay[0] && h >= 12.0f) {
         const ImVec2 ts = ImGui::CalcTextSize(overlay);
         dl->AddText(ImVec2(a.x + (w - ts.x) * 0.5f, a.y + (h - ts.y) * 0.5f), IM_COL32(255, 255, 255, 236), overlay);
@@ -32259,7 +32620,8 @@ float tlalpowa_import_secondary_track_height() {
 }
 
 float tlalpowa_import_track_visual_thickness() {
-    
+    /* Grosor único de barras de progreso: barra superior, arranque, importación
+       y procesos internos deben compartir este valor sin fórmulas paralelas. */
     return std::max(1.0f, bottom_bar_height() * kGoldenN4);
 }
 
@@ -43867,15 +44229,22 @@ void draw_side_panel(UiState& ui) {
 
     const float side_pad_x = std::max(1.0f, surface.pad_tight.x);
     const float side_pad_y = std::max(1.0f, surface.pad_tight.y);
-    const ImVec2 child_min(phi_origin(wp.x + side_pad_x), phi_origin(wp.y + side_pad_y));
-    const ImVec2 child_size(phi_px(std::max(1.0f, ws.x - side_pad_x * 2.0f)),
-                            phi_px(std::max(1.0f, ws.y - 2.0f * side_pad_y)));
+    const ImVec2 child_local(phi_origin(side_pad_x + side_resize_w),
+                             phi_origin(side_pad_y));
+    const ImVec2 child_min(phi_origin(wp.x + child_local.x),
+                           phi_origin(wp.y + child_local.y));
+    const ImVec2 child_size(
+        phi_px(std::max(1.0f, ws.x - child_local.x - side_pad_x)),
+        phi_px(std::max(1.0f, ws.y - child_local.y - side_pad_y)));
 
     if (dl) {
         dl->AddRectFilled(wp, ImVec2(wp.x + ws.x, wp.y + ws.y), tlalpowa_surface_u32(ui.light_theme), 0.0f);
     }
 
-    ImGui::SetCursorScreenPos(child_min);
+    // BeginChild debe nacer en coordenadas locales del panel. Posicionarlo con
+    // coordenadas absolutas después del resizer de altura completa podía dejar
+    // su región de contenido fuera del recorte de la ventana lateral.
+    ImGui::SetCursorPos(child_local);
 
     ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, std::max(1.0f, golden_w(kGoldenN10)));
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 0.0f);
@@ -43897,6 +44266,8 @@ void draw_side_panel(UiState& ui) {
 
     static char search[128] = "";
 
+    ImGui::TextUnformatted(tlalpowa_tr("Catálogo de datos"));
+    ImGui::Separator();
     draw_side_solar_light_viewer(ui);
 
     {
@@ -44167,7 +44538,7 @@ void draw_side_panel(UiState& ui) {
         (side_scope_any_selected(visible_territorial_state_ids, ui.selected_territorial_states) ||
          !ui.selected_territorial_municipalities.empty() || !ui.selected_territorial_jurisdictions.empty());
     const bool open_territorial = draw_side_tree_header_checkbox(
-        "side-category-territorial", "Datos Territoriales",
+        "side-category-territorial", "Ver División Territorial",
         territorial_all_selected, territorial_any_selected, territorial_states.empty(),
         group_color_vec("territoriales"), ui.light_theme,
         [&](bool enabled) {
@@ -44181,8 +44552,6 @@ void draw_side_panel(UiState& ui) {
 
     if (open_territorial) {
         ImGui::Indent(std::max(1.0f, golden_w(kGoldenN11)));
-        draw_side_boolean_check("side-territorial-zmvm-polygons", "Polígonos ZMVM Instalados", ui.territorial_show_zmvm_polygons,
-                                group_color_vec("territoriales"), ui.light_theme);
         draw_side_boolean_check("side-territorial-labels", "Etiquetas Territoriales", ui.territorial_show_labels,
                                 group_color_vec("territoriales"), ui.light_theme);
         draw_side_boolean_check("side-territorial-source-note", "Aviso De Fuente Externa", ui.territorial_show_external_notice,
@@ -46840,7 +47209,12 @@ std::vector<fs::path> place_glyph_roots() {
         roots.push_back(p);
     };
     const fs::path datos = datos_externos_root();
+    const fs::path datos_internos = datos_root();
     const fs::path work = workspace_root();
+    add_root(datos_internos / "icon");
+    add_root(datos_internos / "icons");
+    add_root(datos_internos / "Icon");
+    add_root(datos_internos / "Iconos");
     add_root(datos / "icon");
     add_root(datos / "icons");
     add_root(datos / "Icon");
@@ -46850,6 +47224,9 @@ std::vector<fs::path> place_glyph_roots() {
     add_root(work / "Datos" / "icon");
     add_root(work / "Datos" / "icons");
     add_root(work / "Datos" / "Iconos");
+    add_root(work / "TLALPOWA" / "Datos" / "icon");
+    add_root(work / "TLALPOWA" / "Datos" / "icons");
+    add_root(work / "TLALPOWA" / "Datos" / "Iconos");
     add_root(work / "Fuente" / "Tlalpowa" / "icon");
     return roots;
 }
@@ -48226,6 +48603,7 @@ using TlalGlUniform2fFn = void(APIENTRY*)(GLint, GLfloat, GLfloat);
 using TlalGlUniform3fFn = void(APIENTRY*)(GLint, GLfloat, GLfloat, GLfloat);
 using TlalGlUniform1fFn = void(APIENTRY*)(GLint, GLfloat);
 using TlalGlDrawArraysFn = void(APIENTRY*)(GLenum, GLint, GLsizei);
+using TlalGlMultiDrawArraysFn = void(APIENTRY*)(GLenum, const GLint*, const GLsizei*, GLsizei);
 
 #ifndef GL_ARRAY_BUFFER
 #define GL_ARRAY_BUFFER 0x8892
@@ -48273,6 +48651,7 @@ struct HistoricalNativeGlApi {
     TlalGlUniform3fFn uniform_3f = nullptr;
     TlalGlUniform1fFn uniform_1f = nullptr;
     TlalGlDrawArraysFn draw_arrays = nullptr;
+    TlalGlMultiDrawArraysFn multi_draw_arrays = nullptr;
     bool loaded = false;
 };
 
@@ -48306,6 +48685,7 @@ HistoricalNativeGlApi& historical_native_gl_api() {
     TLAL_GL_LOAD(uniform_3f, TlalGlUniform3fFn, "glUniform3f");
     TLAL_GL_LOAD(uniform_1f, TlalGlUniform1fFn, "glUniform1f");
     TLAL_GL_LOAD(draw_arrays, TlalGlDrawArraysFn, "glDrawArrays");
+    TLAL_GL_LOAD(multi_draw_arrays, TlalGlMultiDrawArraysFn, "glMultiDrawArrays");
 #undef TLAL_GL_LOAD
     api.loaded = api.gen_buffers && api.bind_buffer && api.buffer_data &&
                  api.gen_vertex_arrays && api.bind_vertex_array &&
@@ -48316,6 +48696,221 @@ HistoricalNativeGlApi& historical_native_gl_api() {
                  api.get_uniform_location && api.uniform_2f && api.uniform_3f &&
                  api.uniform_1f && api.draw_arrays;
     return api;
+}
+
+struct TerritorialGpuLines {
+    GLuint vertex_buffer = 0;
+    GLuint vertex_array = 0;
+    GLuint program = 0;
+    GLint display_size_uniform = -1;
+    GLint display_pos_uniform = -1;
+    GLint view_origin_uniform = -1;
+    GLint view_size_uniform = -1;
+    GLint pan_uniform = -1;
+    GLint center_offset_uniform = -1;
+    GLint world_scale_uniform = -1;
+    GLint pitch_uniform = -1;
+    GLint color_uniform = -1;
+    GLint alpha_uniform = -1;
+    std::vector<GLint> ring_firsts;
+    std::vector<GLsizei> ring_counts;
+    std::size_t municipality_ring_count = 0;
+    ImVec2 view_origin;
+    ImVec2 view_size;
+    ImVec2 pan;
+    ImVec2 center_offset;
+    float world_scale = 1.0f;
+    float pitch = 0.0f;
+    bool failed = false;
+};
+
+ImVec2 territorial_world_anchor() {
+    static const ImVec2 anchor(
+        static_cast<float>(lon_to_world_px(-99.0, 0)),
+        static_cast<float>(lat_to_world_px(19.5, 0)));
+    return anchor;
+}
+
+ImVec2 territorial_world_offset(const Point2& point) {
+    const ImVec2 anchor = territorial_world_anchor();
+    return ImVec2(
+        static_cast<float>(lon_to_world_px(point.x, 0) - static_cast<double>(anchor.x)),
+        static_cast<float>(lat_to_world_px(point.y, 0) - static_cast<double>(anchor.y)));
+}
+
+TerritorialGpuLines& territorial_gpu_lines() {
+    static TerritorialGpuLines lines;
+    HistoricalNativeGlApi& gl = historical_native_gl_api();
+    if (lines.failed || (lines.program && lines.vertex_buffer && lines.vertex_array)) return lines;
+    if (!gl.loaded) {
+        lines.failed = true;
+        return lines;
+    }
+    static const char* vertex_source =
+        "#version 150\n"
+        "in vec2 Position;\n"
+        "uniform vec2 DisplaySize;\n"
+        "uniform vec2 DisplayPos;\n"
+        "uniform vec2 ViewOrigin;\n"
+        "uniform vec2 ViewSize;\n"
+        "uniform vec2 Pan;\n"
+        "uniform vec2 CenterOffset;\n"
+        "uniform float WorldScale;\n"
+        "uniform float Pitch;\n"
+        "void main(){\n"
+        " vec2 flatPosition=ViewOrigin+ViewSize*0.5+Pan+(Position-CenterOffset)*WorldScale;\n"
+        " float cy=ViewOrigin.y+ViewSize.y*0.5;\n"
+        " float dy=flatPosition.y-cy;\n"
+        " float farScale=clamp(cos(Pitch*0.68),0.36,1.0);\n"
+        " float nearScale=1.0+Pitch*0.035;\n"
+        " float yScale=dy<0.0?farScale:nearScale;\n"
+        " float depth=clamp(-dy/max(1.0,ViewSize.y*0.5),-1.0,1.0);\n"
+        " float xScale=1.0-max(0.0,depth)*Pitch*0.018;\n"
+        " float cx=ViewOrigin.x+ViewSize.x*0.5;\n"
+        " vec2 screen=vec2(cx+(flatPosition.x-cx)*xScale,cy+dy*yScale);\n"
+        " vec2 p=(screen-DisplayPos)/DisplaySize*2.0-1.0;\n"
+        " gl_Position=vec4(p.x,-p.y,0.0,1.0);\n"
+        "}\n";
+    static const char* fragment_source =
+        "#version 150\n"
+        "uniform vec3 Color;\n"
+        "uniform float Alpha;\n"
+        "out vec4 OutColor;\n"
+        "void main(){ OutColor=vec4(Color,Alpha); }\n";
+    const auto compile = [&](GLenum kind, const char* source) -> GLuint {
+        const GLuint shader = gl.create_shader(kind);
+        gl.shader_source(shader, 1, &source, nullptr);
+        gl.compile_shader(shader);
+        GLint ok = 0;
+        gl.get_shader_iv(shader, GL_COMPILE_STATUS, &ok);
+        if (!ok) {
+            if (gl.delete_shader) gl.delete_shader(shader);
+            return 0;
+        }
+        return shader;
+    };
+    const GLuint vertex = compile(GL_VERTEX_SHADER, vertex_source);
+    const GLuint fragment = compile(GL_FRAGMENT_SHADER, fragment_source);
+    if (!vertex || !fragment) {
+        lines.failed = true;
+        return lines;
+    }
+    lines.program = gl.create_program();
+    gl.attach_shader(lines.program, vertex);
+    gl.attach_shader(lines.program, fragment);
+    gl.bind_attrib_location(lines.program, 0, "Position");
+    gl.link_program(lines.program);
+    GLint linked = 0;
+    gl.get_program_iv(lines.program, GL_LINK_STATUS, &linked);
+    if (gl.delete_shader) {
+        gl.delete_shader(vertex);
+        gl.delete_shader(fragment);
+    }
+    if (!linked) {
+        lines.failed = true;
+        return lines;
+    }
+    gl.gen_buffers(1, &lines.vertex_buffer);
+    gl.gen_vertex_arrays(1, &lines.vertex_array);
+    gl.bind_vertex_array(lines.vertex_array);
+    gl.bind_buffer(GL_ARRAY_BUFFER, lines.vertex_buffer);
+    gl.enable_vertex_attrib_array(0);
+    gl.vertex_attrib_pointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(ImVec2), nullptr);
+    gl.bind_vertex_array(0);
+    lines.display_size_uniform = gl.get_uniform_location(lines.program, "DisplaySize");
+    lines.display_pos_uniform = gl.get_uniform_location(lines.program, "DisplayPos");
+    lines.view_origin_uniform = gl.get_uniform_location(lines.program, "ViewOrigin");
+    lines.view_size_uniform = gl.get_uniform_location(lines.program, "ViewSize");
+    lines.pan_uniform = gl.get_uniform_location(lines.program, "Pan");
+    lines.center_offset_uniform = gl.get_uniform_location(lines.program, "CenterOffset");
+    lines.world_scale_uniform = gl.get_uniform_location(lines.program, "WorldScale");
+    lines.pitch_uniform = gl.get_uniform_location(lines.program, "Pitch");
+    lines.color_uniform = gl.get_uniform_location(lines.program, "Color");
+    lines.alpha_uniform = gl.get_uniform_location(lines.program, "Alpha");
+    return lines;
+}
+
+void update_territorial_gpu_view(TerritorialGpuLines& lines, const MapViewport& view) {
+    const ImVec2 anchor = territorial_world_anchor();
+    const double z_scale = std::ldexp(1.0, std::clamp(view.z, 0, 30));
+    lines.view_origin = view.origin;
+    lines.view_size = view.size;
+    lines.pan = view.pan;
+    lines.center_offset = ImVec2(
+        static_cast<float>(view.center_x / z_scale - static_cast<double>(anchor.x)),
+        static_cast<float>(view.center_y / z_scale - static_cast<double>(anchor.y)));
+    lines.world_scale = static_cast<float>(z_scale * static_cast<double>(view.scale));
+    lines.pitch = std::clamp(view.pitch, 0.0f, kMapMaxPitch);
+}
+
+bool upload_territorial_gpu_lines(const std::vector<ImVec2>& vertices,
+                                  const std::vector<GLint>& ring_firsts,
+                                  const std::vector<GLsizei>& ring_counts,
+                                  std::size_t municipality_ring_count) {
+    TerritorialGpuLines& lines = territorial_gpu_lines();
+    HistoricalNativeGlApi& gl = historical_native_gl_api();
+    if (lines.failed || !lines.vertex_buffer || !lines.vertex_array || !lines.program) return false;
+    gl.bind_buffer(GL_ARRAY_BUFFER, lines.vertex_buffer);
+    gl.buffer_data(GL_ARRAY_BUFFER,
+                   static_cast<TlalGlSize>(vertices.size() * sizeof(ImVec2)),
+                   vertices.empty() ? nullptr : vertices.data(), GL_STATIC_DRAW);
+    lines.ring_firsts = ring_firsts;
+    lines.ring_counts = ring_counts;
+    lines.municipality_ring_count = std::min(municipality_ring_count, lines.ring_counts.size());
+    return true;
+}
+
+void draw_territorial_gpu_lines_callback(const ImDrawList*, const ImDrawCmd* command) {
+    auto* lines = static_cast<TerritorialGpuLines*>(command ? command->UserCallbackData : nullptr);
+    HistoricalNativeGlApi& gl = historical_native_gl_api();
+    if (!lines || lines->failed || !gl.loaded || !lines->program || !lines->vertex_array) return;
+    ImDrawData* draw_data = ImGui::GetDrawData();
+    const ImVec2 display = draw_data ? draw_data->DisplaySize : ImGui::GetIO().DisplaySize;
+    const ImVec2 display_pos = draw_data ? draw_data->DisplayPos : ImGui::GetMainViewport()->Pos;
+    const ImVec2 framebuffer_scale = draw_data ? draw_data->FramebufferScale : ImGui::GetIO().DisplayFramebufferScale;
+    if (display.x <= 1.0f || display.y <= 1.0f) return;
+    const float line_scale = std::max(1.0f, std::max(framebuffer_scale.x, framebuffer_scale.y));
+    constexpr float kTerritorialMunicipalityLinePx = 1.0f;
+    constexpr float kTerritorialStateLinePx = kTerritorialMunicipalityLinePx * 3.0f;
+    gl.use_program(lines->program);
+    gl.uniform_2f(lines->display_size_uniform, display.x, display.y);
+    gl.uniform_2f(lines->display_pos_uniform, display_pos.x, display_pos.y);
+    gl.uniform_2f(lines->view_origin_uniform, lines->view_origin.x, lines->view_origin.y);
+    gl.uniform_2f(lines->view_size_uniform, lines->view_size.x, lines->view_size.y);
+    gl.uniform_2f(lines->pan_uniform, lines->pan.x, lines->pan.y);
+    gl.uniform_2f(lines->center_offset_uniform, lines->center_offset.x, lines->center_offset.y);
+    gl.uniform_1f(lines->world_scale_uniform, lines->world_scale);
+    gl.uniform_1f(lines->pitch_uniform, lines->pitch);
+    gl.uniform_3f(lines->color_uniform, 1.0f, 1.0f, 1.0f);
+    gl.bind_vertex_array(lines->vertex_array);
+    const auto draw_rings = [&](std::size_t begin, std::size_t end) {
+        if (begin >= end || end > lines->ring_counts.size()) return;
+        if (gl.multi_draw_arrays) {
+            gl.multi_draw_arrays(GL_LINE_STRIP,
+                                 lines->ring_firsts.data() + begin,
+                                 lines->ring_counts.data() + begin,
+                                 static_cast<GLsizei>(end - begin));
+        } else {
+            for (std::size_t ring_index = begin; ring_index < end; ++ring_index) {
+                gl.draw_arrays(GL_LINE_STRIP,
+                               lines->ring_firsts[ring_index],
+                               lines->ring_counts[ring_index]);
+            }
+        }
+    };
+    if (lines->municipality_ring_count > 0) {
+        gl.uniform_1f(lines->alpha_uniform, 0.82f);
+        glLineWidth(kTerritorialMunicipalityLinePx * line_scale);
+        draw_rings(0, lines->municipality_ring_count);
+    }
+    if (lines->ring_counts.size() > lines->municipality_ring_count) {
+        gl.uniform_1f(lines->alpha_uniform, 0.96f);
+        glLineWidth(kTerritorialStateLinePx * line_scale);
+        draw_rings(lines->municipality_ring_count, lines->ring_counts.size());
+    }
+    glLineWidth(1.0f);
+    gl.bind_vertex_array(0);
+    gl.use_program(0);
 }
 
 struct HistoricalNativeGpuMesh {
@@ -48717,11 +49312,11 @@ std::vector<HistoricalNativeGpuMesh::StreamChunk*> historical_stream_visible_chu
         const std::uint32_t lb = b ? b->lod : 0u;
         return la > lb;
     });
-    constexpr std::size_t kHistoricalStreamMaxDrawChunks = 512u;
+    constexpr std::size_t kHistoricalStreamMaxDrawChunks = 320u;
     if (selected.size() > kHistoricalStreamMaxDrawChunks) selected.resize(kHistoricalStreamMaxDrawChunks);
 
     HistoricalNativeGlApi& gl = historical_native_gl_api();
-    int uploads_remaining = view.pitch > 0.85f ? 8 : 5;
+    int uploads_remaining = view.pitch > 0.85f ? 3 : 2;
     for (auto* chunk : selected) {
         if (!chunk || chunk->vertex_array || uploads_remaining <= 0) continue;
         const fs::path chunk_file = chunk->file_path.empty() ? gpu.path : chunk->file_path;
@@ -48746,7 +49341,7 @@ std::vector<HistoricalNativeGpuMesh::StreamChunk*> historical_stream_visible_chu
         --uploads_remaining;
     }
 
-    constexpr std::size_t kResidentLimit = 96u * 1024u * 1024u;
+    constexpr std::size_t kResidentLimit = 48u * 1024u * 1024u;
     for (auto& chunk : gpu.stream_chunks) {
         const bool stale = gpu.stream_frame > chunk.last_used_frame + 90u;
         if (chunk.vertex_array && chunk.last_used_frame != gpu.stream_frame &&
@@ -49857,19 +50452,29 @@ PreviewTexture tlalpowa_startup_icon_texture() {
     return tex;
 }
 
-static void tlalpowa_present_boot_clear_frame(GLFWwindow* window, bool light_theme) {
+void draw_tlalpowa_startup_splash_overlay(UiState& ui, ImDrawList* dl,
+                                          const ImVec2& map_min, const ImVec2& map_max);
+
+static void tlalpowa_present_boot_clear_frame(GLFWwindow* window, UiState& ui) {
     if (!window) return;
-    glfwShowWindow(window);
-    glfwFocusWindow(window);
-    glfwPollEvents();
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    const ImVec2 display = ImGui::GetIO().DisplaySize;
+    draw_tlalpowa_startup_splash_overlay(
+        ui, ImGui::GetForegroundDrawList(), ImVec2(0.0f, 0.0f), display);
+    ImGui::Render();
     int display_w = 0, display_h = 0;
     glfwGetFramebufferSize(window, &display_w, &display_h);
     if (display_w <= 0 || display_h <= 0) return;
     glViewport(0, 0, display_w, display_h);
-    if (light_theme) glClearColor(0.521f, 0.050f, 0.216f, 1.0f);
-    else glClearColor(0.360f, 0.035f, 0.153f, 1.0f);
+    glClearColor(0.521f, 0.050f, 0.216f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    glfwShowWindow(window);
+    glfwFocusWindow(window);
     glfwSwapBuffers(window);
+    glfwPollEvents();
 }
 
 void draw_tlalpowa_startup_splash_overlay(UiState& ui, ImDrawList* dl,
@@ -49884,8 +50489,7 @@ void draw_tlalpowa_startup_splash_overlay(UiState& ui, ImDrawList* dl,
     {
         std::lock_guard<std::mutex> lock(ui.mu);
         startup_visuals_ready = ui.startup_catalogs_loaded &&
-                                !ui.diseases.empty() &&
-                                !ui.pollutants.empty() &&
+                                (!ui.pollutants.empty() || !ui.diseases.empty()) &&
                                 ui.startup_recent_data_ready &&
                                 ui.startup_hotdata_ready &&
                                 ui.startup_first_visible_hotdata_ready &&
@@ -49960,7 +50564,9 @@ void draw_map(UiState& ui, float dt) {
 
 
 
-    static std::vector<MapFeature> cached_features;
+    static std::shared_ptr<const std::vector<MapFeature>> cached_features_ptr;
+
+    static std::shared_ptr<const std::vector<MapFeature>> cached_state_features_ptr;
 
     static std::vector<MapFeature> cached_buffer_features;
 
@@ -50016,7 +50622,8 @@ void draw_map(UiState& ui, float dt) {
         std::lock_guard<std::mutex> lock(ui.mu);
 
         if (cached_map_revision != map_rev) {
-            cached_features = ui.features;
+            cached_features_ptr = ui.features_ptr;
+            cached_state_features_ptr = ui.state_features_ptr;
             cached_buffer_features = ui.buffer_features;
             cached_stations = ui.stations;
             cached_places = ui.places;
@@ -50068,7 +50675,10 @@ void draw_map(UiState& ui, float dt) {
         map_assets_loading = ui.map_assets_loading;
     }
 
-    const std::vector<MapFeature>& features = cached_features;
+    static const std::vector<MapFeature> empty_map_features;
+    const std::vector<MapFeature>& features = cached_features_ptr ? *cached_features_ptr : empty_map_features;
+
+    const std::vector<MapFeature>& state_features = cached_state_features_ptr ? *cached_state_features_ptr : empty_map_features;
 
     const std::vector<MapFeature>& buffer_features = cached_buffer_features;
 
@@ -50489,8 +51099,10 @@ void draw_map(UiState& ui, float dt) {
 
         const double meters_per_degree_lat = 111320.0;
         GeoBounds bounds = bounds_for_features(buffer_features.empty() ? features : buffer_features);
+        GeoBounds navigation_bounds = bounds_for_features(features);
 
         if (!bounds.valid) bounds = bounds_for_features(features);
+        if (!navigation_bounds.valid) navigation_bounds = bounds;
 
         if (!bounds.valid) {
 
@@ -50514,6 +51126,10 @@ void draw_map(UiState& ui, float dt) {
         const double py_min = lat_to_world_px(bounds.lat_max + fallback_pad_lat, layout_tile_z);
 
         const double py_max = lat_to_world_px(bounds.lat_min - fallback_pad_lat, layout_tile_z);
+        const double navigation_px_min = lon_to_world_px(navigation_bounds.lon_min, layout_tile_z);
+        const double navigation_px_max = lon_to_world_px(navigation_bounds.lon_max, layout_tile_z);
+        const double navigation_py_min = lat_to_world_px(navigation_bounds.lat_max, layout_tile_z);
+        const double navigation_py_max = lat_to_world_px(navigation_bounds.lat_min, layout_tile_z);
         const double span_x = std::max(1.0, px_max - px_min);
         const double span_y = std::max(1.0, py_max - py_min);
         const float fit = std::min(size.x * 0.94f / static_cast<float>(span_x), size.y * 0.94f / static_cast<float>(span_y));
@@ -50581,7 +51197,9 @@ void draw_map(UiState& ui, float dt) {
             ui.map_idle_seconds = 0.0f;
         }
 
-        constrain_pan_to_world_bounds(ui, px_min, px_max, py_min, py_max, size, scale, cx, cy);
+        constrain_pan_to_world_bounds(ui, navigation_px_min, navigation_px_max,
+                                      navigation_py_min, navigation_py_max,
+                                      size, scale, cx, cy);
 
         MapViewport view{layout_tile_z, cx, cy, scale, origin, size, ui.pan, ui.map_pitch};
         import_3d_interaction_view = view;
@@ -50623,13 +51241,18 @@ void draw_map(UiState& ui, float dt) {
         const int tile_request_budget_raw = tlal_stream_budget(map_is_being_moved ? 1 : 0, visual_startup_stream_boost ? 1 : 0,
                                                             ui.app_uptime, kMapTileWarmupSeconds, ui.map_idle_seconds,
                                                             kMapDeepIdleDetailSeconds, kMaxTileRequestsPerFrame);
-        const int tile_request_budget = std::min(tile_request_budget_raw, kSatelliteSandboxMaxTileRequestsPerFrame);
+        const float framebuffer_scale = map_framebuffer_pixel_ratio();
+        const double physical_map_pixels = static_cast<double>(size.x) * static_cast<double>(size.y) *
+            static_cast<double>(framebuffer_scale) * static_cast<double>(framebuffer_scale);
+        const int screen_budget_cap = physical_map_pixels <= 1200000.0 ? 4 :
+            (physical_map_pixels <= 2600000.0 ? 5 : 6);
+        const int tile_request_budget = std::min({tile_request_budget_raw, kSatelliteSandboxMaxTileRequestsPerFrame, screen_budget_cap});
         g_tile_requests_remaining = tile_request_budget;
 
         const int tile_upload_budget_raw = tlal_stream_budget(map_is_being_moved ? 1 : 0, visual_startup_stream_boost ? 1 : 0,
                                                            ui.app_uptime, 0.20f, ui.map_idle_seconds,
                                                            kMapDeepIdleDetailSeconds, kMaxTileTextureLoadsPerFrame);
-        const int tile_upload_budget = std::min(tile_upload_budget_raw, kSatelliteSandboxMaxTileTextureLoadsPerFrame);
+        const int tile_upload_budget = std::min({tile_upload_budget_raw, kSatelliteSandboxMaxTileTextureLoadsPerFrame, screen_budget_cap});
         g_tile_texture_loads_remaining = tile_upload_budget;
 
         g_icon_texture_loads_remaining = ui.app_uptime >= 0.80f ? kMaxIconTextureLoadsPerFrame : 0;
@@ -50982,11 +51605,163 @@ void draw_map(UiState& ui, float dt) {
         std::set<std::string> epidemiological_feature_ids;
         const int64_t max_total = std::max<int64_t>(1, [&]() { int64_t m = 1; for (const auto& [_, v] : totals) m = std::max(m, v); return m; }());
         const double boundary_mpp = meters_per_screen_pixel(view);
-        for (const auto& f : features) {
+        GeoBounds territorial_sandbox = viewport_lonlat_bounds(view);
+        const double territorial_pad = std::clamp(boundary_mpp * 96.0 / 111320.0, 0.008, 0.12);
+        territorial_sandbox.lon_min -= territorial_pad;
+        territorial_sandbox.lon_max += territorial_pad;
+        territorial_sandbox.lat_min -= territorial_pad;
+        territorial_sandbox.lat_max += territorial_pad;
+        const Point2 territorial_mouse_geo = screen_to_lonlat(mouse, view);
+        const auto bounds_intersect_sandbox = [&](const std::array<double, 4>& bounds) {
+            return !(bounds[2] < territorial_sandbox.lon_min || bounds[0] > territorial_sandbox.lon_max ||
+                     bounds[3] < territorial_sandbox.lat_min || bounds[1] > territorial_sandbox.lat_max);
+        };
+        const auto bounds_contain_mouse = [&](const std::array<double, 4>& bounds) {
+            return territorial_mouse_geo.x >= bounds[0] && territorial_mouse_geo.x <= bounds[2] &&
+                   territorial_mouse_geo.y >= bounds[1] && territorial_mouse_geo.y <= bounds[3];
+        };
+        const float state_boundary_thickness = std::clamp(
+            boundary_metric_thickness_px(view, {}, false, false) + 0.85f, 1.4f, 5.0f);
+        const float municipality_boundary_thickness = state_boundary_thickness / 3.0f;
+        (void)state_boundary_thickness;
+        (void)municipality_boundary_thickness;
+        std::string territorial_selection_signature = ui.territorial_layer_enabled ? "1|" : "0|";
+        for (const auto& value : ui.selected_territorial_states) {
+            territorial_selection_signature += "s:" + value + "|";
+        }
+        for (const auto& value : ui.selected_territorial_municipalities) {
+            territorial_selection_signature += "m:" + value + "|";
+        }
+        struct TerritorialGpuViewKey {
+            const MapFeature* municipality_source = nullptr;
+            const MapFeature* state_source = nullptr;
+            std::size_t municipality_count = 0;
+            std::size_t state_count = 0;
+            int detail_z = -1;
+            std::string selection;
+        };
+        static TerritorialGpuViewKey territorial_gpu_key;
+        const int territorial_detail_z = std::clamp(view.z, kMapScale30kTileZoom, kMapMunicipalTileZoom);
+        const bool rebuild_territorial_gpu =
+            territorial_gpu_key.municipality_source != features.data() ||
+            territorial_gpu_key.state_source != state_features.data() ||
+            territorial_gpu_key.municipality_count != features.size() ||
+            territorial_gpu_key.state_count != state_features.size() ||
+            territorial_gpu_key.detail_z != territorial_detail_z ||
+            territorial_gpu_key.selection != territorial_selection_signature;
+        std::vector<ImVec2> gpu_territorial_segments;
+        std::vector<GLint> gpu_territorial_ring_firsts;
+        std::vector<GLsizei> gpu_territorial_ring_counts;
+        std::vector<ImVec2> territorial_world_scratch;
+        std::vector<ImVec2> territorial_kept_scratch;
+        const float territorial_lod_tolerance_px =
+            territorial_detail_z <= kMapScale30kTileZoom ? 0.12f :
+            territorial_detail_z == kMapScale15kIdleTileZoom ? 0.24f :
+            territorial_detail_z == kMapScale5kIdleTileZoom ? 0.40f :
+            territorial_detail_z == kMapScale2kIdleTileZoom ? 0.58f : 0.80f;
+        const double territorial_world_scale =
+            std::ldexp(1.0, std::clamp(territorial_detail_z, 0, 30));
+        const float territorial_lod_tolerance_world =
+            territorial_lod_tolerance_px <= 0.0f
+                ? 0.0f
+                : static_cast<float>(territorial_lod_tolerance_px / territorial_world_scale);
+        const auto append_territorial_ring = [&](const std::vector<Point2>& ring) {
+            if (ring.size() < 3) return;
+            const auto append_strip = [&](const std::vector<ImVec2>& points) {
+                if (points.size() < 3u) return;
+                const std::size_t first = gpu_territorial_segments.size();
+                if (first > static_cast<std::size_t>(std::numeric_limits<GLint>::max()) ||
+                    points.size() + 1u > static_cast<std::size_t>(std::numeric_limits<GLsizei>::max())) return;
+                gpu_territorial_segments.reserve(first + points.size() + 1u);
+                gpu_territorial_segments.insert(gpu_territorial_segments.end(), points.begin(), points.end());
+                gpu_territorial_segments.push_back(points.front());
+                gpu_territorial_ring_firsts.push_back(static_cast<GLint>(first));
+                gpu_territorial_ring_counts.push_back(static_cast<GLsizei>(points.size() + 1u));
+            };
+            if (territorial_lod_tolerance_world <= 0.0f) {
+                territorial_world_scratch.clear();
+                territorial_world_scratch.reserve(ring.size());
+                for (const Point2& point : ring) {
+                    territorial_world_scratch.push_back(territorial_world_offset(point));
+                }
+                append_strip(territorial_world_scratch);
+                return;
+            }
+
+            territorial_world_scratch.clear();
+            territorial_world_scratch.reserve(ring.size());
+            for (const Point2& point : ring) territorial_world_scratch.push_back(territorial_world_offset(point));
+
+            territorial_kept_scratch.clear();
+            territorial_kept_scratch.reserve(ring.size());
+            const float tolerance_sq = territorial_lod_tolerance_world * territorial_lod_tolerance_world;
+            for (std::size_t i = 0; i < territorial_world_scratch.size(); ++i) {
+                const ImVec2& previous = territorial_world_scratch[
+                    (i + territorial_world_scratch.size() - 1u) % territorial_world_scratch.size()];
+                const ImVec2& current = territorial_world_scratch[i];
+                const ImVec2& next = territorial_world_scratch[(i + 1u) % territorial_world_scratch.size()];
+                const float sx = next.x - previous.x;
+                const float sy = next.y - previous.y;
+                const float segment_sq = sx * sx + sy * sy;
+                float distance_sq = 0.0f;
+                if (segment_sq <= 1.0e-20f) {
+                    const float dx = current.x - previous.x;
+                    const float dy = current.y - previous.y;
+                    distance_sq = dx * dx + dy * dy;
+                } else {
+                    const float t = std::clamp(
+                        ((current.x - previous.x) * sx + (current.y - previous.y) * sy) / segment_sq,
+                        0.0f, 1.0f);
+                    const float dx = current.x - (previous.x + t * sx);
+                    const float dy = current.y - (previous.y + t * sy);
+                    distance_sq = dx * dx + dy * dy;
+                }
+                if (distance_sq >= tolerance_sq) territorial_kept_scratch.push_back(current);
+            }
+            const std::vector<ImVec2>& points =
+                territorial_kept_scratch.size() >= 3u ? territorial_kept_scratch : territorial_world_scratch;
+            append_strip(points);
+        };
+
+        if (rebuild_territorial_gpu) {
+            for (const MapFeature& feature : features) {
+                if (!territorial_zmvm_feature_selected(ui, feature)) continue;
+                for (const auto& ring : feature.rings) append_territorial_ring(ring);
+            }
+            const std::size_t municipality_ring_count = gpu_territorial_ring_counts.size();
+            for (const MapFeature& state : state_features) {
+                if (!territorial_state_has_visible_selection(ui, state.admin1_id)) continue;
+                for (const auto& ring : state.rings) append_territorial_ring(ring);
+            }
+            if (upload_territorial_gpu_lines(gpu_territorial_segments,
+                                             gpu_territorial_ring_firsts,
+                                             gpu_territorial_ring_counts,
+                                             municipality_ring_count)) {
+                territorial_gpu_key.municipality_source = features.data();
+                territorial_gpu_key.state_source = state_features.data();
+                territorial_gpu_key.municipality_count = features.size();
+                territorial_gpu_key.state_count = state_features.size();
+                territorial_gpu_key.detail_z = territorial_detail_z;
+                territorial_gpu_key.selection = territorial_selection_signature;
+            }
+            std::vector<ImVec2>().swap(gpu_territorial_segments);
+            std::vector<GLint>().swap(gpu_territorial_ring_firsts);
+            std::vector<GLsizei>().swap(gpu_territorial_ring_counts);
+            std::vector<ImVec2>().swap(territorial_world_scratch);
+            std::vector<ImVec2>().swap(territorial_kept_scratch);
+        }
+
+        for (std::size_t feature_index = 0; feature_index < features.size(); ++feature_index) {
+            const auto& f = features[feature_index];
             epidemiological_feature_ids.insert(f.id);
             const int64_t feature_total = totals[f.id];
             const bool has_data = feature_total > 0;
             const bool out_of_focus = !focus_id.empty() && f.id != focus_id;
+            const bool territorial_selected = territorial_zmvm_feature_selected(ui, f);
+            const bool draw_boundary = has_data || territorial_selected;
+            if (!draw_boundary) continue;
+            if (f.bounds_valid && !bounds_intersect_sandbox(f.bounds)) continue;
+            const bool mouse_may_hit_feature = f.bounds_valid && bounds_contain_mouse(f.bounds);
 
             const int line_alpha = tlal_boundary_alpha(boundary_mpp, has_data ? 1 : 0, out_of_focus ? 1 : 0);
             double best_area = -1.0;
@@ -50994,28 +51769,28 @@ void draw_map(UiState& ui, float dt) {
             float best_inside_radius = 0.0f;
             bool territory_hovered = false;
 
-                for (const auto& ring : f.rings) {
-
-                    const int stride = tlal_vertex_stride(boundary_mpp, static_cast<int>(ring.size()));
-                    std::vector<ImVec2> pts = project_ring_lod_metric(ring, view, stride);
-
-                    if (pts.size() < 3) continue;
-                    const float boundary_thickness = boundary_metric_thickness_px(view, pts, has_data, out_of_focus);
-                    const ImU32 boundary_col = ui.light_theme
-                        ? IM_COL32(18, 34, 42, line_alpha)
-                        : IM_COL32(245, 250, 252, line_alpha);
-                    dl->AddPolyline(pts.data(), static_cast<int>(pts.size()), boundary_col, ImDrawFlags_Closed, boundary_thickness);
-                    if (territorial_zmvm_feature_selected(ui, f)) {
-                        const ImU32 territorial_col = ui.light_theme ? IM_COL32(5, 115, 116, 220) : IM_COL32(93, 233, 222, 224);
-                        dl->AddPolyline(pts.data(), static_cast<int>(pts.size()), territorial_col, ImDrawFlags_Closed, std::max(boundary_thickness + 1.15f, 2.1f));
-                        if (ui.territorial_show_labels && best_area < 0.0) {
-                            const ImVec2 tp = best_label_point(pts);
-                            draw_entity_name_label(f, tp, true);
-                        }
+                for (std::size_t ring_index = 0; ring_index < f.rings.size(); ++ring_index) {
+                    const auto& ring = f.rings[ring_index];
+                    if (ring_index < f.ring_bounds.size() && !bounds_intersect_sandbox(f.ring_bounds[ring_index])) continue;
+                    const bool mouse_may_hit_ring =
+                        !out_of_focus && mouse_may_hit_feature &&
+                        (ring_index >= f.ring_bounds.size() || bounds_contain_mouse(f.ring_bounds[ring_index]));
+                    if (mouse_may_hit_ring && point_in_geo_ring(territorial_mouse_geo, ring)) {
+                        territory_hovered = true;
                     }
+                    if (!has_data) continue;
 
-                    if (!out_of_focus && point_in_polygon(mouse, pts)) territory_hovered = true;
-                    const double area = polygon_screen_area(pts);
+                    const std::vector<ImVec2> pts = project_ring_lod_metric(ring, view, 1);
+                    if (pts.size() < 3) continue;
+                    if (has_data && !territorial_selected) {
+                        const ImU32 boundary_col = ui.light_theme
+                            ? IM_COL32(18, 34, 42, line_alpha)
+                            : IM_COL32(245, 250, 252, line_alpha);
+                        dl->AddPolyline(pts.data(), static_cast<int>(pts.size()), boundary_col,
+                                        ImDrawFlags_Closed,
+                                        boundary_metric_thickness_px(view, pts, has_data, out_of_focus));
+                    }
+                    const double area = has_data ? polygon_screen_area(pts) : -1.0;
 
                 if (area > best_area) {
                     best_area = area;
@@ -51029,7 +51804,6 @@ void draw_map(UiState& ui, float dt) {
                 hovered_id = f.id;
                 hovered_name = f.name;
             }
-
             if (false && !out_of_focus && best_area > 0.0 && ui.map_lod_target >= kMapZmvmTileZoom) {
 
                 const bool city_detail = ui.map_lod_target >= kMapScale90kTileZoom || territory_hovered || dot_hovered;
@@ -51037,7 +51811,6 @@ void draw_map(UiState& ui, float dt) {
                 dl->AddCircleFilled(best_center, r + 1.25f, ui.light_theme ? IM_COL32(255, 255, 255, 164) : IM_COL32(3, 8, 14, 178), 14);
                 dl->AddCircleFilled(best_center, r, ui.light_theme ? IM_COL32(28, 70, 92, 224) : IM_COL32(214, 235, 246, 224), 14);
 
-                if (territory_hovered || dot_hovered) draw_entity_name_label(f, best_center, true);
             }
 
             if (!out_of_focus && totals[f.id] > 0 && best_area > 0.0) {
@@ -51051,6 +51824,14 @@ void draw_map(UiState& ui, float dt) {
 
                 if (radius >= 2.5f) pending_epidemiological_pies.push_back(PieRenderItem{best_center, radius, f.id, f.name, aggregate_epidemiology_pies_by_group ? groups_by_geo[f.id] : diseases_by_geo[f.id]});
             }
+        }
+
+        TerritorialGpuLines& territorial_lines = territorial_gpu_lines();
+        update_territorial_gpu_view(territorial_lines, view);
+        if (territorial_lines.program &&
+            !territorial_lines.ring_counts.empty()) {
+            dl->AddCallback(draw_territorial_gpu_lines_callback, &territorial_lines);
+            dl->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
         }
 
         for (const auto& [geo_id, geo_total] : totals) {
@@ -51219,7 +52000,6 @@ void draw_map(UiState& ui, float dt) {
                 dl->AddCircleFilled(best_center, r + 1.0f, ui.light_theme ? IM_COL32(255, 255, 255, 112) : IM_COL32(3, 8, 14, 126), 12);
                 dl->AddCircleFilled(best_center, r, ui.light_theme ? IM_COL32(30, 76, 100, 184) : IM_COL32(196, 225, 240, 184), 12);
 
-                if (territory_hovered || dot_hovered) draw_entity_name_label(f, best_center, false);
             }
         }
 
@@ -51554,36 +52334,21 @@ if (map_input_blocked) {
 
 
 
-    static std::string fading_territory_id;
-    static std::string fading_territory_name;
-    static double fading_territory_started = -1000.0;
-    static ImVec2 fading_territory_cursor(0.0f, 0.0f);
-    const double territory_now = ImGui::GetTime();
-    if (map_canvas_hovered && !attribution_hovered && !hovered_id.empty()) {
-        if (hovered_id != fading_territory_id) {
-            fading_territory_id = hovered_id;
-            fading_territory_name = hovered_name;
-            fading_territory_started = territory_now;
-        }
-        fading_territory_cursor = mouse;
-    }
-    const double territory_age = territory_now - fading_territory_started;
-    
-    if (!fading_territory_name.empty() && territory_age >= 0.0 && territory_age < 2.0) {
-        const float alpha = static_cast<float>(std::clamp((2.0 - territory_age) / 0.75, 0.0, 1.0));
-        if (alpha > 0.01f) {
-            const ImVec2 ts = ImGui::CalcTextSize(fading_territory_name.c_str());
-            ImVec2 lp = ImVec2(fading_territory_cursor.x + 14.0f, fading_territory_cursor.y + 16.0f);
-            lp.x = std::min(lp.x, origin.x + size.x - ts.x - 18.0f);
-            lp.y = std::min(lp.y, origin.y + size.y - ts.y - 14.0f);
-            lp.x = std::max(lp.x, origin.x + 8.0f);
-            lp.y = std::max(lp.y, origin.y + 8.0f);
-            const int text_a = static_cast<int>(std::clamp(235.0f * alpha, 0.0f, 235.0f));
-            const int bg_a = static_cast<int>(std::clamp(210.0f * alpha, 0.0f, 210.0f));
-            dl->AddRectFilled(ImVec2(lp.x - 7.0f, lp.y - 4.0f), ImVec2(lp.x + ts.x + 7.0f, lp.y + ts.y + 5.0f), IM_COL32(246, 250, 253, bg_a), 5.0f);
-            dl->AddRect(ImVec2(lp.x - 7.0f, lp.y - 4.0f), ImVec2(lp.x + ts.x + 7.0f, lp.y + ts.y + 5.0f), IM_COL32(60, 84, 98, static_cast<int>(150.0f * alpha)), 5.0f, 0, 1.0f);
-            dl->AddText(lp, IM_COL32(35, 54, 66, text_a), fading_territory_name.c_str());
-        }
+    const std::string map_hover_name = !hovered_place.empty() ? hovered_place : hovered_name;
+    if (map_canvas_hovered && !attribution_hovered && !map_hover_name.empty()) {
+        const std::string label = compact_label(map_hover_name, 38);
+        const ImVec2 ts = ImGui::CalcTextSize(label.c_str());
+        ImVec2 lp(mouse.x + 14.0f, mouse.y + 16.0f);
+        lp.x = std::clamp(lp.x, origin.x + 8.0f, origin.x + size.x - ts.x - 18.0f);
+        lp.y = std::clamp(lp.y, origin.y + 8.0f, origin.y + size.y - ts.y - 14.0f);
+        const ImU32 bg = ui.light_theme ? IM_COL32(246, 250, 253, 226) : IM_COL32(5, 10, 15, 226);
+        const ImU32 border = ui.light_theme ? IM_COL32(60, 84, 98, 158) : IM_COL32(214, 235, 246, 148);
+        const ImU32 text = ui.light_theme ? IM_COL32(35, 54, 66, 245) : IM_COL32(226, 241, 248, 245);
+        dl->AddRectFilled(ImVec2(lp.x - 7.0f, lp.y - 4.0f),
+                          ImVec2(lp.x + ts.x + 7.0f, lp.y + ts.y + 5.0f), bg, 5.0f);
+        dl->AddRect(ImVec2(lp.x - 7.0f, lp.y - 4.0f),
+                    ImVec2(lp.x + ts.x + 7.0f, lp.y + ts.y + 5.0f), border, 5.0f, 0, 1.0f);
+        dl->AddText(lp, text, label.c_str());
     }
 
     if (map_canvas_hovered && !attribution_hovered && !hovered_epi_pie.valid && hovered_atmosphere.valid) {
@@ -51626,11 +52391,6 @@ if (map_input_blocked) {
 
         ImGui::EndTooltip();
 
-    } else if (map_canvas_hovered && !attribution_hovered && !hovered_epi_pie.valid && !hovered_place.empty()) {
-        
-        ImGui::BeginTooltip();
-        ImGui::TextUnformatted(hovered_place.c_str());
-        ImGui::EndTooltip();
     } else if (map_canvas_hovered && !attribution_hovered && !hovered_epi_pie.valid && !hovered_station.empty()) {
 
         ImGui::BeginTooltip();
@@ -51750,12 +52510,10 @@ if (map_input_blocked) {
     ImGui::End();
 
     ImGui::PopStyleVar(2);
-    bool startup_sidebar_ready = false;
-    {
-        std::lock_guard<std::mutex> lock(ui.mu);
-        startup_sidebar_ready = ui.startup_catalogs_loaded;
-    }
-    if (startup_sidebar_ready) draw_side_panel(ui);
+    /* Catálogo lateral permanente: el mapa ya reserva su ancho, por tanto la
+       ventana lateral se dibuja siempre.  Si los catálogos siguen cargando, se
+       muestran las familias estáticas y las listas se llenan al publicar los mapas. */
+    draw_side_panel(ui);
 
     if (!pinned_epi_pie.valid || map_input_blocked) {
         last_epi_pinned_min = ImVec2(0.0f, 0.0f);
@@ -53072,7 +53830,16 @@ void draw_bottom_bar(UiState& ui) {
     const ImVec2 win_size = ImGui::GetWindowSize();
     const ImU32 footer_bg = ui.light_theme ? IM_COL32(246, 249, 252, 255) : IM_COL32(10, 14, 18, 255);
     dl->AddRectFilled(win_pos, ImVec2(win_pos.x + win_size.x, win_pos.y + win_size.y), footer_bg, 0.0f);
-    ImGui::GetForegroundDrawList()->AddRectFilled(ImVec2(win_pos.x, win_pos.y - 2.0f), ImVec2(win_pos.x + win_size.x, win_pos.y + 2.0f), footer_bg, 0.0f);
+    /* Sello externo del footer: cierra rendijas por redondeo sin tapar el borde interno. */
+    {
+        ImDrawList* fg = ImGui::GetForegroundDrawList();
+        const float x0f = std::floor(win_pos.x);
+        const float x1f = std::ceil(win_pos.x + win_size.x);
+        const float y0f = std::floor(win_pos.y);
+        const float y1f = std::ceil(win_pos.y + win_size.y);
+        fg->AddRectFilled(ImVec2(x0f, y0f - 1.0f), ImVec2(x1f, y0f), footer_bg, 0.0f);
+        fg->AddRectFilled(ImVec2(x0f, y1f), ImVec2(x1f, y1f + 1.0f), footer_bg, 0.0f);
+    }
     
 
 
@@ -58706,7 +59473,7 @@ OzoneCorrelationResult build_ozone_epidemiology_correlation_for_lag(UiState& ui,
 
     std::shared_ptr<const std::vector<ObservationRow>> observations_ptr;
 
-    std::vector<MapFeature> features;
+    std::shared_ptr<const std::vector<MapFeature>> features_ptr;
 
     std::vector<MapStation> station_list;
 
@@ -58734,7 +59501,7 @@ OzoneCorrelationResult build_ozone_epidemiology_correlation_for_lag(UiState& ui,
 
         std::lock_guard<std::mutex> lock(ui.mu);
         observations_ptr = ui.observations_ptr;
-        features = ui.features;
+        features_ptr = ui.features_ptr;
 
         station_list = ui.stations;
         selected = ui.selected_diseases;
@@ -58812,10 +59579,12 @@ OzoneCorrelationResult build_ozone_epidemiology_correlation_for_lag(UiState& ui,
         if (!id.empty() && std::isfinite(s.lon) && std::isfinite(s.lat)) stations[id] = s;
     }
 
-    if (features.empty()) {
-
-        features = load_geojson(ui_config_root() / "zmvm.geojson");
+    std::vector<MapFeature> fallback_features;
+    if (!features_ptr || features_ptr->empty()) {
+        fallback_features = load_geojson(ui_config_root() / "zmvm.geojson");
     }
+    const std::vector<MapFeature>& features =
+        features_ptr && !features_ptr->empty() ? *features_ptr : fallback_features;
 
 
     const std::string station_sig = station_geometry_signature(stations);
@@ -59600,10 +60369,10 @@ void draw_ozone_correlation_plot(ImDrawList* dl,
             const ImVec2 label_size = ImGui::CalcTextSize(progress_label);
             dl->AddText(ImVec2(bar_x + (bar_w - label_size.x) * 0.5f, plot_max.y + 14.0f),
                         light_theme ? IM_COL32(84, 96, 108, 218) : IM_COL32(170, 184, 198, 218), progress_label);
+            const float async_progress_h = tlalpowa_import_track_visual_thickness();
             const ImVec2 bar_a(bar_x, bar_y);
-            const ImVec2 bar_b(bar_x + bar_w, bar_y + 5.0f);
-            dl->AddRectFilled(bar_a, bar_b, light_theme ? IM_COL32(215, 225, 234, 235) : IM_COL32(38, 50, 62, 235), 3.0f);
-            dl->AddRectFilled(bar_a, ImVec2(bar_a.x + (bar_b.x - bar_a.x) * pct, bar_b.y), u32(accent, 0.92f), 3.0f);
+            const ImVec2 bar_b(bar_x + bar_w, bar_y + async_progress_h);
+            tlalpowa_draw_canonical_progress_rect(dl, bar_a, bar_b, pct, accent, light_theme, true, corr.pending_async);
         }
 
         return;
@@ -61723,9 +62492,6 @@ int run_tlalpowa_app() {
     g_tlalpowa_main_window = window;
     apply_window_icon(window);
     glfwMaximizeWindow(window);
-    glfwShowWindow(window);
-
-    glfwFocusWindow(window);
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
 
@@ -61794,17 +62560,18 @@ int run_tlalpowa_app() {
 
     ui.accent = system_accent_color();
     apply_minimal_theme(ui.light_theme, ui.accent);
-    tlalpowa_present_boot_clear_frame(window, ui.light_theme);
     auto startup_first_frame_presented = std::make_shared<std::atomic_bool>(false);
+    ui.startup_catalogs_loading = true;
+    ui.startup_recent_data_loading = true;
+    ui.startup_hotdata_loading = true;
+    tlalpowa_present_boot_clear_frame(window, ui);
+    startup_first_frame_presented->store(true, std::memory_order_release);
     const auto tlalpowa_wait_first_welcome_frame = [startup_first_frame_presented, &ui]() {
         while (!startup_first_frame_presented->load(std::memory_order_acquire) &&
                !ui.cancel_requested.load(std::memory_order_acquire)) {
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
     };
-    ui.startup_catalogs_loading = true;
-    ui.startup_recent_data_loading = true;
-    ui.startup_hotdata_loading = true;
     const std::string hotdata_root_utf8 = path_utf8(datos_root());
     std::thread hotdata_loader([&ui, hotdata_root_utf8, tlalpowa_wait_first_welcome_frame]() {
         tlalpowa_wait_first_welcome_frame();
@@ -61843,7 +62610,7 @@ int run_tlalpowa_app() {
         // con cobertura minima de 75% de categorias fisicas. Mapa, movilidad,
         // teselas y reconstrucciones quedan fuera del candado y siguen despues.
         cfg.max_total_touch_bytes = static_cast<std::uint64_t>(env_int_clamped_app(
-            "TLALPOWA_HOTDATA_STARTUP_TOUCH_MB", 48, 24, 128)) * 1024ull * 1024ull;
+            "TLALPOWA_HOTDATA_STARTUP_TOUCH_MB", 24, 24, 128)) * 1024ull * 1024ull;
         cfg.max_payload_bytes_per_record = static_cast<std::uint32_t>(env_int_clamped_app(
             "TLALPOWA_HOTDATA_STARTUP_RECORD_KB", 160, 32, 512)) * 1024u;
         cfg.enable_3d_touch = download_env_flag_enabled_local("TLALPOWA_HOTDATA_STARTUP_3D", false) ? 1u : 0u;
@@ -61853,9 +62620,9 @@ int run_tlalpowa_app() {
         cfg.neighbor_bytes_per_record = static_cast<std::uint32_t>(env_int_clamped_app(
             "TLALPOWA_HOTDATA_BACKGROUND_NEIGHBOR_KB", 48, 16, 128)) * 1024u;
         cfg.max_runtime_cache_bytes = static_cast<std::uint64_t>(env_int_clamped_app(
-            "TLALPOWA_HOTDATA_CACHE_MB", 40, 16, 72)) * 1024ull * 1024ull;
+            "TLALPOWA_HOTDATA_CACHE_MB", 16, 16, 72)) * 1024ull * 1024ull;
         cfg.runtime_cache_lines = static_cast<std::uint32_t>(env_int_clamped_app(
-            "TLALPOWA_HOTDATA_CACHE_LINES", 1536, 384, 3072));
+            "TLALPOWA_HOTDATA_CACHE_LINES", 384, 384, 3072));
         cfg.startup_gate_records_per_core = static_cast<std::uint32_t>(env_int_clamped_app(
             "TLALPOWA_HOTDATA_STARTUP_GATE_RECORDS", 1, 1, 4));
         cfg.startup_gate_bytes_per_record = static_cast<std::uint32_t>(env_int_clamped_app(
@@ -61987,7 +62754,10 @@ int run_tlalpowa_app() {
             bool catalog_complete = false;
             {
                 std::lock_guard<std::mutex> lock(ui.mu);
-                catalog_complete = !ui.diseases.empty() && !ui.pollutants.empty();
+                /* El catálogo lateral no debe depender de epidemiología: TLALPOWA puede
+                   arrancar con atmósfera, territorio, historia y movilidad aunque no haya
+                   diseases.tsv ni IXIPTLAH epidemiológico disponible. */
+                catalog_complete = !ui.pollutants.empty() || !ui.diseases.empty();
                 ui.startup_catalogs_loaded = catalog_complete;
                 ui.startup_catalogs_loading = false;
             }
@@ -62201,10 +62971,14 @@ int run_tlalpowa_app() {
 
             const fs::path geo_root = ui_config_root();
 
-            auto features = load_geojson(geo_root / "zmvm.geojson");
+            const fs::path regional_geometry = territorial_installed_geometry_path();
+            auto features = load_territorial_geometry(territorial_installed_binary_path(), regional_geometry);
+            if (features.empty()) features = load_geojson(geo_root / "zmvm.geojson");
             if (features.empty()) {
-                throw std::runtime_error("zmvm.geojson no contiene delimitaciones utilizables");
+                throw std::runtime_error("No hay delimitaciones territoriales utilizables");
             }
+            auto state_features = load_territorial_geometry(
+                territorial_installed_states_binary_path(), territorial_installed_states_path());
 
             auto buffer_features = load_geojson(first_existing_path({geo_root / "zmvm_buffer_50km.geojson", geo_root / "zmvm_buffer_20km.geojson", geo_root / "zmvm_buffer_10km.geojson"}));
             auto places = load_map_places(existing_place_catalog_paths(geo_root), features, buffer_features);
@@ -62212,9 +62986,17 @@ int run_tlalpowa_app() {
             {
 
                 std::lock_guard<std::mutex> lock(ui.mu);
-                ui.features = std::move(features);
+                ui.features_ptr = std::make_shared<const std::vector<MapFeature>>(std::move(features));
+                ui.state_features_ptr = std::make_shared<const std::vector<MapFeature>>(std::move(state_features));
                 ui.buffer_features = std::move(buffer_features);
                 ui.places = std::move(places);
+                if (download_env_flag_enabled_local("TLALPOWA_DIAGNOSTIC_SELECT_ALL_TERRITORY", false)) {
+                    ui.territorial_layer_enabled = true;
+                    ui.selected_territorial_states.clear();
+                    for (const TerritorialStateSpec& state : territorial_catalog_cached()) {
+                        if (!state.municipalities.empty()) ui.selected_territorial_states.insert(state.id);
+                    }
+                }
 
                 ui.map_revision.fetch_add(1, std::memory_order_relaxed);
 
@@ -62224,7 +63006,9 @@ int run_tlalpowa_app() {
 
                 ui.startup_tiles_ready = true;
                 ui.startup_tile_coverage = 1.0f;
-                ui.status = "Mapa ZMVM, poblados y estaciones esenciales cargados sobre Z5/Z10/Z19 embebidos";
+                ui.status = fs::exists(regional_geometry)
+                    ? "Mapa regional INEGI 2025, poblados y estaciones esenciales cargados"
+                    : "Mapa ZMVM, poblados y estaciones esenciales cargados sobre Z5/Z10/Z19 embebidos";
             }
 
 
@@ -62246,11 +63030,19 @@ int run_tlalpowa_app() {
     float theme_poll = 0.0f;
     float memory_trim_poll = 0.0f;
     bool low_power_idle = false;
+    bool low_power_background = false;
 
     while (!glfwWindowShouldClose(window)) {
         if (low_power_idle) {
-            const int wait_ms = env_int_clamped_app("TLALPOWA_IDLE_EVENT_WAIT_MS", 200, 20, 1000);
-            glfwWaitEventsTimeout(static_cast<double>(wait_ms) / 1000.0);
+            // En reposo el framebuffer ya contiene la geometría exacta. Esperar
+            // un evento evita reconstruir y reenviar cientos de miles de vértices
+            // sin cambiar un solo píxel; reproducción y tareas activas impiden
+            // entrar a este estado mediante background_busy.
+            glfwWaitEvents();
+        } else if (low_power_background) {
+            // El progreso de tareas de fondo se actualiza cada 5 s. Renderizarlo
+            // a cientos de cuadros por segundo solo desperdicia CPU.
+            glfwWaitEventsTimeout(5.0);
         } else {
             glfwPollEvents();
         }
@@ -62439,12 +63231,9 @@ int run_tlalpowa_app() {
                 draw_bottom_bar(ui);
             } else {
                 draw_graph_workspace(ui);
-                bool startup_sidebar_ready = false;
-                {
-                    std::lock_guard<std::mutex> lock(ui.mu);
-                    startup_sidebar_ready = ui.startup_catalogs_loaded;
-                }
-                if (startup_sidebar_ready) draw_side_panel(ui);
+                /* Catálogo lateral permanente también en gráficas: su presencia no
+                   depende del estado del cargador epidemiológico. */
+                draw_side_panel(ui);
                 draw_bottom_bar(ui);
             }
             draw_extraction_overlay(ui);
@@ -62471,6 +63260,30 @@ int run_tlalpowa_app() {
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         process_pending_graph_capture(ui, display_w, display_h);
 
+        // Las delimitaciones exactas pueden producir cientos de miles de
+        // vértices transitorios. ImGui conserva por defecto la capacidad máxima
+        // de esos vectores para siempre; liberarla tras presentar el cuadro
+        // mantiene la precisión completa sin convertir una selección regional
+        // ocasional en consumo permanente de RAM.
+        if (ui.territorial_layer_enabled) {
+            ImDrawData* rendered = ImGui::GetDrawData();
+            if (rendered) {
+                constexpr int kTransientTerritorialBufferThreshold = 262144;
+                for (int list_index = 0; list_index < rendered->CmdListsCount; ++list_index) {
+                    ImDrawList* list = rendered->CmdLists[list_index];
+                    if (!list) continue;
+                    if (list->VtxBuffer.Capacity > kTransientTerritorialBufferThreshold) {
+                        list->VtxBuffer.clear();
+                        list->VtxBuffer.shrink(0);
+                    }
+                    if (list->IdxBuffer.Capacity > kTransientTerritorialBufferThreshold * 2) {
+                        list->IdxBuffer.clear();
+                        list->IdxBuffer.shrink(0);
+                    }
+                }
+            }
+        }
+
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
             GLFWwindow* backup_context = glfwGetCurrentContext();
 
@@ -62482,33 +63295,22 @@ int run_tlalpowa_app() {
         glfwSwapBuffers(window);
         startup_first_frame_presented->store(true, std::memory_order_release);
 
-        static ImVec2 last_idle_mouse_pos(-100000.0f, -100000.0f);
-        static bool last_idle_mouse_down[5] = {false, false, false, false, false};
-        static auto last_idle_interaction = std::chrono::steady_clock::now();
-        bool input_changed = std::fabs(io.MousePos.x - last_idle_mouse_pos.x) > 0.5f ||
-                             std::fabs(io.MousePos.y - last_idle_mouse_pos.y) > 0.5f ||
-                             std::fabs(io.MouseWheel) > 0.0f ||
-                             std::fabs(io.MouseWheelH) > 0.0f ||
-                             ImGui::IsAnyItemActive();
-        last_idle_mouse_pos = io.MousePos;
+        bool physical_mouse_down = false;
         for (int i = 0; i < 5; ++i) {
-            const bool down = io.MouseDown[i];
-            input_changed = input_changed || (down != last_idle_mouse_down[i]);
-            last_idle_mouse_down[i] = down;
+            physical_mouse_down = physical_mouse_down || io.MouseDown[i];
         }
-        if (input_changed) last_idle_interaction = std::chrono::steady_clock::now();
 
         const bool background_busy = ui.running.load() || ui.playing || ui.mobility_downloading ||
                                      ui.epi_downloading || ui.atmosphere_importing ||
                                      ui.satellite_importing || ui.external_importing ||
                                      ui.import_3d_busy.load() ||
-                                     ui.atmosphere_snapshot_loading || ui.map_assets_loading || ui.startup_hotdata_loading ||
-                                     ui.observations_loading || ui.observations_full_loading ||
+                                     ui.atmosphere_snapshot_loading || ui.map_assets_loading ||
+                                     ui.observations_full_loading ||
                                      ui.atmospheric_clouds_loading || ui.mobility_loading;
-        const auto idle_for_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now() - last_idle_interaction).count();
-        const bool idle_frame = !background_busy && idle_for_ms >= 350;
+        const bool direct_interaction = physical_mouse_down || ImGui::IsAnyItemActive();
+        const bool idle_frame = !background_busy && !direct_interaction;
         low_power_idle = idle_frame;
+        low_power_background = background_busy && !direct_interaction;
         const int frame_sleep_ms = idle_frame
             ? env_int_clamped_app("TLALPOWA_IDLE_FRAME_SLEEP_MS", 64, 0, 250)
             : env_int_clamped_app("TLALPOWA_ACTIVE_FRAME_SLEEP_MS", 2, 0, 50);

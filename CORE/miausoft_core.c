@@ -57,6 +57,10 @@ int miausoft_phi_scale_px(int extent, unsigned int power, int minimum) {
     return rounded < minimum ? minimum : rounded;
 }
 
+int miausoft_progress_bar_thickness_px(int extent) {
+    return miausoft_phi_scale_px(extent, MIAUSOFT_PROGRESS_BAR_PHI_POWER, MIAUSOFT_PROGRESS_BAR_MIN_PX);
+}
+
 MiausoftRgb miausoft_palette_light_root(void) { return rgb(250, 252, 253); }
 MiausoftRgb miausoft_palette_light_frame(void) { return rgb(235, 240, 244); }
 MiausoftRgb miausoft_palette_light_ink(void) { return rgb(19, 22, 27); }

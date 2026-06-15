@@ -1,6 +1,6 @@
 {
     "schema":  1,
-    "generated_utc":  "2026-06-14T20:25:45Z",
+    "generated_utc":  "2026-06-15T03:10:11Z",
     "files":  [
                   {
                       "path":  ".gitignore",
@@ -94,14 +94,14 @@
                   },
                   {
                       "path":  "CORE/miausoft_core.c",
-                      "sha256":  "57252b19ea1d50f553af1abdc87a5b39fa843b189a036cd0597e63d42d384643",
-                      "size":  2072,
+                      "sha256":  "57b3382e57a26c498fc628ddd584d9eaa979e7dc3af3cf84f7d76cade98be6bc",
+                      "size":  2233,
                       "data":  false
                   },
                   {
                       "path":  "CORE/miausoft_core.h",
-                      "sha256":  "6092698ef8c4b9ee8e8e2c01ec8f6100a732347955d8ec2508baf9b09194923b",
-                      "size":  1603,
+                      "sha256":  "c1e7e94f669f8dcbf4e6d2729e3a8c0727500a147b70d128d4735f9f83c3eb38",
+                      "size":  1738,
                       "data":  false
                   },
                   {
@@ -124,8 +124,8 @@
                   },
                   {
                       "path":  "CORE/MiausoftVisualConfig.h",
-                      "sha256":  "e75f82d90318de98a5c3318bf9ec3beba5d87d6d9da0081198a7007685619d64",
-                      "size":  84900,
+                      "sha256":  "c061e653f32a3bb6c007c429385e8a81fd1f94ade71d0c9cd1e2697646739a6f",
+                      "size":  84838,
                       "data":  false
                   },
                   {
@@ -160,8 +160,8 @@
                   },
                   {
                       "path":  "Tlalpowa.exe",
-                      "sha256":  "aa3f9288585bc096d4419f2c876d5a903bdb0977e4f2595a30355aee4396ba62",
-                      "size":  8109056,
+                      "sha256":  "2315911f8b881b1ee6a77ec113f9a8a1ca6f619bfdc93b8af17d993c37b21025",
+                      "size":  8153600,
                       "data":  false
                   },
                   {
@@ -14397,6 +14397,18 @@
                       "data":  true
                   },
                   {
+                      "path":  "TLALPOWA/Datos/estados_centro_mexico.geojson",
+                      "sha256":  "9ba87ec5bfcaa775514173e7bd8d6ac5dea3e6f39f2a73237f807cea8d6e704e",
+                      "size":  3341873,
+                      "data":  true
+                  },
+                  {
+                      "path":  "TLALPOWA/Datos/estados_centro_mexico.tlalgeo",
+                      "sha256":  "c4ae8c932622813714feaaace710ea36eec528bf3d01b17ef1601bfac82e9496",
+                      "size":  992604,
+                      "data":  true
+                  },
+                  {
                       "path":  "TLALPOWA/Datos/Gráficas/O3_incidencia/atomicos/o3_alcaldia_diario_triangulado_2020s.ixiptlah",
                       "sha256":  "af1c895449dc625777c6c58d21ff1acb0830bbc86b593b028f260a2e4eecba6a",
                       "size":  49849,
@@ -14781,9 +14793,33 @@
                       "data":  true
                   },
                   {
+                      "path":  "TLALPOWA/Datos/territorio_centro_mexico.geojson",
+                      "sha256":  "d727d7c2fa7551e3061c81391ad53e5214e1d83985d2862f056a5db6f88c5cff",
+                      "size":  24571904,
+                      "data":  true
+                  },
+                  {
+                      "path":  "TLALPOWA/Datos/territorio_centro_mexico.tlalgeo",
+                      "sha256":  "3dc240a359d326cba88d05d6a536a5a7d7b85770f9d79b139358eecc7b1224c5",
+                      "size":  7301982,
+                      "data":  true
+                  },
+                  {
+                      "path":  "TLALPOWA/Datos/territorio_centro_mexico_catalogo.json",
+                      "sha256":  "a4e6414165a1e6c1cc0b124cbce31ed29ed2fec948b5b74bea333e80a2fed05e",
+                      "size":  33309,
+                      "data":  true
+                  },
+                  {
                       "path":  "TLALPOWA/export_tenochtitlan_native_mesh.py",
                       "sha256":  "5aa6a92d06a4bb3b3acb50bfd71de770315e69768affa12a6ad54b9e3530380d",
                       "size":  27780,
+                      "data":  false
+                  },
+                  {
+                      "path":  "TLALPOWA/generar_territorio_inegi.py",
+                      "sha256":  "4a26a4cacd85eb98d8b4f03bfe6653871a1292f02db8306256fe53020e60db0a",
+                      "size":  5151,
                       "data":  false
                   },
                   {
@@ -14806,8 +14842,8 @@
                   },
                   {
                       "path":  "TLALPOWA/registro_actualizaciones_tlalpowa.md",
-                      "sha256":  "3edb71e24747f9a693704e621e180cc3bf07216a2ba59094767bdf159dd67b7d",
-                      "size":  100447,
+                      "sha256":  "701a500dce772689e3f623cb2a51a355716545ab5215d73f3bf0e8d2ac326de4",
+                      "size":  105675,
                       "data":  false
                   },
                   {
@@ -14817,15 +14853,9 @@
                       "data":  false
                   },
                   {
-                      "path":  "TLALPOWA/thomas_kole_tenochtitlan_patch.png",
-                      "sha256":  "104cc831b72220f208c763cbcad917a80e1b153f8dbc0facef60abae7c0d837f",
-                      "size":  218457,
-                      "data":  false
-                  },
-                  {
                       "path":  "TLALPOWA/Tlalpowa.cpp",
-                      "sha256":  "002525d82242ba6af7ae8b2471848bcbddfaff9fb21388f39fc477f0756eb7fd",
-                      "size":  2432636,
+                      "sha256":  "b99623bcbcb3960fb5892a73b8803cca2eeec443a34d7d82ebf7a7d3e68928bc",
+                      "size":  2473763,
                       "data":  false
                   },
                   {
@@ -14836,8 +14866,8 @@
                   },
                   {
                       "path":  "TLALPOWA/tlalpowa_c.c",
-                      "sha256":  "c4f02484a0b4465825c8e8eddc7000fb01aec6cc5396f72916741257c1b180f4",
-                      "size":  316666,
+                      "sha256":  "77e69582efd61c65ae25d66276d30652b6cc3d5b179a7f12823422af159b25d3",
+                      "size":  316819,
                       "data":  false
                   },
                   {
@@ -14859,15 +14889,27 @@
                       "data":  false
                   },
                   {
+                      "path":  "TLALPOWA/tlalpowa_mapa_liviano_verificacion.txt",
+                      "sha256":  "39880a7127c4d9c18f87a8831133bc8bc0422a882c76c99c811e6f603ff66f3e",
+                      "size":  965,
+                      "data":  false
+                  },
+                  {
                       "path":  "TLALPOWA/tlalpowa_nucleo.cpp",
                       "sha256":  "dbcbb70ac5d53478def837778e12824dd20e02ad9d9c7c1209011da61dff7731",
                       "size":  820778,
                       "data":  false
                   },
                   {
-                      "path":  "TLALPOWA/validaciones_tlalpowa.txt",
-                      "sha256":  "e99365189dfafaebca35615804d22dbee9ca53a7407b44db2d4ad4f23213f608",
-                      "size":  1303,
+                      "path":  "TLALPOWA/tlalpowa_satelite_rapido_verificacion.txt",
+                      "sha256":  "7a2c9b1785080eadf09a0d361856f65f015d58ef45b8b23618293da039d12de6",
+                      "size":  1719,
+                      "data":  false
+                  },
+                  {
+                      "path":  "TLALPOWA/tlalpowa_territorio_verificacion.txt",
+                      "sha256":  "46bf4f4278a521d727f4167991d2e9d9aab9b7bf61e9102e0298ee031cb51b52",
+                      "size":  1218,
                       "data":  false
                   }
               ]

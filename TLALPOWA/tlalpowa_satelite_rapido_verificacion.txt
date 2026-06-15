@@ -1,0 +1,24 @@
+TLALPOWA - verificacion de streaming satelital rapido
+
+Cambios acumulativos aplicados:
+- Cache residente de teselas subido a 128 texturas, con LRU estable: ya no libera teselas a los pocos frames al mover el mapa.
+- Poda residente con retencion blanda de 360 frames y limpieza profunda de entradas vacias hasta 1800 frames.
+- Cache en unordered_map para busqueda directa O(1) promedio en la ruta caliente de dibujo.
+- Descargas concurrentes maximas: 6. Presupuesto satelital por frame: hasta 6 solicitudes y 5 uploads, limitado por pixeles fisicos reales.
+- Streaming C puro mas agresivo solo cuando conviene: movimiento hasta 3 operaciones/frame, reposo temprano hasta 3, reposo profundo hasta 4, arranque hasta 5.
+- El mapa no descarga Z intermedios. Solicita directamente el Z calculado para la pantalla.
+- Huecos visuales: cada tesela faltante usa padres residentes hasta 5 niveles; si no hay ancestro, usa underlay satelital embebido.
+- Margen satelital de 1 tesela alrededor del viewport para evitar bordes vacios durante pan.
+- No se acumulan muchas capas: se dibuja una capa satelital activa y un respaldo embebido global; los padres se usan solo como sustituto por tesela faltante.
+- No hay retroceso de Z por movimiento: map_lod_current, previous y target quedan fijados al Z deseado calculado para la resolucion fisica visible.
+
+Validacion textual:
+- kMaxConcurrentTileDownloads = 6
+- kSatelliteSandboxMaxTileRequestsPerFrame = 6
+- kSatelliteSandboxMaxTileTextureLoadsPerFrame = 5
+- kSatelliteSandboxTileDrawCap = 128
+- kMapSatelliteBackfillDepth = 5
+- kMaxResidentMapTextures = 128
+- kMapResidentSoftKeepFrames = 360
+- kMapResidentHardKeepFrames = 1800
+- Underlay satelital activo incluso sin modo offline.

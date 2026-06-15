@@ -50,7 +50,7 @@ inline constexpr double window_min_width_ratio = MIAUSOFT_PHI_N2;
 inline constexpr double icon_panel_ratio = MIAUSOFT_PHI_N4;
 inline constexpr double golden_padding_ratio = MIAUSOFT_PHI_N14;
 inline constexpr double config_panel_width_ratio = 0.500000000000000; // panel de configuración izquierdo, más legible sin ocupar toda la ventana
-inline constexpr double progress_bar_vertical_ratio = 0.021286236252208178; // phi^-8: línea superior más legible sin ocupar área útil
+inline constexpr unsigned progress_bar_phi_power = MIAUSOFT_PROGRESS_BAR_PHI_POWER; // phi^-11: grosor común de progreso de toda la suite.
 
 inline int clamp_i(int v, int lo, int hi) { return v < lo ? lo : (v > hi ? hi : v); }
 inline int max_i(int a, int b) { return a > b ? a : b; }
@@ -1472,10 +1472,12 @@ inline COLORREF accent_color() {
     return RGB(color.r, color.g, color.b);
 }
 
+inline int suite_progress_bar_thickness(int client_height) {
+    return miausoft_progress_bar_thickness_px(max_i(1, client_height));
+}
+
 inline int top_progress_height(int client_height) {
-    const int h = max_i(1, client_height);
-    // Grosor común: proporción áurea respecto a la dimensión vertical, con límites legibles.
-    return clamp_i(static_cast<int>(std::llround(static_cast<double>(h) * progress_bar_vertical_ratio)), 6, 12);
+    return suite_progress_bar_thickness(client_height);
 }
 
 

@@ -24,6 +24,8 @@ extern "C" {
 #define MIAUSOFT_PHI_N13 0.0019193787254996310
 #define MIAUSOFT_PHI_N14 0.0011862412896422280
 #define MIAUSOFT_CORE_REVISION 20260614
+#define MIAUSOFT_PROGRESS_BAR_PHI_POWER 11u
+#define MIAUSOFT_PROGRESS_BAR_MIN_PX 1
 
 typedef struct MiausoftRgb {
     uint8_t r;
@@ -35,6 +37,7 @@ int miausoft_core_revision(void);
 int miausoft_core_validate(void);
 double miausoft_phi_ratio(unsigned int power);
 int miausoft_phi_scale_px(int extent, unsigned int power, int minimum);
+int miausoft_progress_bar_thickness_px(int extent);
 
 MiausoftRgb miausoft_palette_light_root(void);
 MiausoftRgb miausoft_palette_light_frame(void);

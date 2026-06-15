@@ -3841,24 +3841,23 @@ int tlal_lod_step_z(int current_z, int desired_z, int z_min, int z_max, int max_
 }
 
 int tlal_tile_margin(float pitch) {
-    if (!isfinite((double)pitch) || pitch <= 0.0001f) return 2;
-    if (pitch < 0.42f) return 3;
-    if (pitch < 0.92f) return 4;
-    return 5;
+    if (!isfinite((double)pitch) || pitch <= 0.0001f) return 1;
+    if (pitch < 0.42f) return 2;
+    if (pitch < 0.92f) return 3;
+    return 3;
 }
 
 size_t tlal_tile_draw_cap(int z, float pitch, float screen_w, float screen_h) {
-    (void)screen_w;
-    (void)screen_h;
     const float tile_w = screen_w > 0.0f ? screen_w / 256.0f : 8.0f;
     const float tile_h = screen_h > 0.0f ? screen_h / 256.0f : 5.0f;
-    size_t cap = (size_t)((tile_w + 6.0f) * (tile_h + 6.0f));
-    if (z >= 15) cap += 64u;
-    if (z >= 18) cap += 96u;
-    if (pitch > 0.42f) cap += 96u;
-    if (pitch > 0.92f) cap += 128u;
-    if (cap < 160u) cap = 160u;
-    if (cap > 512u) cap = 512u;
+    const float pad = (!isfinite((double)pitch) || pitch <= 0.0001f) ? 2.0f : (pitch < 0.42f ? 2.5f : 3.0f);
+    size_t cap = (size_t)((tile_w + pad) * (tile_h + pad));
+    if (z >= 15) cap += 24u;
+    if (z >= 18) cap += 32u;
+    if (pitch > 0.42f) cap += 32u;
+    if (pitch > 0.92f) cap += 48u;
+    if (cap < 72u) cap = 72u;
+    if (cap > 224u) cap = 224u;
     return cap;
 }
 
@@ -3867,10 +3866,11 @@ int tlal_stream_budget(int moving, int startup_boost, float app_uptime, float wa
     if (max_per_frame < 0) max_per_frame = 0;
     if (!isfinite((double)app_uptime)) app_uptime = 0.0f;
     if (!isfinite((double)idle_seconds)) idle_seconds = 0.0f;
-    if (startup_boost) return max_per_frame > 4 ? 4 : max_per_frame;
+    if (startup_boost) return max_per_frame > 5 ? 5 : max_per_frame;
     if (app_uptime < warmup_seconds) return 0;
-    if (moving) return max_per_frame > 0 ? 1 : 0;
-    if (idle_seconds >= deep_idle_seconds) return max_per_frame > 3 ? 3 : max_per_frame;
+    if (moving) return max_per_frame > 3 ? 3 : max_per_frame;
+    if (idle_seconds >= deep_idle_seconds) return max_per_frame > 4 ? 4 : max_per_frame;
+    if (idle_seconds >= 0.20f) return max_per_frame > 3 ? 3 : max_per_frame;
     return max_per_frame > 2 ? 2 : max_per_frame;
 }
 
