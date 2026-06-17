@@ -713,6 +713,30 @@ int env_int_clamped(const char* name, int fallback, int lo, int hi) {
 
 
 
+int adaptive_compute_worker_budget() {
+    const unsigned hw_raw = std::thread::hardware_concurrency();
+    const int hw = static_cast<int>(hw_raw == 0 ? 2u : hw_raw);
+    int budget = std::clamp((hw + 1) / 2, 1, 8);
+#ifdef _WIN32
+    MEMORYSTATUSEX memory{};
+    memory.dwLength = sizeof(memory);
+    if (GlobalMemoryStatusEx(&memory)) {
+        constexpr std::uint64_t gib = 1024ull * 1024ull * 1024ull;
+        int memory_budget = 8;
+        if (memory.ullTotalPhys <= 4ull * gib) memory_budget = 1;
+        else if (memory.ullTotalPhys <= 8ull * gib) memory_budget = 3;
+        else if (memory.ullTotalPhys <= 16ull * gib) memory_budget = 5;
+        if (memory.ullAvailPhys < gib) memory_budget = 1;
+        else if (memory.ullAvailPhys < 2ull * gib) memory_budget = std::min(memory_budget, 2);
+        else if (memory.dwMemoryLoad >= 85) memory_budget = std::min(memory_budget, 2);
+        budget = std::min(budget, memory_budget);
+    }
+#endif
+    return std::max(1, budget);
+}
+
+
+
 bool env_flag_enabled(const char* name) {
     const std::string raw = getenv_utf8_or_empty(name);
 
@@ -728,13 +752,8 @@ bool env_flag_enabled(const char* name) {
 
 
 int poppler_process_budget() {
-
-
-    const unsigned hw = std::max(1u, std::thread::hardware_concurrency());
-    const int fallback = static_cast<int>(std::clamp<unsigned>(hw <= 4 ? 2u : hw / 2u, 2u, 6u));
-
-
-    return env_int_clamped("TLALPOWA_POPPLER_MAX_PROCESSES", fallback, 1, 16);
+    const int fallback = adaptive_compute_worker_budget();
+    return env_int_clamped("TLALPOWA_POPPLER_MAX_PROCESSES", fallback, 1, fallback);
 }
 
 
@@ -1640,7 +1659,7 @@ ProcessResult ExternalTools::run_command_timed(const std::vector<std::string>& a
 
     mutable_cmd.push_back(L'\0');
 
-    DWORD priority_flags = CREATE_NO_WINDOW | ABOVE_NORMAL_PRIORITY_CLASS;
+    DWORD priority_flags = CREATE_NO_WINDOW | BELOW_NORMAL_PRIORITY_CLASS;
 
     if (env_flag_enabled("TLALPOWA_POPPLER_HIGH_PRIORITY")) priority_flags = CREATE_NO_WINDOW | HIGH_PRIORITY_CLASS;
 
@@ -2798,6 +2817,18 @@ std::string canonical_parameter_id(const std::string& value) {
     if (n == "wind dir" || n == "wind direction" || n == "winddir" || n == "hi wind dir") return "wdr";
     if (n == "bar" || n == "barometer" || n == "barometric pressure" || n == "pressure") return "pa";
     if (n == "rain" || n == "rainfall" || n == "rain rate" || n == "rainrate" || n == "precipitation" || n == "precipitacion" || n == "precipitación") return "pp";
+    if (n == "flow" || n == "caudal" || n == "gasto" || n == "flujo" || n == "discharge" || n == "streamflow" || n == "escurrimiento" || n == "aforo") return "flow";
+    if (n == "water level" || n == "nivel agua" || n == "nivel del agua" || n == "nivel" || n == "stage" || n == "tirante" || n == "cota" || n == "elevacion" || n == "elevación") return "water_level";
+    if (n == "storage" || n == "almacenamiento" || n == "volumen" || n == "volumen almacenado" || n == "embalse" || n == "presa volumen") return "storage";
+    if (n == "water temperature" || n == "temperatura agua" || n == "temperatura del agua" || n == "temp agua") return "water_temp";
+    if (n == "ph" || n == "p h" || n == "potencial hidrogeno" || n == "potencial hidrógeno") return "ph";
+    if (n == "conductividad" || n == "conductividad electrica" || n == "conductividad eléctrica" || n == "conductivity" || n == "specific conductance") return "conductivity";
+    if (n == "turbidez" || n == "turbidity" || n == "ntu") return "turbidity";
+    if (n == "oxigeno disuelto" || n == "oxígeno disuelto" || n == "dissolved oxygen" || n == "od" || n == "do") return "dissolved_oxygen";
+    if (n == "dbo" || n == "bod" || n == "demanda bioquimica de oxigeno" || n == "demanda bioquímica de oxígeno") return "bod";
+    if (n == "dqo" || n == "cod" || n == "demanda quimica de oxigeno" || n == "demanda química de oxígeno") return "cod";
+    if (n == "tds" || n == "solidos disueltos totales" || n == "sólidos disueltos totales" || n == "total dissolved solids") return "tds";
+    if (n == "tss" || n == "sst" || n == "solidos suspendidos totales" || n == "sólidos suspendidos totales" || n == "total suspended solids") return "tss";
     if (n == "solar rad" || n == "solarrad" || n == "solar radiation" || n == "radiacion solar" || n == "rad solar" || n == "rad_solar") return "gr";
     if (n == "uv" || n == "uv index" || n == "uvindex" || n == "indice uv" || n == "indice_uv") return "uv";
     if (n == "dosis uv" || n == "dosis_uv") return "uv_dose";
@@ -2813,7 +2844,10 @@ bool is_known_atmosphere_parameter(const std::string& value) {
     static const std::set<std::string> ids = {
 
         "co", "no", "no2", "nox", "o3", "pm10", "pm25", "pmco", "so2",
-        "tmp", "tmax", "tmin", "rh", "pa", "wsp", "wdr", "wgst", "wdr_gust", "u10", "v10", "gr", "uv", "uva", "uvb", "uvc", "pp", "pblh"
+        "h2s", "hcho", "nh3", "ben", "tol", "xyl", "ch4", "co2", "aod", "uvai",
+        "frp", "brightness", "cloud_fraction", "cloud_pressure", "cloud_top_temperature", "lst", "ndvi", "evi", "albedo",
+        "tmp", "tmax", "tmin", "rh", "pa", "wsp", "wdr", "wgst", "wdr_gust", "u10", "v10", "gr", "uv", "uva", "uvb", "uvc", "pp", "pblh",
+        "flow", "water_level", "storage", "water_temp", "ph", "conductivity", "turbidity", "dissolved_oxygen", "bod", "cod", "tds", "tss"
     };
 
     return ids.count(canonical_parameter_id(value)) > 0;
@@ -2831,6 +2865,8 @@ bool atmosphere_parameter_is_meteorological_key(const std::string& pollutant) {
 
 bool atmosphere_source_accepts_parameter(const std::string& source_path, const std::string& pollutant) {
     const std::string n = normalize_key(source_path);
+    if (contains_norm(n, "conagua") || contains_norm(n, "bandas") || contains_norm(n, "renameca") ||
+        contains_norm(n, "hidro") || contains_norm(n, "agua") || contains_norm(n, "presa")) return true;
     const bool meteo = atmosphere_parameter_is_meteorological_key(pollutant);
     if (contains_norm(n, "ruoa") || contains_norm(n, "pembu")) return meteo;
     if (contains_norm(n, "redma") || contains_norm(n, "redmet") || contains_norm(n, "meteorolog") || contains_norm(n, "clima")) return meteo;
@@ -2857,6 +2893,15 @@ std::string default_unit_for_parameter(const std::string& pollutant) {
     if (p == "aod" || p == "uvai" || p == "uv" || p == "ndvi" || p == "evi" || p == "albedo") return "indice";
 
     if (p == "pp") return "mm";
+
+    if (p == "flow") return "m3/s";
+    if (p == "water_level") return "m";
+    if (p == "storage") return "hm3";
+    if (p == "water_temp") return "C";
+    if (p == "ph") return "pH";
+    if (p == "conductivity") return "uS/cm";
+    if (p == "turbidity") return "NTU";
+    if (p == "dissolved_oxygen" || p == "bod" || p == "cod" || p == "tds" || p == "tss") return "mg/L";
 
     if (p == "uv_dose") return "mJ/cm2";
 
@@ -5263,11 +5308,46 @@ static void append_crash_log(const std::string& message) noexcept {
     } catch (...) {}
 }
 
+static std::atomic<const char*> g_tlalpowa_crash_phase{"arranque"};
+static thread_local const char* g_tlalpowa_thread_crash_phase = "arranque";
+
+extern "C" void tlalpowa_set_crash_phase(const char* phase) noexcept {
+    const char* safe_phase = phase ? phase : "desconocido";
+    g_tlalpowa_thread_crash_phase = safe_phase;
+    g_tlalpowa_crash_phase.store(safe_phase, std::memory_order_relaxed);
+}
+
+static const char* tlalpowa_current_crash_phase() noexcept {
+    return g_tlalpowa_thread_crash_phase ? g_tlalpowa_thread_crash_phase :
+        g_tlalpowa_crash_phase.load(std::memory_order_relaxed);
+}
+
+extern "C" void tlalpowa_log_failure_detail(const char* context, const char* detail) noexcept {
+    std::ostringstream os;
+    os << "[FALLA] contexto=" << (context ? context : "desconocido")
+       << " fase=" << tlalpowa_current_crash_phase();
+    if (detail && *detail) os << " detalle=" << detail;
+#ifdef _WIN32
+    os << " pid=" << GetCurrentProcessId()
+       << " tid=" << GetCurrentThreadId()
+       << " uptime_ms=" << GetTickCount64();
+    MEMORYSTATUSEX memory{};
+    memory.dwLength = sizeof(memory);
+    if (GlobalMemoryStatusEx(&memory)) {
+        os << " memoria_carga=" << memory.dwMemoryLoad
+           << "% ram_disp_mb=" << (memory.ullAvailPhys / (1024ull * 1024ull))
+           << " ram_total_mb=" << (memory.ullTotalPhys / (1024ull * 1024ull));
+    }
+#endif
+    append_crash_log(os.str());
+}
+
 
 
 
 static void signal_handler(int sig) {
-    append_crash_log("senal capturada: " + std::to_string(sig));
+    append_crash_log(std::string("senal capturada: ") + std::to_string(sig) +
+                     " fase=" + tlalpowa_current_crash_phase());
     std::_Exit(128 + sig);
 }
 
@@ -5284,11 +5364,14 @@ static void install_crash_guards() {
 #ifdef _WIN32
     SetConsoleCP(CP_UTF8);
     SetConsoleOutputCP(CP_UTF8);
+    ULONG stack_guarantee = 128u * 1024u;
+    SetThreadStackGuarantee(&stack_guarantee);
 #endif
 
 
     std::set_terminate([]() {
-        append_crash_log("std::terminate capturado; salida controlada");
+        append_crash_log(std::string("std::terminate capturado; salida controlada fase=") +
+                         tlalpowa_current_crash_phase());
         std::_Exit(3);
     });
     std::signal(SIGABRT, signal_handler);
@@ -5307,13 +5390,45 @@ static void install_crash_guards() {
         std::ostringstream os;
         os << "excepcion Win32 no controlada: 0x" << std::hex << code
            << " direccion=0x" << address
-           << " banderas=0x" << flags;
+           << " banderas=0x" << flags
+           << " fase=" << tlalpowa_current_crash_phase();
+        os << " pid=" << std::dec << GetCurrentProcessId()
+           << " tid=" << GetCurrentThreadId()
+           << " uptime_ms=" << GetTickCount64();
+        MEMORYSTATUSEX memory{};
+        memory.dwLength = sizeof(memory);
+        if (GlobalMemoryStatusEx(&memory)) {
+            os << " memoria_carga=" << memory.dwMemoryLoad
+               << "% ram_disp_mb=" << (memory.ullAvailPhys / (1024ull * 1024ull))
+               << " ram_total_mb=" << (memory.ullTotalPhys / (1024ull * 1024ull));
+        }
+        ULONG_PTR stack_low = 0, stack_high = 0;
+        GetCurrentThreadStackLimits(&stack_low, &stack_high);
+        os << " stack_low=0x" << std::hex << static_cast<std::uintptr_t>(stack_low)
+           << " stack_high=0x" << static_cast<std::uintptr_t>(stack_high);
+        if (address != 0u) {
+            MEMORY_BASIC_INFORMATION mbi{};
+            if (VirtualQuery(reinterpret_cast<LPCVOID>(address), &mbi, sizeof(mbi)) == sizeof(mbi)) {
+                char module_path[MAX_PATH]{};
+                if (GetModuleFileNameA(reinterpret_cast<HMODULE>(mbi.AllocationBase), module_path, MAX_PATH) > 0) {
+                    os << " modulo=" << module_path
+                       << " modulo_base=0x" << reinterpret_cast<std::uintptr_t>(mbi.AllocationBase)
+                       << " rva=0x" << (address - reinterpret_cast<std::uintptr_t>(mbi.AllocationBase));
+                }
+            }
+        }
         if (e && e->ExceptionRecord) {
             os << " parametros=" << std::dec << e->ExceptionRecord->NumberParameters;
             for (DWORD i = 0; i < e->ExceptionRecord->NumberParameters && i < EXCEPTION_MAXIMUM_PARAMETERS; ++i) {
                 os << " p" << i << "=0x" << std::hex
                    << static_cast<std::uintptr_t>(e->ExceptionRecord->ExceptionInformation[i]);
             }
+        }
+        void* frames[48]{};
+        USHORT frame_count = CaptureStackBackTrace(0, static_cast<DWORD>(sizeof(frames) / sizeof(frames[0])), frames, nullptr);
+        os << " stack_frames=" << std::dec << frame_count;
+        for (USHORT i = 0; i < frame_count; ++i) {
+            os << " f" << i << "=0x" << std::hex << reinterpret_cast<std::uintptr_t>(frames[i]);
         }
         append_crash_log(os.str());
 
@@ -5331,10 +5446,8 @@ static void raise_process_priority() noexcept {
     try {
 #ifdef _WIN32
 
-        SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
-
-
-        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
+        SetPriorityClass(GetCurrentProcess(), NORMAL_PRIORITY_CLASS);
+        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_NORMAL);
 #else
         setpriority(PRIO_PROCESS, 0, -4);
 #endif
@@ -5981,8 +6094,8 @@ extern "C" int tlalpowa_execute_command(TlalpowaCommand command, int argc, char*
             return epi::run_tlalpowa_app();
         case TLALPOWA_COMMAND_RUN: {
 #ifdef _WIN32
-            SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
-            SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+            SetPriorityClass(GetCurrentProcess(), NORMAL_PRIORITY_CLASS);
+            SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_NORMAL);
 #endif
             auto options = parse_options(argc, argv);
             Pipeline p(options);
@@ -6146,11 +6259,9 @@ PdfDocument PdfTextExtractor::extract(const fs::path& pdf, const fs::path& work_
         const int chunk_pages = env_int_clamped_pdf("TLALPOWA_BBOX_CHUNK_PAGES", 6, 1, 24);
 
 
-        const unsigned hw = std::max(1u, std::thread::hardware_concurrency());
-        const int auto_workers = static_cast<int>(std::clamp<unsigned>(hw <= 4 ? 2u : (hw / 2u), 2u, 6u));
-
-
-        const int bbox_workers = env_int_clamped_pdf("TLALPOWA_BBOX_WORKERS", auto_workers, 1, 16);
+        const int auto_workers = adaptive_compute_worker_budget();
+        const int bbox_workers = env_int_clamped_pdf(
+            "TLALPOWA_BBOX_WORKERS", auto_workers, 1, auto_workers);
 
 
         struct ChunkJob { int first = 0; int last = 0; };
@@ -8728,7 +8839,9 @@ int Pipeline::run() {
         };
 
         std::vector<PrefetchedPdf> prefetched;
-        const int pdf_prefetch_window = env_int_clamped_pipeline("TLALPOWA_PDF_PREFETCH_WINDOW", 3, 1, 6);
+        const int prefetch_budget = std::max(1, std::min(3, adaptive_compute_worker_budget()));
+        const int pdf_prefetch_window = env_int_clamped_pipeline(
+            "TLALPOWA_PDF_PREFETCH_WINDOW", std::min(2, prefetch_budget), 1, prefetch_budget);
 
         auto already_prefetched = [&](const std::string& id) {
             for (const auto& p : prefetched) {
@@ -9354,9 +9467,9 @@ bool Pipeline::process_pdf_document(const fs::path& pdf, int index, PdfDocument 
 
 
 
-    const unsigned table_hw = std::max(1u, std::thread::hardware_concurrency());
-    const int auto_table_workers = static_cast<int>(std::clamp<unsigned>(table_hw <= 4 ? 3u : (table_hw - 1u), 3u, 10u));
-    const int table_workers = env_int_clamped_pipeline("TLALPOWA_TABLE_WORKERS", auto_table_workers, 1, 16);
+    const int auto_table_workers = adaptive_compute_worker_budget();
+    const int table_workers = env_int_clamped_pipeline(
+        "TLALPOWA_TABLE_WORKERS", auto_table_workers, 1, auto_table_workers);
 
 
     std::vector<PageTableJob> page_jobs(ordered_pages.size());
@@ -12711,7 +12824,14 @@ bool atmospheric_key_is_contaminant(const std::string& raw_key) {
     static const std::set<std::string> primary = {
         "o3", "ozono", "pm10", "pm25", "pm2.5", "pm2 5", "pmco", "pm10-2.5",
         "co", "monoxido de carbono", "monóxido de carbono",
-        "no", "no2", "nox", "so2", "dioxido de azufre", "dióxido de azufre"
+        "no", "no2", "nox", "so2", "dioxido de azufre", "dióxido de azufre",
+        "h2s", "nh3", "hcho", "ch4", "co2", "ben", "tol", "xyl", "btex",
+        "bc", "ec", "oc", "tc", "pb", "cd", "as", "ni", "hg", "cr",
+        "so4", "no3a", "aod", "uvai", "inorg aer", "ox",
+        "pm25 pm10", "pmco pm10", "no2 nox", "no nox", "no no2",
+        "hcho no2", "hcho nox", "oc ec", "ec oc", "ec tc", "oc tc",
+        "bc pm25", "ec pm25", "oc pm25", "so4 no3a", "tol ben",
+        "xyl ben", "btex ben", "o3 no2", "co no2"
     };
     return primary.count(k) > 0;
 }
@@ -14528,9 +14648,16 @@ bool atmosphere_purge_category_matches_text(const std::string& text, const std::
         return contains_norm(n, "contaminante") || contains_norm(n, "rama contamin") ||
                contains_norm(n, "pm10") || contains_norm(n, "pm25") ||
                contains_norm(n, "pm2 5") || contains_norm(n, "ozono") ||
-
+               contains_norm(n, "aerosol") || contains_norm(n, "metal") ||
+               contains_norm(n, "carbono") || contains_norm(n, "cov") ||
+               contains_norm(n, "gas traza") || contains_norm(n, "invernadero") ||
                contains_norm(n, "o3") || contains_norm(n, "no2") ||
-               contains_norm(n, "so2") || contains_norm(n, "monoxido") ||
+               contains_norm(n, "so2") || contains_norm(n, "nox") ||
+               contains_norm(n, "hcho") || contains_norm(n, "nh3") ||
+               contains_norm(n, "h2s") || contains_norm(n, "ch4") ||
+               contains_norm(n, "co2") || contains_norm(n, "btex") ||
+               contains_norm(n, "benceno") || contains_norm(n, "tolueno") ||
+               contains_norm(n, "xileno") || contains_norm(n, "monoxido") ||
                contains_norm(n, " co ") || n == "co";
     }
 
@@ -14575,7 +14702,14 @@ std::string atmosphere_parameter_category(const std::string& raw) {
 
 
     static const std::set<std::string> pollutants = {
-        "o3", "co", "no", "no2", "nox", "so2", "pm10", "pm25", "pm2 5", "pmco", "pb", "cd", "as", "ni", "hg", "cr", "bc", "ec", "oc"
+        "o3", "co", "no", "no2", "nox", "so2", "pm10", "pm25", "pm2 5", "pmco",
+        "pb", "cd", "as", "ni", "hg", "cr", "bc", "ec", "oc", "tc",
+        "h2s", "ben", "tol", "xyl", "btex", "hcho", "nh3", "co2", "ch4",
+        "so4", "no3a", "aod", "uvai", "inorg_aer", "ox", "pm25_pm10",
+        "pmco_pm10", "no2_nox", "no_nox", "no_no2", "hcho_no2", "hcho_nox",
+        "oc_ec", "ec_oc", "ec_tc", "oc_tc", "bc_pm25", "ec_pm25",
+        "oc_pm25", "so4_no3a", "tol_ben", "xyl_ben", "btex_ben",
+        "o3_no2", "co_no2"
     };
 
 

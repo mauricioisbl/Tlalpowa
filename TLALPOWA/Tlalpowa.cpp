@@ -133,6 +133,23 @@ extern "C" std::size_t obs_embedded_mobility_jsonl_size();
 #endif
 
 
+extern "C" void tlalpowa_set_crash_phase(const char* phase) noexcept;
+extern "C" void tlalpowa_log_failure_detail(const char* context, const char* detail) noexcept;
+
+struct TlalpowaCrashPhaseScope {
+    explicit TlalpowaCrashPhaseScope(const char* phase) noexcept {
+        tlalpowa_set_crash_phase(phase);
+    }
+    ~TlalpowaCrashPhaseScope() {
+        tlalpowa_set_crash_phase("idle");
+    }
+};
+
+void tlalpowa_log_failure(const char* context, const std::string& detail) noexcept {
+    tlalpowa_log_failure_detail(context, detail.c_str());
+}
+
+
 
 namespace epi {
 
@@ -1996,7 +2013,7 @@ constexpr const char* kElementTopAddGraph = "el.sup.grafica";
 constexpr const char* kElementTimelineDateEdit = "##el.hist.fecha";
 
 constexpr int kPunctualAtmosphereCarryForwardMinutes = 60;
-constexpr int kTemporalAdjacentPrefetchRadius = 3;
+constexpr int kTemporalAdjacentPrefetchRadius = 1;
 constexpr int kAtmosphereTransitionMaxGapMinutes = 180;
 constexpr int kAtmosphereSnapshotCacheDefaultMb = 160;
 
@@ -2146,9 +2163,9 @@ constexpr float kMinInteractiveZoom = 0.42f;
 constexpr float kMaxInteractiveZoom = 4096.0f;
 
 constexpr float kMapMaxPitch = 1.28f;
-constexpr float kStartupSplashSolidSeconds = 3.15f;
-constexpr float kStartupSplashFadeSeconds = 0.24f;
-constexpr float kStartupSplashMaximumSeconds = 16.00f;
+constexpr float kStartupSplashSolidSeconds = 0.35f;
+constexpr float kStartupSplashFadeSeconds = 0.16f;
+constexpr float kStartupSplashMaximumSeconds = 1.10f;
 
 constexpr size_t kMaxResidentMapTextures = 128;
 
@@ -3976,13 +3993,11 @@ void tlalpowa_process_global_space_and_playback(UiState& ui, GLFWwindow* window,
 
 
 
-void sync_week_from_timeline(UiState& ui, const std::vector<std::string>& weeks) {
-    if (weeks.empty()) return;
+bool sync_week_from_timeline(UiState& ui, const std::vector<std::string>& weeks) {
+    if (weeks.empty()) return false;
     const int max_week = std::max(0, static_cast<int>(weeks.size()) - 1);
     const int64_t target_hour = ui.timeline_hour;
     int exact = -1;
-    int nearest = 0;
-    int64_t nearest_delta = std::numeric_limits<int64_t>::max();
 
     for (int i = 0; i <= max_week; ++i) {
         const int64_t start = timeline_hour_for_epi_week_label(weeks[static_cast<size_t>(i)]);
@@ -3992,18 +4007,18 @@ void sync_week_from_timeline(UiState& ui, const std::vector<std::string>& weeks)
             exact = i;
             break;
         }
-        const int64_t delta = std::min(std::llabs(target_hour - start), std::llabs(target_hour - end));
-        if (delta < nearest_delta) { nearest_delta = delta; nearest = i; }
     }
 
     // La navegación histórica sólo mueve epidemiología si ya hay una capa activa:
     // nunca enciende casillas ni lee IXIPTLAH por sí sola. Cuando la fecha cae en
     // una semana cargada, la representación queda exactamente en esa semana; fuera
-    // de cobertura se usa el borde más cercano, evitando prolongaciones infinitas.
-    const int resolved = (exact >= 0) ? exact : std::clamp(nearest, 0, max_week);
+    // de cobertura no se arrastra el borde mas cercano.
+    if (exact < 0) return false;
+    const int resolved = exact;
     ui.selected_week = resolved;
     ui.week_start = resolved;
     ui.week_end = resolved;
+    return true;
 }
 
 
@@ -6618,9 +6633,160 @@ bool tlalpowa_write_apply_github_update_script(const fs::path& repo_root,
     const fs::path upd = tlalpowa_github_update_root();
     ensure_dir(upd);
     script_path = upd / "Aplicar_Actualizacion_Tlalpowa.cmd";
+    const fs::path powershell_path = upd / "Aplicar_Actualizacion_Tlalpowa.ps1";
     const std::string src = tlalpowa_cmd_escape_percent(path_utf8(repo_root));
     const std::string dst = tlalpowa_cmd_escape_percent(path_utf8(base_root));
     const std::string sha_safe = safe_filename(sha).substr(0, 64);
+
+    const std::string powershell = R"TLALPS([CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)][string]$Source,
+    [Parameter(Mandatory = $true)][string]$Destination,
+    [Parameter(Mandatory = $true)][string]$UpdateRoot,
+    [Parameter(Mandatory = $true)][string]$Sha,
+    [Parameter(Mandatory = $true)][int]$ImportData
+)
+
+$ErrorActionPreference = "Stop"
+Set-StrictMode -Version 2.0
+$log = Join-Path $UpdateRoot ("aplicar_{0}.log" -f $Sha)
+$backup = Join-Path $UpdateRoot ("backup_{0}" -f $Sha)
+$manifestPath = Join-Path $Source "tlalpowa_actualizacion_manifest.json"
+$changedPath = Join-Path $Source "tlalpowa_actualizacion_cambiados.txt"
+$deletedPath = Join-Path $Source "tlalpowa_actualizacion_eliminados.txt"
+$appliedFlag = Join-Path $UpdateRoot ("actualizacion_{0}.aplicada" -f $Sha)
+
+function Write-UpdateLog([string]$Message) {
+    Add-Content -LiteralPath $log -Encoding UTF8 -Value $Message
+}
+
+function Resolve-SafeTarget([string]$Root, [string]$Relative) {
+    if ([string]::IsNullOrWhiteSpace($Relative)) { throw "Ruta vacia en actualizacion." }
+    $rootFull = [System.IO.Path]::GetFullPath($Root).TrimEnd("\") + "\"
+    $target = [System.IO.Path]::GetFullPath((Join-Path $Root ($Relative.Replace("/", "\"))))
+    if (-not $target.StartsWith($rootFull, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Ruta fuera del destino: $Relative"
+    }
+    return $target
+}
+
+function Read-UpdateList([string]$Path) {
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return @() }
+    return @(Get-Content -LiteralPath $Path -Encoding UTF8 | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+}
+
+Set-Content -LiteralPath $log -Encoding UTF8 -Value @(
+    "[Tlalpowa] Aplicador transaccional",
+    "SHA=$Sha",
+    "SRC=$Source",
+    "DST=$Destination"
+)
+
+if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) { throw "Falta manifiesto incremental." }
+$manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+if ($manifest.schema -ne 1 -or -not $manifest.files) { throw "Manifiesto incremental invalido." }
+$entries = @{}
+foreach ($entry in $manifest.files) { $entries[[string]$entry.path] = $entry }
+$changed = Read-UpdateList $changedPath
+$deleted = Read-UpdateList $deletedPath
+
+if (Test-Path -LiteralPath $backup) { Remove-Item -LiteralPath $backup -Recurse -Force }
+New-Item -ItemType Directory -Force -Path $backup | Out-Null
+$newFiles = New-Object System.Collections.Generic.List[string]
+$manifestTarget = Join-Path $Destination "tlalpowa_actualizacion_manifest.json"
+$manifestBackup = Join-Path $backup "tlalpowa_actualizacion_manifest.json"
+$manifestWasNew = -not (Test-Path -LiteralPath $manifestTarget -PathType Leaf)
+if (-not $manifestWasNew) {
+    Copy-Item -LiteralPath $manifestTarget -Destination $manifestBackup -Force
+}
+
+try {
+    foreach ($relative in @($changed) + @($deleted)) {
+        $target = Resolve-SafeTarget $Destination $relative
+        if (Test-Path -LiteralPath $target -PathType Leaf) {
+            $backupTarget = Resolve-SafeTarget $backup $relative
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $backupTarget) | Out-Null
+            Copy-Item -LiteralPath $target -Destination $backupTarget -Force
+        } elseif ($changed -contains $relative) {
+            $newFiles.Add($relative)
+        }
+    }
+
+    foreach ($relative in $changed) {
+        if (-not $entries.ContainsKey($relative)) { throw "Archivo cambiado ausente del manifiesto: $relative" }
+        $sourceFile = Resolve-SafeTarget $Source $relative
+        $target = Resolve-SafeTarget $Destination $relative
+        if (-not (Test-Path -LiteralPath $sourceFile -PathType Leaf)) { throw "Archivo preparado ausente: $relative" }
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null
+        $candidate = $target + ".tlalpowa-update"
+        Copy-Item -LiteralPath $sourceFile -Destination $candidate -Force
+        Move-Item -LiteralPath $candidate -Destination $target -Force
+    }
+
+    foreach ($relative in $deleted) {
+        $target = Resolve-SafeTarget $Destination $relative
+        if (Test-Path -LiteralPath $target -PathType Leaf) {
+            Remove-Item -LiteralPath $target -Force
+        }
+    }
+
+    Copy-Item -LiteralPath $manifestPath -Destination ($manifestTarget + ".tlalpowa-update") -Force
+    Move-Item -LiteralPath ($manifestTarget + ".tlalpowa-update") -Destination $manifestTarget -Force
+
+    foreach ($relative in $changed) {
+        $entry = $entries[$relative]
+        $target = Resolve-SafeTarget $Destination $relative
+        if (-not (Test-Path -LiteralPath $target -PathType Leaf)) { throw "No se instalo: $relative" }
+        $item = Get-Item -LiteralPath $target
+        if ([int64]$item.Length -ne [int64]$entry.size) { throw "Tamano final incorrecto: $relative" }
+        $hash = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($hash -ne ([string]$entry.sha256).ToLowerInvariant()) { throw "SHA-256 final incorrecto: $relative" }
+    }
+    foreach ($relative in $deleted) {
+        if (Test-Path -LiteralPath (Resolve-SafeTarget $Destination $relative) -PathType Leaf) {
+            throw "No se elimino: $relative"
+        }
+    }
+
+    Set-Content -LiteralPath (Join-Path $UpdateRoot "ultimo_commit_aplicado.txt") -Encoding ASCII -Value $Sha
+    @{
+        ultimo_commit_aplicado = $Sha
+        importar_datos = [bool]$ImportData
+        aplicado = $true
+        utc = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
+    } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $UpdateRoot "github_update_state.json") -Encoding UTF8
+    Set-Content -LiteralPath $appliedFlag -Encoding ASCII -Value "aplicada"
+    Write-UpdateLog "[OK] Actualizacion aplicada y verificada."
+    Remove-Item -LiteralPath $backup -Recurse -Force
+    exit 0
+} catch {
+    Write-UpdateLog ("[ERROR] " + $_.Exception.Message)
+    Write-UpdateLog "[Tlalpowa] Iniciando rollback."
+    if (Test-Path -LiteralPath $backup -PathType Container) {
+        Get-ChildItem -LiteralPath $backup -Recurse -File | ForEach-Object {
+            $relative = $_.FullName.Substring($backup.Length).TrimStart("\")
+            $target = Resolve-SafeTarget $Destination $relative
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null
+            Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+        }
+    }
+    foreach ($relative in $newFiles) {
+        $target = Resolve-SafeTarget $Destination $relative
+        if (Test-Path -LiteralPath $target -PathType Leaf) { Remove-Item -LiteralPath $target -Force }
+    }
+    if ($manifestWasNew) {
+        if (Test-Path -LiteralPath $manifestTarget -PathType Leaf) {
+            Remove-Item -LiteralPath $manifestTarget -Force
+        }
+    } elseif (Test-Path -LiteralPath $manifestBackup -PathType Leaf) {
+        Copy-Item -LiteralPath $manifestBackup -Destination $manifestTarget -Force
+    }
+    Write-UpdateLog "[Tlalpowa] Rollback terminado."
+    exit 1
+}
+)TLALPS";
+    if (!write_text_file_atomic(powershell_path, powershell)) return false;
+
     std::ostringstream cmd;
     cmd << "@echo off\r\n";
     cmd << "setlocal EnableExtensions DisableDelayedExpansion\r\n";
@@ -6632,54 +6798,21 @@ bool tlalpowa_write_apply_github_update_script(const fs::path& repo_root,
     cmd << "if not exist \"%UPD%\" mkdir \"%UPD%\" >nul 2>nul\r\n";
     cmd << "set \"LOG=%UPD%\\aplicar_%SHA%.log\"\r\n";
     cmd << "set \"STAGED_FLAG=%UPD%\\actualizacion_%SHA%.preparada\"\r\n";
-    cmd << "set \"APPLIED_FLAG=%UPD%\\actualizacion_%SHA%.aplicada\"\r\n";
     cmd << "echo [Tlalpowa] Aplicador GitHub %DATE% %TIME%>%LOG%\r\n";
     cmd << "echo [Tlalpowa] SRC=%SRC%>>%LOG%\r\n";
     cmd << "echo [Tlalpowa] DST=%DST%>>%LOG%\r\n";
     cmd << "echo preparado>%STAGED_FLAG%\r\n";
     cmd << "if not exist \"%SRC%\\tlalpowa_actualizacion_manifest.json\" (echo [error] Falta manifiesto incremental>>%LOG% & exit /b 12)\r\n";
-    cmd << "if exist \"%SRC%\\Tlalpowa.exe\" (echo [ok] Delta trae Tlalpowa.exe>>%LOG%) else (echo [ok] Tlalpowa.exe no cambio>>%LOG%)\r\n";
     cmd << "if not exist \"%DST%\" mkdir \"%DST%\" >nul 2>nul\r\n";
     cmd << "set /a WAIT=0\r\n";
     cmd << ":esperar_tlalpowa\r\n";
     cmd << "tasklist /FI \"IMAGENAME eq Tlalpowa.exe\" 2>nul | find /I \"Tlalpowa.exe\" >nul\r\n";
     cmd << "if not errorlevel 1 (set /a WAIT+=1 & if %WAIT% GEQ 900 (echo [error] Tlalpowa.exe no libero despues de 15 min>>%LOG% & exit /b 40) & timeout /t 1 /nobreak >nul & goto esperar_tlalpowa)\r\n";
-    cmd << "set \"BACKUP=%UPD%\\backup_%SHA%\"\r\n";
-    cmd << "if exist \"%BACKUP%\" rmdir /S /Q \"%BACKUP%\" >>%LOG% 2>&1\r\n";
-    cmd << "mkdir \"%BACKUP%\" >>%LOG% 2>&1\r\n";
-    cmd << "for %%F in (Tlalpowa.exe Compilar.cmd Publicar.cmd .gitignore) do if exist \"%DST%\\%%F\" copy /Y \"%DST%\\%%F\" \"%BACKUP%\\%%F\" >>%LOG% 2>&1\r\n";
-    cmd << "if exist \"%DST%\\TLALPOWA\" robocopy \"%DST%\\TLALPOWA\" \"%BACKUP%\\TLALPOWA\" /MIR /R:1 /W:1 /XD Datos Descargas /NFL /NDL /NP /NJH /NJS >>%LOG% 2>&1\r\n";
-    cmd << "if exist \"%DST%\\CORE\" robocopy \"%DST%\\CORE\" \"%BACKUP%\\CORE\" /MIR /R:1 /W:1 /XD Dependencias /NFL /NDL /NP /NJH /NJS >>%LOG% 2>&1\r\n";
-    cmd << "if exist \"%SRC%\\tlalpowa_actualizacion_eliminados.txt\" for /F \"usebackq delims=\" %%R in (\"%SRC%\\tlalpowa_actualizacion_eliminados.txt\") do if exist \"%DST%\\%%R\" (for %%P in (\"%BACKUP%\\%%R\") do if not exist \"%%~dpP\" mkdir \"%%~dpP\" >nul 2>nul & copy /Y \"%DST%\\%%R\" \"%BACKUP%\\%%R\" >>%LOG% 2>&1)\r\n";
-    cmd << "echo [Tlalpowa] Copiando solo archivos modificados del nucleo...>>%LOG%\r\n";
-    cmd << "robocopy \"%SRC%\" \"%DST%\" /E /R:5 /W:1 /COPY:DAT /DCOPY:DAT /XJ /XD .git Build out .vs .idea .vscode __pycache__ Datos Descargas Dependencias /XF *.user *.suo github_update_state.json ultimo_commit_aplicado.txt tlalpowa_actualizacion_eliminados.txt >>%LOG% 2>&1\r\n";
+    cmd << "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"%UPD%\\Aplicar_Actualizacion_Tlalpowa.ps1\" -Source \"%SRC%\" -Destination \"%DST%\" -UpdateRoot \"%UPD%\" -Sha \"%SHA%\" -ImportData " << (import_data ? "1" : "0") << " >>%LOG% 2>&1\r\n";
     cmd << "set \"RC=%ERRORLEVEL%\"\r\n";
-    cmd << "if %RC% GEQ 8 (echo [error] Robocopy nucleo RC=%RC%>>%LOG% & call :rollback & exit /b %RC%)\r\n";
-    cmd << "for %%F in (\"%DST%\\*.ico\" \"%DST%\\*.png\") do if exist %%~fF (echo [Tlalpowa] Eliminando raster prohibido de base: %%~nxF>>%LOG% & del /F /Q %%~fF >>%LOG% 2>&1)\r\n";
-    if (import_data) {
-        cmd << "if not exist \"%SRC%\\TLALPOWA\\Datos\" goto datos_snapshot_ausente\r\n";
-        cmd << "echo [Tlalpowa] Copiando solo archivos modificados de Datos...>>%LOG%\r\n";
-        cmd << "robocopy \"%SRC%\\TLALPOWA\\Datos\" \"%DST%\\TLALPOWA\\Datos\" /E /R:5 /W:1 /COPY:DAT /DCOPY:DAT /XJ /NFL /NDL /NP /NJH /NJS >>%LOG% 2>&1\r\n";
-        cmd << "set \"RC=%ERRORLEVEL%\"\r\n";
-        cmd << "if %RC% GEQ 8 (echo [error] Robocopy Datos RC=%RC%>>%LOG% & call :rollback & exit /b %RC%)\r\n";
-        cmd << "goto datos_sincronizados\r\n";
-        cmd << ":datos_snapshot_ausente\r\n";
-        cmd << "echo [aviso] Snapshot sin Datos; no se toca Datos local>>%LOG%\r\n";
-        cmd << ":datos_sincronizados\r\n";
-    } else {
-        cmd << "echo [Tlalpowa] Datos locales preservados por preferencia del usuario.>>%LOG%\r\n";
-    }
-    cmd << "if exist \"%SRC%\\tlalpowa_actualizacion_eliminados.txt\" for /F \"usebackq delims=\" %%R in (\"%SRC%\\tlalpowa_actualizacion_eliminados.txt\") do if exist \"%DST%\\%%R\" (echo [Tlalpowa] Eliminando archivo retirado: %%R>>%LOG% & del /F /Q \"%DST%\\%%R\" >>%LOG% 2>&1)\r\n";
-    cmd << "if exist \"%SRC%\\Tlalpowa.exe\" if not exist \"%DST%\\Tlalpowa.exe\" (echo [error] El exe nuevo no quedo en destino>>%LOG% & call :rollback & exit /b 41)\r\n";
+    cmd << "if not \"%RC%\"==\"0\" (echo [error] Aplicacion transaccional RC=%RC%>>%LOG% & exit /b %RC%)\r\n";
     cmd << "if exist \"%DST%\\Tlalpowa.exe\" (assoc .ixiptlah=Tlalpowa.Ixiptlah >>%LOG% 2>&1 & ftype Tlalpowa.Ixiptlah=\"%DST%\\Tlalpowa.exe\" \"%%1\" >>%LOG% 2>&1)\r\n";
-    cmd << "echo %SHA%>\"%UPD%\\ultimo_commit_aplicado.txt\"\r\n";
-    cmd << "echo {\"ultimo_commit_aplicado\":\"%SHA%\",\"importar_datos\":" << (import_data ? "true" : "false") << ",\"aplicado\":true}>\"%UPD%\\github_update_state.json\"\r\n";
-    cmd << "echo aplicada>%APPLIED_FLAG%\r\n";
     cmd << "echo [Tlalpowa] Actualizacion aplicada correctamente.>>%LOG%\r\n";
-    cmd << "exit /b 0\r\n";
-    cmd << ":rollback\r\n";
-    cmd << "echo [Tlalpowa] Intentando rollback defensivo...>>%LOG%\r\n";
-    cmd << "if exist \"%BACKUP%\" robocopy \"%BACKUP%\" \"%DST%\" /E /R:1 /W:1 /NFL /NDL /NP /NJH /NJS >>%LOG% 2>&1\r\n";
     cmd << "exit /b 0\r\n";
     return write_text_file_atomic(script_path, cmd.str());
 #else
@@ -6835,6 +6968,7 @@ bool tlalpowa_prepare_and_schedule_github_update(const std::string& sha,
     ensure_dir(staging);
     std::size_t changed_count = 0;
     std::uintmax_t download_bytes = 0;
+    std::ostringstream changed;
     for (const auto& entry : remote_entries) {
         if (entry.data && !import_data) continue;
         const fs::path local = base / fs::path(widen_utf8(entry.path));
@@ -6855,12 +6989,17 @@ bool tlalpowa_prepare_and_schedule_github_update(const std::string& sha,
         }
         ++changed_count;
         download_bytes += entry.size;
+        changed << entry.path << "\n";
     }
 
     std::ostringstream deleted;
     for (const auto& old : old_entries) {
         if (old.data && !import_data) continue;
         if (remote_by_path.find(old.path) == remote_by_path.end()) deleted << old.path << "\n";
+    }
+    if (!write_text_file_atomic(staging / "tlalpowa_actualizacion_cambiados.txt", changed.str())) {
+        status = "No pude preparar la lista transaccional de archivos modificados";
+        return false;
     }
     (void)write_text_file_atomic(staging / "tlalpowa_actualizacion_eliminados.txt", deleted.str());
     if (!copy_file_atomic(remote_manifest, staging / "tlalpowa_actualizacion_manifest.json")) {
@@ -10461,6 +10600,31 @@ fs::path territorial_installed_states_binary_path() {
     return datos_root() / "estados_centro_mexico.tlalgeo";
 }
 
+bool tlalpowa_materialize_embedded_territorial_resources() {
+    static std::mutex mutex;
+    static bool checked = false;
+    static bool ok = false;
+    std::lock_guard<std::mutex> lock(mutex);
+    if (checked) return ok;
+    checked = true;
+
+    const fs::path root = datos_root();
+    ensure_dir(root);
+
+    const auto present = [](const fs::path& p, std::uintmax_t minimum_size) -> bool {
+        std::error_code ec;
+        if (!fs::exists(p, ec) || ec) return false;
+        if (!fs::is_regular_file(p, ec) || ec) return false;
+        return fs::file_size(p, ec) >= minimum_size && !ec;
+    };
+
+    const bool municipal_ok = present(territorial_installed_binary_path(), 1024u * 1024u);
+    const bool states_ok = present(territorial_installed_states_binary_path(), 128u * 1024u);
+    const bool catalog_ok = present(territorial_installed_catalog_path(), 1024u);
+    ok = municipal_ok && states_ok && catalog_ok;
+    return ok;
+}
+
 void territorial_merge_installed_geometry(std::vector<TerritorialStateSpec>& states) {
     const fs::path catalog_path = territorial_installed_catalog_path();
     const nlohmann::json catalog = nlohmann::json::parse(read_text_file(catalog_path), nullptr, false);
@@ -10492,7 +10656,7 @@ void territorial_merge_installed_geometry(std::vector<TerritorialStateSpec>& sta
 
 std::vector<TerritorialStateSpec> load_territorial_catalog() {
     std::vector<TerritorialStateSpec> states = territorial_default_states();
-    try { territorial_merge_downloaded_municipalities(states); } catch (...) {}
+    try { tlalpowa_materialize_embedded_territorial_resources(); } catch (...) {}
     try { territorial_merge_installed_geometry(states); } catch (...) {}
     try {
         const fs::path p = territorial_embedded_catalog_path();
@@ -10522,12 +10686,13 @@ const std::vector<TerritorialStateSpec>& territorial_catalog_cached() {
     static std::uintmax_t last_size = static_cast<std::uintmax_t>(-1);
     std::uintmax_t size = 0;
     std::error_code ec;
-    const fs::path p = territorial_downloaded_catalog_path();
-    if (fs::exists(p, ec) && !ec) size = fs::file_size(p, ec);
-    const fs::path geometry = territorial_installed_geometry_path();
+    (void)tlalpowa_materialize_embedded_territorial_resources();
+    const fs::path geometry = territorial_installed_binary_path();
     if (fs::exists(geometry, ec) && !ec) size ^= fs::file_size(geometry, ec);
+    const fs::path states = territorial_installed_states_binary_path();
+    if (fs::exists(states, ec) && !ec) size ^= (fs::file_size(states, ec) << 1);
     const fs::path catalog = territorial_installed_catalog_path();
-    if (fs::exists(catalog, ec) && !ec) size ^= fs::file_size(catalog, ec);
+    if (fs::exists(catalog, ec) && !ec) size ^= (fs::file_size(catalog, ec) << 2);
     if (cache.empty() || size != last_size) {
         cache = load_territorial_catalog();
         last_size = size;
@@ -11402,18 +11567,37 @@ int env_int_clamped_app(const char* name, int fallback, int lo, int hi) {
 
 
 
-int official_download_worker_count(int planned, int fallback = 20) {
-
-
+int tlalpowa_adaptive_worker_budget() {
     const unsigned hw_raw = std::thread::hardware_concurrency();
-    const int hw = hw_raw == 0 ? fallback : static_cast<int>(hw_raw);
+    const int hw = static_cast<int>(hw_raw == 0 ? 2u : hw_raw);
+    int budget = std::clamp((hw + 1) / 2, 1, 12);
+#ifdef _WIN32
+    MEMORYSTATUSEX memory{};
+    memory.dwLength = sizeof(memory);
+    if (GlobalMemoryStatusEx(&memory)) {
+        constexpr std::uint64_t gib = 1024ull * 1024ull * 1024ull;
+        int memory_budget = 12;
+        if (memory.ullTotalPhys <= 4ull * gib) memory_budget = 2;
+        else if (memory.ullTotalPhys <= 8ull * gib) memory_budget = 4;
+        else if (memory.ullTotalPhys <= 12ull * gib) memory_budget = 6;
+        else if (memory.ullTotalPhys <= 16ull * gib) memory_budget = 8;
+
+        if (memory.ullAvailPhys < gib) memory_budget = 1;
+        else if (memory.ullAvailPhys < 2ull * gib) memory_budget = std::min(memory_budget, 3);
+        else if (memory.dwMemoryLoad >= 90) memory_budget = std::min(memory_budget, 2);
+        else if (memory.dwMemoryLoad >= 82) memory_budget = std::min(memory_budget, 3);
+        budget = std::min(budget, memory_budget);
+    }
+#endif
+    return std::max(1, budget);
+}
 
 
-    const int auto_workers = std::clamp(std::max(fallback, hw * 12), 24, 160);
 
-
-    const int configured = env_int_clamped_app("TLALPOWA_DOWNLOAD_WORKERS", auto_workers, 1, 256);
-
+int official_download_worker_count(int planned, int fallback = 20) {
+    const int adaptive = tlalpowa_adaptive_worker_budget();
+    const int preferred = fallback > 0 ? std::min(fallback, adaptive) : adaptive;
+    const int configured = env_int_clamped_app("TLALPOWA_DOWNLOAD_WORKERS", preferred, 1, adaptive);
     return std::max(1, std::min(std::max(1, planned), configured));
 }
 
@@ -11421,15 +11605,11 @@ int official_download_worker_count(int planned, int fallback = 20) {
 
 
 int official_download_worker_count_for(const char* env_name, int planned, int fallback) {
-
-
     int base = official_download_worker_count(planned, fallback);
     const std::string raw = env_name ? getenv_utf8_or_empty(env_name) : std::string{};
-
-    if (!raw.empty()) base = env_int_clamped_app(env_name, base, 1, 256);
-
-    else if (fallback > 0) base = std::min(base, fallback);
-
+    if (!raw.empty()) {
+        base = env_int_clamped_app(env_name, base, 1, tlalpowa_adaptive_worker_budget());
+    }
     return std::max(1, std::min(std::max(1, planned), base));
 }
 
@@ -21417,6 +21597,13 @@ std::pair<std::string, std::string> cached_jurisdiction_entry(
 void tlalpowa_restore_epidemiology_week_after_load_locked(UiState& ui, const std::string& preferred_anchor_week);
 
 
+std::string tlalpowa_select_recent_epidemiology_week_gt75_locked(
+    UiState& ui,
+    const std::vector<ObservationRow>& rows,
+    const std::set<std::string>& requested_diseases,
+    const std::string& preferred_anchor_week,
+    bool align_timeline);
+
 void publish_observations_progressive_snapshot(
     UiState& ui,
 
@@ -21501,12 +21688,15 @@ void publish_observations_progressive_snapshot(
         }
     }
 
-    tlalpowa_restore_epidemiology_week_after_load_locked(ui, anchor_week);
+    anchor_week = tlalpowa_select_recent_epidemiology_week_gt75_locked(
+        ui, *shared_snapshot, std::set<std::string>{}, anchor_week, true);
+    ui.observations_loaded_anchor_week = anchor_week;
     force_epidemiology_exact_week_locked(ui);
     ui.status = phase + "; bloques " + std::to_string(sources_done) + "/" + std::to_string(std::max(sources_total, sources_done)) +
                 "; registros visibles " + std::to_string(shared_snapshot->size()) +
 
-                "; filas exploradas " + std::to_string(scanned_rows);
+                "; filas exploradas " + std::to_string(scanned_rows) +
+                (anchor_week.empty() ? std::string{} : "; fecha anclada >75% " + anchor_week);
 }
 
 
@@ -21757,10 +21947,55 @@ bool tlalpowa_timeline_from_atmospheric_temporal_key(std::uint64_t temporal_key,
     return true;
 }
 
-std::uint64_t tlalpowa_best_latest_atmospheric_key(const TlalpowaHotDataStats& st) {
-    if (st.latest_contaminant_key != 0ull) return st.latest_contaminant_key;
-    if (st.latest_meteorology_key != 0ull) return st.latest_meteorology_key;
-    return st.latest_temporal_key;
+bool tlalpowa_timeline_from_startup_gate_week_bucket(std::uint64_t week_bucket, int64_t& out_hour) {
+    if (week_bucket < 190001ull) return false;
+    const int year = static_cast<int>(week_bucket / 100ull);
+    const int week = static_cast<int>(week_bucket % 100ull);
+    if (year < kTimelineMinCivilYear || year > kTimelineMaxCivilYear || week < 1 || week > 54) return false;
+    out_hour = clamp_timeline_navigation_hour(
+        timeline_hour_from_civil(year, 1u, 1u, 12u) + static_cast<int64_t>(week - 1) * 7LL * 24LL);
+    return true;
+}
+
+std::uint64_t tlalpowa_epi_week_bucket_for_timeline_hour(int64_t timeline_hour) {
+    const std::uint64_t epi_key =
+        tlalpowa_epi_temporal_key_from_week_label(format_timeline_week_label(timeline_hour));
+    return epi_key >= 10000ull ? epi_key / 10000ull : 0ull;
+}
+
+bool tlalpowa_atmospheric_key_matches_gate_week(std::uint64_t temporal_key,
+                                                std::uint64_t gate_week_bucket,
+                                                int64_t& out_hour,
+                                                int& out_minute) {
+    if (temporal_key == 0ull) return false;
+    if (!tlalpowa_timeline_from_atmospheric_temporal_key(temporal_key, out_hour, out_minute)) return false;
+    if (gate_week_bucket == 0ull) return true;
+    return tlalpowa_epi_week_bucket_for_timeline_hour(out_hour) == gate_week_bucket;
+}
+
+std::uint64_t tlalpowa_best_startup_atmospheric_key_for_gate(const TlalpowaHotDataStats& st) {
+    const std::uint64_t gate_week = st.startup_gate_selected_week_bucket;
+    const std::uint64_t candidates[] = {
+        st.latest_contaminant_key,
+        st.latest_meteorology_key,
+        st.latest_atmosphere_key,
+        st.latest_temporal_key
+    };
+    int64_t hour = 0;
+    int minute = 0;
+    std::uint64_t seen[4]{};
+    std::size_t seen_count = 0;
+    for (std::uint64_t key : candidates) {
+        if (key == 0ull) continue;
+        bool duplicate = false;
+        for (std::size_t i = 0; i < seen_count; ++i) {
+            if (seen[i] == key) { duplicate = true; break; }
+        }
+        if (duplicate) continue;
+        seen[seen_count++] = key;
+        if (tlalpowa_atmospheric_key_matches_gate_week(key, gate_week, hour, minute)) return key;
+    }
+    return 0ull;
 }
 
 void tlalpowa_hint_hotdata_temporal_window(UiState& ui) {
@@ -21770,12 +22005,14 @@ void tlalpowa_hint_hotdata_temporal_window(UiState& ui) {
     static std::atomic<std::uint64_t> last_active_epi_key{0};
     bool ready = false;
     bool first_visible_ready = false;
+    bool epidemiology_active = false;
     int64_t hour = 0;
     int minute = 0;
     {
         std::lock_guard<std::mutex> lock(ui.mu);
         ready = ui.startup_hotdata_ready;
         first_visible_ready = ui.startup_first_visible_hotdata_ready;
+        epidemiology_active = !ui.selected_diseases.empty();
         hour = ui.timeline_initialized ? ui.timeline_hour : current_local_timeline_hour();
         minute = ui.timeline_initialized ? ui.timeline_minute : current_local_timeline_minute();
     }
@@ -21783,114 +22020,124 @@ void tlalpowa_hint_hotdata_temporal_window(UiState& ui) {
     hour = clamp_timeline_navigation_hour(hour);
     minute = std::clamp(minute, 0, 59);
     const std::uint64_t atmosphere_key = tlalpowa_atmospheric_temporal_key_from_timeline(hour, minute);
-    const std::uint64_t epi_key = tlalpowa_epi_temporal_key_from_week_label(format_timeline_week_label(hour));
+    const std::uint64_t epi_key = epidemiology_active
+        ? tlalpowa_epi_temporal_key_from_week_label(format_timeline_week_label(hour))
+        : 0ull;
     const bool same_active = last_active_atmosphere_key.load(std::memory_order_relaxed) == atmosphere_key &&
                              last_active_epi_key.load(std::memory_order_relaxed) == epi_key;
     if (same_active && first_visible_ready) return;
 
-#ifdef _WIN32
-    const int old_priority = GetThreadPriority(GetCurrentThread());
-    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
-#endif
-    // CONTRATO FIJO DE FECHA ACTIVA: al mover la fecha/hora, esta ruta corre
-    // antes que cualquier barrido amplio. Sirve la llave activa o el registro
-    // fisico mas cercano en cache IXIPTLAH; los vecinos cronologicos se dejan
-    // para el hilo posterior. Asi la UI no espera 10 s tras desvanecerse.
-    TlalpowaHotDataStats stats_active_contaminant{};
-    TlalpowaHotDataStats stats_active_meteorology{};
-    TlalpowaHotDataStats stats_active_epidemiology{};
-    TlalpowaHotDataHit active_contaminant_hits[12]{};
-    TlalpowaHotDataHit active_meteorology_hits[8]{};
-    TlalpowaHotDataHit active_epidemiology_hits[12]{};
-    (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_CONTAMINANT,
-                                                        atmosphere_key,
-                                                        8u,
-                                                        192u * 1024u,
-                                                        0u,
-                                                        0u,
-                                                        active_contaminant_hits,
-                                                        &stats_active_contaminant);
-    (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_METEOROLOGY,
-                                                        atmosphere_key,
-                                                        6u,
-                                                        160u * 1024u,
-                                                        0u,
-                                                        0u,
-                                                        active_meteorology_hits,
-                                                        &stats_active_meteorology);
-    if (epi_key != 0ull) {
-        (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY,
-                                                            epi_key,
-                                                            8u,
-                                                            192u * 1024u,
-                                                            0u,
-                                                            0u,
-                                                            active_epidemiology_hits,
-                                                            &stats_active_epidemiology);
-    }
-#ifdef _WIN32
-    if (old_priority != THREAD_PRIORITY_ERROR_RETURN) SetThreadPriority(GetCurrentThread(), old_priority);
-#endif
-    last_active_atmosphere_key.store(atmosphere_key, std::memory_order_relaxed);
-    last_active_epi_key.store(epi_key, std::memory_order_relaxed);
-    const bool active_ready = (stats_active_contaminant.prepared_hits +
-                               stats_active_meteorology.prepared_hits +
-                               stats_active_epidemiology.prepared_hits) > 0ull;
-    if (active_ready) {
-        std::lock_guard<std::mutex> lock(ui.mu);
-        ui.startup_first_visible_hotdata_ready = true;
-        ui.startup_first_visible_temporal_key = atmosphere_key;
-        if (ui.status.find("No pude") == std::string::npos && ui.app_uptime < kStartupSplashMaximumSeconds) {
-            ui.status = "Primera fecha visible lista en IXIPTLAH; vecinos cronologicos siguen en segundo plano";
-        }
-    }
-
     const std::uint64_t generation = background_generation.fetch_add(1ull, std::memory_order_acq_rel) + 1ull;
     if (background_busy.exchange(true, std::memory_order_acq_rel)) return;
-    std::thread([atmosphere_key, epi_key, generation]() {
+    std::thread([&ui, atmosphere_key, epi_key, epidemiology_active, generation]() {
+        struct BusyReset {
+            std::atomic_bool& busy;
+            ~BusyReset() { busy.store(false, std::memory_order_release); }
+        } reset{background_busy};
 #ifdef _WIN32
         SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
 #endif
-        TlalpowaHotDataStats stats_contaminant{};
-        TlalpowaHotDataStats stats_meteorology{};
-        TlalpowaHotDataStats stats_epidemiology{};
-        TlalpowaHotDataHit contaminant_hits[16]{};
-        TlalpowaHotDataHit meteorology_hits[12]{};
-        TlalpowaHotDataHit epidemiology_hits[16]{};
-        if (background_generation.load(std::memory_order_acquire) == generation) {
-            (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_CONTAMINANT,
-                                                                atmosphere_key,
-                                                                0u,
-                                                                0u,
-                                                                12u,
-                                                                64u * 1024u,
-                                                                contaminant_hits,
-                                                                &stats_contaminant);
-        }
-        if (background_generation.load(std::memory_order_acquire) == generation) {
-            (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_METEOROLOGY,
-                                                                atmosphere_key,
-                                                                0u,
-                                                                0u,
-                                                                8u,
-                                                                64u * 1024u,
-                                                                meteorology_hits,
-                                                                &stats_meteorology);
-        }
-        if (epi_key != 0ull && background_generation.load(std::memory_order_acquire) == generation) {
-            (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY,
-                                                                epi_key,
-                                                                0u,
-                                                                0u,
-                                                                12u,
-                                                                64u * 1024u,
-                                                                epidemiology_hits,
-                                                                &stats_epidemiology);
+        try {
+            // La fecha activa se prepara fuera del hilo de dibujo. Si el usuario
+            // cambia rápido de día/hora, generation descarta trabajos viejos.
+            TlalpowaHotDataStats stats_active_contaminant{};
+            TlalpowaHotDataStats stats_active_meteorology{};
+            TlalpowaHotDataStats stats_active_epidemiology{};
+            TlalpowaHotDataHit active_contaminant_hits[12]{};
+            TlalpowaHotDataHit active_meteorology_hits[8]{};
+            TlalpowaHotDataHit active_epidemiology_hits[12]{};
+            if (background_generation.load(std::memory_order_acquire) == generation) {
+                (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_CONTAMINANT,
+                                                                    atmosphere_key,
+                                                                    8u,
+                                                                    192u * 1024u,
+                                                                    0u,
+                                                                    0u,
+                                                                    active_contaminant_hits,
+                                                                    &stats_active_contaminant);
+            }
+            if (background_generation.load(std::memory_order_acquire) == generation) {
+                (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_METEOROLOGY,
+                                                                    atmosphere_key,
+                                                                    6u,
+                                                                    160u * 1024u,
+                                                                    0u,
+                                                                    0u,
+                                                                    active_meteorology_hits,
+                                                                    &stats_active_meteorology);
+            }
+            if (epidemiology_active && epi_key != 0ull && background_generation.load(std::memory_order_acquire) == generation) {
+                (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY,
+                                                                    epi_key,
+                                                                    8u,
+                                                                    192u * 1024u,
+                                                                    0u,
+                                                                    0u,
+                                                                    active_epidemiology_hits,
+                                                                    &stats_active_epidemiology);
+            }
+
+            const bool active_atmosphere_ready = (stats_active_contaminant.prepared_hits +
+                                                  stats_active_meteorology.prepared_hits) > 0ull;
+            const bool active_epidemiology_ready = stats_active_epidemiology.prepared_hits > 0ull;
+            const bool active_ready = active_atmosphere_ready && (!epidemiology_active || active_epidemiology_ready);
+            if (background_generation.load(std::memory_order_acquire) == generation) {
+                last_active_atmosphere_key.store(atmosphere_key, std::memory_order_relaxed);
+                last_active_epi_key.store(epi_key, std::memory_order_relaxed);
+                if (active_ready) {
+                    std::lock_guard<std::mutex> lock(ui.mu);
+                    ui.startup_first_visible_hotdata_ready = true;
+                    ui.startup_first_visible_temporal_key = atmosphere_key;
+                    if (ui.status.find("No pude") == std::string::npos && ui.app_uptime < kStartupSplashMaximumSeconds) {
+                        ui.status = "Primera fecha visible lista en IXIPTLAH; vecinos cronologicos siguen en segundo plano";
+                    }
+                }
+            }
+
+            TlalpowaHotDataStats stats_contaminant{};
+            TlalpowaHotDataStats stats_meteorology{};
+            TlalpowaHotDataStats stats_epidemiology{};
+            TlalpowaHotDataHit contaminant_hits[16]{};
+            TlalpowaHotDataHit meteorology_hits[12]{};
+            TlalpowaHotDataHit epidemiology_hits[16]{};
+            if (background_generation.load(std::memory_order_acquire) == generation) {
+                (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_CONTAMINANT,
+                                                                    atmosphere_key,
+                                                                    0u,
+                                                                    0u,
+                                                                    12u,
+                                                                    64u * 1024u,
+                                                                    contaminant_hits,
+                                                                    &stats_contaminant);
+            }
+            if (background_generation.load(std::memory_order_acquire) == generation) {
+                (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_METEOROLOGY,
+                                                                    atmosphere_key,
+                                                                    0u,
+                                                                    0u,
+                                                                    8u,
+                                                                    64u * 1024u,
+                                                                    meteorology_hits,
+                                                                    &stats_meteorology);
+            }
+            if (epidemiology_active && epi_key != 0ull && background_generation.load(std::memory_order_acquire) == generation) {
+                (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY,
+                                                                    epi_key,
+                                                                    0u,
+                                                                    0u,
+                                                                    12u,
+                                                                    64u * 1024u,
+                                                                    epidemiology_hits,
+                                                                    &stats_epidemiology);
+            }
+        } catch (const std::exception& e) {
+            tlalpowa_log_failure("hotdata.fecha_activa", e.what());
+        } catch (...) {
+            tlalpowa_log_failure("hotdata.fecha_activa", "excepcion desconocida");
         }
 #ifdef _WIN32
         SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_END);
 #endif
-        background_busy.store(false, std::memory_order_release);
     }).detach();
 }
 
@@ -21909,10 +22156,6 @@ std::vector<std::string> tlalpowa_epidemiology_anchor_labels_locked(const UiStat
             if (!label.empty() && std::find(labels.begin(), labels.end(), label) == labels.end()) labels.push_back(label);
         };
         add_label(anchor_hour);
-        for (int r = 1; r <= kTemporalAdjacentPrefetchRadius; ++r) {
-            add_label(anchor_hour + static_cast<int64_t>(r) * 7LL * 24LL);
-            add_label(anchor_hour - static_cast<int64_t>(r) * 7LL * 24LL);
-        }
         return labels;
     }
     const int max_index = static_cast<int>(ui.weeks.size()) - 1;
@@ -21924,10 +22167,6 @@ std::vector<std::string> tlalpowa_epidemiology_anchor_labels_locked(const UiStat
         if (std::find(labels.begin(), labels.end(), label) == labels.end()) labels.push_back(label);
     };
     add_unique(anchor);
-    for (int r = 1; r <= kTemporalAdjacentPrefetchRadius; ++r) {
-        add_unique(anchor + r);
-        add_unique(anchor - r);
-    }
     return labels;
 }
 
@@ -21953,6 +22192,115 @@ void tlalpowa_restore_epidemiology_week_after_load_locked(UiState& ui, const std
     ui.selected_week = std::clamp(resolved, 0, static_cast<int>(ui.weeks.size()) - 1);
     ui.week_start = ui.selected_week;
     ui.week_end = ui.selected_week;
+}
+
+
+struct TlalpowaEpiCoverageChoice {
+    int index = 0;
+    size_t covered = 0;
+    size_t required = 0;
+    size_t reference = 0;
+    bool strict_pass = false;
+};
+
+TlalpowaEpiCoverageChoice tlalpowa_choose_recent_epidemiology_week_gt75(
+    const std::vector<std::string>& weeks,
+    const std::vector<ObservationRow>& rows,
+    const std::set<std::string>& requested_diseases) {
+    TlalpowaEpiCoverageChoice out;
+    if (weeks.empty()) return out;
+
+    std::unordered_map<std::string, size_t> week_index;
+    week_index.reserve(weeks.size() * 2u + 1u);
+    for (size_t i = 0; i < weeks.size(); ++i) if (!weeks[i].empty()) week_index.emplace(weeks[i], i);
+
+    std::vector<std::unordered_set<std::string>> diseases_by_week(weeks.size());
+    size_t reserve_hint = 0;
+    if (!requested_diseases.empty() && !tlalpowa_all_epidemiology_selected(requested_diseases)) reserve_hint = requested_diseases.size();
+    if (reserve_hint == 0) reserve_hint = 32;
+    for (auto& bucket : diseases_by_week) bucket.reserve(reserve_hint);
+
+    for (const ObservationRow& o : rows) {
+        if (o.week.empty() || o.disease_id.empty()) continue;
+        const auto it = week_index.find(o.week);
+        if (it == week_index.end()) continue;
+        diseases_by_week[it->second].insert(o.disease_id);
+    }
+
+    size_t reference = 0;
+    if (!requested_diseases.empty() && !tlalpowa_all_epidemiology_selected(requested_diseases)) {
+        reference = requested_diseases.size();
+    }
+    for (const auto& bucket : diseases_by_week) reference = std::max(reference, bucket.size());
+    if (reference == 0) reference = 1;
+    const size_t configured = configured_epidemiological_disease_universe_count();
+    if ((requested_diseases.empty() || tlalpowa_all_epidemiology_selected(requested_diseases)) && configured >= 8) {
+        reference = std::max(reference, configured);
+    }
+
+    const size_t required = std::max<size_t>(1, (reference * 3u) / 4u + 1u); // >75%, no >=75% ambiguo.
+    out.reference = reference;
+    out.required = required;
+
+    size_t best_covered = 0;
+    int best_index = 0;
+    bool best_found = false;
+    for (size_t i = 0; i < weeks.size(); ++i) {
+        const size_t covered = diseases_by_week[i].size();
+        if (covered >= required) {
+            out.index = static_cast<int>(i);
+            out.covered = covered;
+            out.strict_pass = true;
+            return out;
+        }
+        if (!best_found || covered > best_covered) {
+            best_found = true;
+            best_covered = covered;
+            best_index = static_cast<int>(i);
+        }
+    }
+
+    out.index = best_index;
+    out.covered = best_covered;
+    out.strict_pass = false;
+    return out;
+}
+
+void tlalpowa_anchor_timeline_to_epidemiology_week_locked(UiState& ui, const std::string& week_label) {
+    if (week_label.empty()) return;
+    const int64_t hour = timeline_hour_for_epi_week_label(week_label);
+    if (hour == 0) return;
+    const bool startup_phase = ui.app_uptime < kStartupSplashMaximumSeconds || !ui.startup_recent_data_ready;
+    if (!startup_phase && ui.timeline_initialized && ui.startup_timeline_aligned_to_latest_real_data) return;
+    ui.timeline_hour = clamp_timeline_navigation_hour(hour);
+    ui.timeline_minute = 0;
+    ui.timeline_initialized = true;
+    ui.timeline_interval_active = false;
+    ui.timeline_interval_start_hour = ui.timeline_hour;
+    ui.timeline_interval_end_hour = ui.timeline_hour;
+    ui.timeline_max_hour = std::max<int64_t>(std::max<int64_t>(ui.timeline_max_hour, current_local_timeline_hour()), ui.timeline_hour);
+    ui.startup_timeline_aligned_to_latest_real_data = true;
+    refresh_timeline_input(ui);
+}
+
+std::string tlalpowa_select_recent_epidemiology_week_gt75_locked(
+    UiState& ui,
+    const std::vector<ObservationRow>& rows,
+    const std::set<std::string>& requested_diseases,
+    const std::string& preferred_anchor_week,
+    bool align_timeline) {
+    if (ui.weeks.empty()) return {};
+    (void)preferred_anchor_week;
+    std::string anchor_week;
+
+    const TlalpowaEpiCoverageChoice choice = tlalpowa_choose_recent_epidemiology_week_gt75(ui.weeks, rows, requested_diseases);
+    const int max_week = static_cast<int>(ui.weeks.size()) - 1;
+    ui.selected_week = std::clamp(choice.index, 0, max_week);
+    ui.week_start = ui.selected_week;
+    ui.week_end = ui.selected_week;
+    anchor_week = ui.weeks[static_cast<size_t>(ui.selected_week)];
+    if (align_timeline) tlalpowa_anchor_timeline_to_epidemiology_week_locked(ui, anchor_week);
+    return anchor_week;
 }
 
 struct TlalpowaEpiIxiptlahLoadPlan {
@@ -22584,6 +22932,7 @@ struct EpiRenderShardRuntimeCacheEntry {
     uintmax_t size = 0;
     std::int64_t mtime_ns = 0;
     size_t rows = 0;
+    std::uint64_t bytes = 0;
     std::shared_ptr<const EpiRenderDiskCache> shard;
 };
 
@@ -22600,6 +22949,7 @@ std::unordered_map<std::string, EpiRenderShardRuntimeCacheEntry>& epi_render_sha
 struct EpiRenderAggregateRuntimeCacheEntry {
     std::string fingerprint;
     size_t rows = 0;
+    std::uint64_t bytes = 0;
     std::shared_ptr<const EpiRenderDiskCache> cache;
 };
 
@@ -22611,6 +22961,58 @@ std::mutex& epi_render_aggregate_runtime_cache_mu() {
 std::unordered_map<std::string, EpiRenderAggregateRuntimeCacheEntry>& epi_render_aggregate_runtime_cache() {
     static std::unordered_map<std::string, EpiRenderAggregateRuntimeCacheEntry> cache;
     return cache;
+}
+
+std::deque<std::string>& epi_render_shard_runtime_cache_lru() {
+    static std::deque<std::string> lru;
+    return lru;
+}
+
+std::deque<std::string>& epi_render_filtered_shard_runtime_cache_lru() {
+    static std::deque<std::string> lru;
+    return lru;
+}
+
+std::deque<std::string>& epi_render_aggregate_runtime_cache_lru() {
+    static std::deque<std::string> lru;
+    return lru;
+}
+
+std::uint64_t& epi_render_shard_runtime_cache_bytes() {
+    static std::uint64_t bytes = 0;
+    return bytes;
+}
+
+std::uint64_t& epi_render_filtered_shard_runtime_cache_bytes();
+
+std::uint64_t& epi_render_aggregate_runtime_cache_bytes() {
+    static std::uint64_t bytes = 0;
+    return bytes;
+}
+
+std::uint64_t epi_render_cache_budget_bytes(const char* env_name, int fallback_mb) {
+    return static_cast<std::uint64_t>(env_int_clamped_app(env_name, fallback_mb, 0, 2048)) * 1024ull * 1024ull;
+}
+
+std::uint64_t estimate_epi_render_cache_bytes(const EpiRenderDiskCache& cache) {
+    std::uint64_t bytes = static_cast<std::uint64_t>(cache.observations.size()) *
+        static_cast<std::uint64_t>(sizeof(ObservationRow) + 192u);
+    bytes += static_cast<std::uint64_t>(cache.weeks.size()) * 96ull;
+    bytes += static_cast<std::uint64_t>(cache.diseases.size() + cache.disease_groups.size()) * 160ull;
+    bytes += static_cast<std::uint64_t>(cache.fingerprint.size() + 64u);
+    return std::max<std::uint64_t>(bytes, 1ull);
+}
+
+std::int64_t file_write_time_ns_or_zero(const fs::path& path) {
+    std::error_code ec;
+    const auto wt = fs::last_write_time(path, ec);
+    if (ec) return 0;
+    return static_cast<std::int64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(wt.time_since_epoch()).count());
+}
+
+void touch_lru_key(std::deque<std::string>& lru, const std::string& key) {
+    lru.erase(std::remove(lru.begin(), lru.end(), key), lru.end());
+    lru.push_back(key);
 }
 
 std::string epidemiology_aggregate_cache_key(const fs::path& root,
@@ -22631,8 +23033,124 @@ std::string epidemiology_aggregate_cache_key(const fs::path& root,
 }
 
 std::shared_ptr<const EpiRenderDiskCache> read_epidemiology_aggregate_runtime_cache_shared(const std::string& key, const std::string& fingerprint) {
-    (void)key; (void)fingerprint;
-    return {};
+    if (key.empty() || fingerprint.empty()) return {};
+    std::lock_guard<std::mutex> lock(epi_render_aggregate_runtime_cache_mu());
+    auto& cache = epi_render_aggregate_runtime_cache();
+    auto it = cache.find(key);
+    if (it == cache.end()) return {};
+    if (it->second.fingerprint != fingerprint || !it->second.cache || it->second.cache->observations.empty()) {
+        auto& total = epi_render_aggregate_runtime_cache_bytes();
+        total = (total >= it->second.bytes) ? (total - it->second.bytes) : 0ull;
+        epi_render_aggregate_runtime_cache_lru().erase(
+            std::remove(epi_render_aggregate_runtime_cache_lru().begin(), epi_render_aggregate_runtime_cache_lru().end(), key),
+            epi_render_aggregate_runtime_cache_lru().end());
+        cache.erase(it);
+        return {};
+    }
+    touch_lru_key(epi_render_aggregate_runtime_cache_lru(), key);
+    return it->second.cache;
+}
+
+void prune_epidemiology_aggregate_runtime_cache_locked(std::uint64_t budget) {
+    auto& cache = epi_render_aggregate_runtime_cache();
+    auto& lru = epi_render_aggregate_runtime_cache_lru();
+    auto& total = epi_render_aggregate_runtime_cache_bytes();
+    if (budget == 0ull) {
+        cache.clear();
+        lru.clear();
+        total = 0ull;
+        return;
+    }
+    while (total > budget && !lru.empty()) {
+        const std::string victim = lru.front();
+        lru.pop_front();
+        auto it = cache.find(victim);
+        if (it == cache.end()) continue;
+        total = (total >= it->second.bytes) ? (total - it->second.bytes) : 0ull;
+        cache.erase(it);
+    }
+}
+
+void store_epidemiology_aggregate_runtime_cache_shared(const std::string& key,
+                                                       const std::string& fingerprint,
+                                                       std::shared_ptr<const EpiRenderDiskCache> value) {
+    const std::uint64_t budget = epi_render_cache_budget_bytes("TLALPOWA_EPI_AGGREGATE_CACHE_MB", 192);
+    if (key.empty() || fingerprint.empty() || !value || value->observations.empty() || budget == 0ull) return;
+    const std::uint64_t bytes = estimate_epi_render_cache_bytes(*value);
+    if (bytes > budget) return;
+    std::lock_guard<std::mutex> lock(epi_render_aggregate_runtime_cache_mu());
+    auto& cache = epi_render_aggregate_runtime_cache();
+    auto& total = epi_render_aggregate_runtime_cache_bytes();
+    auto it = cache.find(key);
+    if (it != cache.end()) {
+        total = (total >= it->second.bytes) ? (total - it->second.bytes) : 0ull;
+        it->second = EpiRenderAggregateRuntimeCacheEntry{fingerprint, value->observations.size(), bytes, std::move(value)};
+    } else {
+        cache.emplace(key, EpiRenderAggregateRuntimeCacheEntry{fingerprint, value->observations.size(), bytes, std::move(value)});
+    }
+    total += bytes;
+    touch_lru_key(epi_render_aggregate_runtime_cache_lru(), key);
+    prune_epidemiology_aggregate_runtime_cache_locked(budget);
+}
+
+std::shared_ptr<const EpiRenderDiskCache> make_shared_epi_render_cache(EpiRenderDiskCache&& value) {
+    if (value.observations.empty()) return {};
+    return std::make_shared<const EpiRenderDiskCache>(std::move(value));
+}
+
+std::shared_ptr<const EpiRenderDiskCache> make_shared_epi_render_cache_copy(const EpiRenderDiskCache& value) {
+    if (value.observations.empty()) return {};
+    return std::make_shared<const EpiRenderDiskCache>(value);
+}
+
+std::shared_ptr<const EpiRenderDiskCache> read_epidemiology_render_shard_from_ixiptlah_cached_shared(const fs::path& path) {
+    if (path.empty()) return {};
+    std::error_code ec;
+    const uintmax_t sz = fs::file_size(path, ec);
+    if (ec) return {};
+    const std::int64_t mtime_ns = file_write_time_ns_or_zero(path);
+    const std::string key = path_utf8(path.lexically_normal());
+    {
+        std::lock_guard<std::mutex> lock(epi_render_shard_runtime_cache_mu());
+        auto& cache = epi_render_shard_runtime_cache();
+        auto it = cache.find(key);
+        if (it != cache.end()) {
+            if (it->second.size == sz && it->second.mtime_ns == mtime_ns && it->second.shard && !it->second.shard->observations.empty()) {
+                touch_lru_key(epi_render_shard_runtime_cache_lru(), key);
+                return it->second.shard;
+            }
+            auto& total = epi_render_shard_runtime_cache_bytes();
+            total = (total >= it->second.bytes) ? (total - it->second.bytes) : 0ull;
+            epi_render_shard_runtime_cache_lru().erase(
+                std::remove(epi_render_shard_runtime_cache_lru().begin(), epi_render_shard_runtime_cache_lru().end(), key),
+                epi_render_shard_runtime_cache_lru().end());
+            cache.erase(it);
+        }
+    }
+
+    EpiRenderDiskCache parsed;
+    if (!read_epidemiology_render_shard_from_ixiptlah(path, parsed) || parsed.observations.empty()) return {};
+    auto shared = make_shared_epi_render_cache(std::move(parsed));
+    const std::uint64_t bytes = estimate_epi_render_cache_bytes(*shared);
+    const std::uint64_t budget = epi_render_cache_budget_bytes("TLALPOWA_EPI_SHARD_CACHE_MB", 96);
+    if (budget > 0ull && bytes <= budget) {
+        std::lock_guard<std::mutex> lock(epi_render_shard_runtime_cache_mu());
+        auto& cache = epi_render_shard_runtime_cache();
+        auto& total = epi_render_shard_runtime_cache_bytes();
+        cache[key] = EpiRenderShardRuntimeCacheEntry{sz, mtime_ns, shared->observations.size(), bytes, shared};
+        total += bytes;
+        touch_lru_key(epi_render_shard_runtime_cache_lru(), key);
+        auto& lru = epi_render_shard_runtime_cache_lru();
+        while (total > budget && !lru.empty()) {
+            const std::string victim = lru.front();
+            lru.pop_front();
+            auto it = cache.find(victim);
+            if (it == cache.end()) continue;
+            total = (total >= it->second.bytes) ? (total - it->second.bytes) : 0ull;
+            cache.erase(it);
+        }
+    }
+    return shared;
 }
 
 bool read_epidemiology_aggregate_runtime_cache(const std::string& key, const std::string& fingerprint, EpiRenderDiskCache& out) {
@@ -22643,14 +23161,12 @@ bool read_epidemiology_aggregate_runtime_cache(const std::string& key, const std
 }
 
 void store_epidemiology_aggregate_runtime_cache(const std::string& key, const std::string& fingerprint, const EpiRenderDiskCache& value) {
-    (void)key; (void)fingerprint; (void)value;
+    store_epidemiology_aggregate_runtime_cache_shared(key, fingerprint, make_shared_epi_render_cache_copy(value));
 }
 
-std::shared_ptr<const EpiRenderDiskCache> read_epidemiology_render_shard_from_ixiptlah_cached_shared(const fs::path& path) {
-    if (path.empty()) return {};
-    EpiRenderDiskCache parsed;
-    if (!read_epidemiology_render_shard_from_ixiptlah(path, parsed) || parsed.observations.empty()) return {};
-    return std::make_shared<const EpiRenderDiskCache>(std::move(parsed));
+std::shared_ptr<const EpiRenderDiskCache> read_epidemiology_render_shard_from_ixiptlah_cached_shared_legacy_removed(const fs::path& path) {
+    (void)path;
+    return {};
 }
 
 bool read_epidemiology_render_shard_from_ixiptlah_cached(const fs::path& path, EpiRenderDiskCache& shard) {
@@ -22665,6 +23181,7 @@ struct EpiRenderFilteredShardRuntimeCacheEntry {
     uintmax_t size = 0;
     std::int64_t mtime_ns = 0;
     size_t rows = 0;
+    std::uint64_t bytes = 0;
     std::shared_ptr<const EpiRenderDiskCache> shard;
 };
 
@@ -22676,6 +23193,11 @@ std::mutex& epi_render_filtered_shard_runtime_cache_mu() {
 std::unordered_map<std::string, EpiRenderFilteredShardRuntimeCacheEntry>& epi_render_filtered_shard_runtime_cache() {
     static std::unordered_map<std::string, EpiRenderFilteredShardRuntimeCacheEntry> cache;
     return cache;
+}
+
+std::uint64_t& epi_render_filtered_shard_runtime_cache_bytes() {
+    static std::uint64_t bytes = 0;
+    return bytes;
 }
 
 std::string epi_render_filtered_shard_cache_key(const fs::path& path,
@@ -22697,9 +23219,29 @@ bool read_epidemiology_filtered_shard_runtime_cache(const fs::path& path,
                                                     int year_start,
                                                     int year_end,
                                                     EpiRenderDiskCache& shard) {
-    (void)path; (void)requested_diseases; (void)year_start; (void)year_end;
     shard = {};
-    return false;
+    if (path.empty()) return false;
+    std::error_code ec;
+    const uintmax_t sz = fs::file_size(path, ec);
+    if (ec) return false;
+    const std::int64_t mtime_ns = file_write_time_ns_or_zero(path);
+    const std::string key = epi_render_filtered_shard_cache_key(path, requested_diseases, year_start, year_end);
+    std::lock_guard<std::mutex> lock(epi_render_filtered_shard_runtime_cache_mu());
+    auto& cache = epi_render_filtered_shard_runtime_cache();
+    auto it = cache.find(key);
+    if (it == cache.end()) return false;
+    if (it->second.size != sz || it->second.mtime_ns != mtime_ns || !it->second.shard || it->second.shard->observations.empty()) {
+        auto& total = epi_render_filtered_shard_runtime_cache_bytes();
+        total = (total >= it->second.bytes) ? (total - it->second.bytes) : 0ull;
+        epi_render_filtered_shard_runtime_cache_lru().erase(
+            std::remove(epi_render_filtered_shard_runtime_cache_lru().begin(), epi_render_filtered_shard_runtime_cache_lru().end(), key),
+            epi_render_filtered_shard_runtime_cache_lru().end());
+        cache.erase(it);
+        return false;
+    }
+    touch_lru_key(epi_render_filtered_shard_runtime_cache_lru(), key);
+    shard = *it->second.shard;
+    return !shard.observations.empty();
 }
 
 void store_epidemiology_filtered_shard_runtime_cache(const fs::path& path,
@@ -22707,7 +23249,37 @@ void store_epidemiology_filtered_shard_runtime_cache(const fs::path& path,
                                                      int year_start,
                                                      int year_end,
                                                      const EpiRenderDiskCache& shard) {
-    (void)path; (void)requested_diseases; (void)year_start; (void)year_end; (void)shard;
+    const std::uint64_t budget = epi_render_cache_budget_bytes("TLALPOWA_EPI_FILTERED_SHARD_CACHE_MB", 128);
+    if (path.empty() || shard.observations.empty() || budget == 0ull) return;
+    std::error_code ec;
+    const uintmax_t sz = fs::file_size(path, ec);
+    if (ec) return;
+    const std::int64_t mtime_ns = file_write_time_ns_or_zero(path);
+    auto shared = make_shared_epi_render_cache_copy(shard);
+    const std::uint64_t bytes = estimate_epi_render_cache_bytes(*shared);
+    if (bytes > budget) return;
+    const std::string key = epi_render_filtered_shard_cache_key(path, requested_diseases, year_start, year_end);
+    std::lock_guard<std::mutex> lock(epi_render_filtered_shard_runtime_cache_mu());
+    auto& cache = epi_render_filtered_shard_runtime_cache();
+    auto& total = epi_render_filtered_shard_runtime_cache_bytes();
+    auto it = cache.find(key);
+    if (it != cache.end()) {
+        total = (total >= it->second.bytes) ? (total - it->second.bytes) : 0ull;
+        it->second = EpiRenderFilteredShardRuntimeCacheEntry{sz, mtime_ns, shared->observations.size(), bytes, std::move(shared)};
+    } else {
+        cache.emplace(key, EpiRenderFilteredShardRuntimeCacheEntry{sz, mtime_ns, shared->observations.size(), bytes, std::move(shared)});
+    }
+    total += bytes;
+    touch_lru_key(epi_render_filtered_shard_runtime_cache_lru(), key);
+    auto& lru = epi_render_filtered_shard_runtime_cache_lru();
+    while (total > budget && !lru.empty()) {
+        const std::string victim = lru.front();
+        lru.pop_front();
+        auto vit = cache.find(victim);
+        if (vit == cache.end()) continue;
+        total = (total >= vit->second.bytes) ? (total - vit->second.bytes) : 0ull;
+        cache.erase(vit);
+    }
 }
 
 bool read_epidemiology_primary_shard_from_ixiptlah_filtered(const fs::path& path,
@@ -22913,9 +23485,9 @@ bool read_epidemiology_render_cache_filtered_from_files(const fs::path& root,
             continue;
         }
         any_shard = true;
-        for (const auto& o : shard.observations) {
+        for (auto& o : shard.observations) {
             weeks.push_back(o.week);
-            cache.observations.push_back(o);
+            cache.observations.push_back(std::move(o));
         }
         for (const auto& [id, name] : shard.diseases) if (!id.empty()) cache.diseases[id] = name;
         for (const auto& [id, group] : shard.disease_groups) if (!id.empty()) cache.disease_groups[id] = group.empty() ? "sin_categoria" : group;
@@ -23108,9 +23680,9 @@ bool read_epidemiology_render_cache_filtered_weeks_from_files(const fs::path& ro
         EpiRenderDiskCache shard;
         if (!read_epidemiology_render_shard_from_ixiptlah_filtered_week_keys(p, requested_diseases, week_keys, shard) || shard.observations.empty()) continue;
         any_shard = true;
-        for (const auto& o : shard.observations) {
+        for (auto& o : shard.observations) {
             weeks.push_back(o.week);
-            cache.observations.push_back(o);
+            cache.observations.push_back(std::move(o));
         }
         for (const auto& [id, name] : shard.diseases) if (!id.empty()) cache.diseases[id] = name;
         for (const auto& [id, group] : shard.disease_groups) if (!id.empty()) cache.disease_groups[id] = group.empty() ? "sin_categoria" : group;
@@ -23153,9 +23725,9 @@ bool read_epidemiology_render_cache_filtered(const fs::path& root,
             continue;
         }
         any_shard = true;
-        for (const auto& o : shard.observations) {
+        for (auto& o : shard.observations) {
             weeks.push_back(o.week);
-            cache.observations.push_back(o);
+            cache.observations.push_back(std::move(o));
         }
         for (const auto& [id, name] : shard.diseases) if (!id.empty()) cache.diseases[id] = name;
         for (const auto& [id, group] : shard.disease_groups) if (!id.empty()) cache.disease_groups[id] = group.empty() ? "sin_categoria" : group;
@@ -23202,9 +23774,9 @@ bool read_epidemiology_render_cache_filtered_recent_files(const fs::path& root,
         EpiRenderDiskCache shard;
         if (!read_epidemiology_render_shard_from_ixiptlah_filtered(p, requested_diseases, year_start, year_end, shard) || shard.observations.empty()) continue;
         any_shard = true;
-        for (const auto& o : shard.observations) {
+        for (auto& o : shard.observations) {
             weeks.push_back(o.week);
-            cache.observations.push_back(o);
+            cache.observations.push_back(std::move(o));
         }
         for (const auto& [id, name] : shard.diseases) if (!id.empty()) cache.diseases[id] = name;
         for (const auto& [id, group] : shard.disease_groups) if (!id.empty()) cache.disease_groups[id] = group.empty() ? "sin_categoria" : group;
@@ -23360,22 +23932,25 @@ void publish_epidemiology_cache_to_ui(UiState& ui,
     ui.weeks = std::move(weeks);
     ui.observations_loaded = true;
     ui.observations_full_loaded = final_snapshot && !shared_observations->empty();
+    ui.observations_full_loading = !final_snapshot;
     ui.observations_loading = !final_snapshot;
     ui.observations_loading_sources_done = 1;
     ui.observations_loading_sources_total = 1;
     ui.observations_loading_rows = shared_observations->size();
     ui.observations_loading_phase = phase;
     ui.observations_loaded_filter_signature = requested_filter_signature;
-    ui.observations_loaded_anchor_week = anchor_week;
     ui.observations_revision.fetch_add(1, std::memory_order_relaxed);
     ui.map_revision.fetch_add(1, std::memory_order_relaxed);
     if (merge_catalog) {
         for (const auto& [id, name] : cache.diseases) if (!id.empty()) ui.diseases[id] = name;
         for (const auto& [id, group] : cache.disease_groups) if (!id.empty() && ui.disease_groups.find(id) == ui.disease_groups.end()) ui.disease_groups[id] = group.empty() ? "sin_categoria" : group;
     }
-    tlalpowa_restore_epidemiology_week_after_load_locked(ui, anchor_week);
+    anchor_week = tlalpowa_select_recent_epidemiology_week_gt75_locked(
+        ui, *shared_observations, requested_diseases, anchor_week, true);
+    ui.observations_loaded_anchor_week = anchor_week;
     force_epidemiology_exact_week_locked(ui);
-    ui.status = phase + "; registros " + std::to_string(shared_observations->size()) + "; semanas " + std::to_string(ui.weeks.size());
+    ui.status = phase + "; registros " + std::to_string(shared_observations->size()) + "; semanas " + std::to_string(ui.weeks.size()) +
+        (anchor_week.empty() ? std::string{} : "; fecha anclada >75% " + anchor_week);
 }
 
 void publish_epidemiology_shared_cache_to_ui(UiState& ui,
@@ -23405,26 +23980,43 @@ void publish_epidemiology_shared_cache_to_ui(UiState& ui,
     ui.weeks = cache->weeks;
     ui.observations_loaded = true;
     ui.observations_full_loaded = final_snapshot;
+    ui.observations_full_loading = !final_snapshot;
     ui.observations_loading = !final_snapshot;
     ui.observations_loading_sources_done = 1;
     ui.observations_loading_sources_total = 1;
     ui.observations_loading_rows = cache->observations.size();
     ui.observations_loading_phase = phase;
     ui.observations_loaded_filter_signature = requested_filter_signature;
-    ui.observations_loaded_anchor_week = anchor_week;
     ui.observations_revision.fetch_add(1, std::memory_order_relaxed);
     ui.map_revision.fetch_add(1, std::memory_order_relaxed);
     for (const auto& [id, name] : cache->diseases) if (!id.empty()) ui.diseases[id] = name;
     for (const auto& [id, group] : cache->disease_groups) if (!id.empty() && ui.disease_groups.find(id) == ui.disease_groups.end()) ui.disease_groups[id] = group.empty() ? "sin_categoria" : group;
-    tlalpowa_restore_epidemiology_week_after_load_locked(ui, anchor_week);
+    anchor_week = tlalpowa_select_recent_epidemiology_week_gt75_locked(
+        ui, cache->observations, requested_diseases, anchor_week, true);
+    ui.observations_loaded_anchor_week = anchor_week;
     force_epidemiology_exact_week_locked(ui);
-    ui.status = phase + "; registros " + std::to_string(cache->observations.size()) + "; semanas " + std::to_string(ui.weeks.size());
+    ui.status = phase + "; registros " + std::to_string(cache->observations.size()) + "; semanas " + std::to_string(ui.weeks.size()) +
+        (anchor_week.empty() ? std::string{} : "; fecha anclada >75% " + anchor_week);
 }
 
 // load_recent_observations_lite abolida: no existe lectura parcial/viva de IXIPTLAH abiertos.
 
+std::mutex& epidemiology_observation_load_mutex() {
+    static std::mutex mu;
+    return mu;
+}
+
 void load_observations(UiState& ui, bool allow_partial_weeks = false) {
     (void)allow_partial_weeks;
+    std::unique_lock<std::mutex> load_lock(epidemiology_observation_load_mutex(), std::try_to_lock);
+    if (!load_lock.owns_lock()) {
+        std::lock_guard<std::mutex> lock(ui.mu);
+        ui.observations_loading = true;
+        ui.observations_full_loading = true;
+        ui.observations_loading_phase = "Carga epidemiológica ya en curso; evitando lectura paralela de IXIPTLAH.";
+        if (ui.status.find("No pude") == std::string::npos) ui.status = ui.observations_loading_phase;
+        return;
+    }
     try {
 
     if (ui.running.load(std::memory_order_relaxed)) {
@@ -23524,9 +24116,28 @@ void load_observations(UiState& ui, bool allow_partial_weeks = false) {
                 return;
             }
 
-            // Si no existe la semana consultada se evita barrer el corpus completo:
-            // el usuario recibe un estado explícito y RAMA/REDMET/RUOA/PEMBU no
-            // pagan CPU ni I/O por una capa epidemiológica ausente.
+            // Si la semana civil activa no existe todavía (por ejemplo junio
+            // cuando el último boletín consolidado está en abril), no se cae al
+            // ausencia exacta por defecto; fallback reciente solo por diagnostico.
+            {
+                EpiRenderDiskCache recent_complete_cache;
+                const int fallback_recent_files = env_int_clamped_app(
+                    "TLALPOWA_EPI_RECENT_COMPLETE_FALLBACK_FILES", 16, 3, 64);
+                if (download_env_flag_enabled_local("TLALPOWA_EPI_ALLOW_RECENT_FALLBACK", false) &&
+                    read_epidemiology_render_cache_filtered_recent_files(
+                        epi_root, requested_diseases, fallback_recent_files,
+                        recent_complete_cache, requested_year_start, requested_year_end)) {
+                    publish_epidemiology_cache_to_ui(ui, std::move(recent_complete_cache), requested_diseases,
+                                                     requested_filter_signature,
+                                                     preferred_anchor_week.empty()
+                                                        ? "IXIPTLAH: fecha reciente con >75% de cobertura"
+                                                        : "IXIPTLAH: fallback reciente por diagnostico",
+                                                     true, {}, true);
+                    return;
+                }
+            }
+
+            // Sin semana activa exacta se publica ausencia real.
             {
                 std::lock_guard<std::mutex> lock(ui.mu);
                 ui.observations_ptr.reset();
@@ -23540,8 +24151,8 @@ void load_observations(UiState& ui, bool allow_partial_weeks = false) {
                 ui.observations_loaded_filter_signature = requested_filter_signature;
                 ui.observations_loaded_anchor_week = preferred_anchor_week;
                 ui.observations_loading_phase = preferred_anchor_week.empty()
-                    ? "IXIPTLAH: sin semana epidemiológica activa para consultar"
-                    : "IXIPTLAH: sin datos epidemiológicos para " + preferred_anchor_week;
+                    ? "IXIPTLAH: sin semana epidemiologica activa para consultar"
+                    : "IXIPTLAH: sin datos epidemiologicos exactos para " + preferred_anchor_week;
                 ui.status = ui.observations_loading_phase;
                 ui.observations_revision.fetch_add(1, std::memory_order_relaxed);
                 ui.map_revision.fetch_add(1, std::memory_order_relaxed);
@@ -24022,15 +24633,14 @@ void load_observations(UiState& ui, bool allow_partial_weeks = false) {
             }
         }
 
-        if (!ui.weeks.empty()) {
-            ui.selected_week = 0;
-            ui.week_start = 0;
-            ui.week_end = 0;
-        }
+        const std::string anchored_week = tlalpowa_select_recent_epidemiology_week_gt75_locked(
+            ui, *shared_observations, requested_diseases, preferred_anchor_week, true);
+        ui.observations_loaded_anchor_week = anchored_week;
         force_epidemiology_exact_week_locked(ui);
         ui.status = "Datos historicos listos desde archivos anuales descendentes; archivos " + std::to_string(temporal_sources.size()) +
                     "; registros " + std::to_string(shared_observations->size()) +
-                    "; filas exploradas " + std::to_string(scanned);
+                    "; filas exploradas " + std::to_string(scanned) +
+                    (anchored_week.empty() ? std::string{} : "; fecha anclada >75% " + anchored_week);
 
         return;
     }
@@ -24375,11 +24985,9 @@ void load_observations(UiState& ui, bool allow_partial_weeks = false) {
         }
     }
 
-    if (!ui.weeks.empty()) {
-        ui.selected_week = 0;
-        ui.week_start = 0;
-        ui.week_end = 0;
-    }
+    const std::string anchored_week = tlalpowa_select_recent_epidemiology_week_gt75_locked(
+        ui, *shared_observations, requested_diseases, preferred_anchor_week, true);
+    ui.observations_loaded_anchor_week = anchored_week;
     force_epidemiology_exact_week_locked(ui);
 
     ui.status = "Datos historicos listos; fuente validada " + path_utf8(profile.path.filename()) +
@@ -24387,6 +24995,8 @@ void load_observations(UiState& ui, bool allow_partial_weeks = false) {
 
                 "; universo enfermedades " + std::to_string(profile.reference_disease_count) +
 
+
+                (anchored_week.empty() ? std::string{} : "; fecha anclada >75% " + anchored_week) +
 
                 (omitted_sparse > 0 ? "; filas omitidas por semanas con <80% de enfermedades procesadas " + std::to_string(omitted_sparse) : std::string{}) +
 
@@ -25105,6 +25715,27 @@ std::vector<fs::path> ixiptlah_weekly_paths_for_runtime(const fs::path& root) {
     std::vector<fs::path> out;
     std::error_code ec;
     if (root.empty() || !fs::exists(root, ec) || ec) return out;
+    ec.clear();
+    const auto dir_time = fs::last_write_time(root, ec);
+    const std::int64_t dir_tick = ec ? 0 : static_cast<std::int64_t>(dir_time.time_since_epoch().count());
+    const std::string cache_key = path_utf8(root.lexically_normal());
+    const auto now = std::chrono::steady_clock::now();
+    struct CachedWeeklyPathList {
+        std::vector<fs::path> paths;
+        std::int64_t directory_tick = 0;
+        std::chrono::steady_clock::time_point loaded{};
+    };
+    static std::mutex weekly_cache_mu;
+    static std::map<std::string, CachedWeeklyPathList> weekly_cache;
+    {
+        std::lock_guard<std::mutex> lock(weekly_cache_mu);
+        auto it = weekly_cache.find(cache_key);
+        if (it != weekly_cache.end() && it->second.directory_tick == dir_tick &&
+            now - it->second.loaded < std::chrono::milliseconds(5000)) {
+            return it->second.paths;
+        }
+    }
+
     for (fs::directory_iterator it(root, fs::directory_options::skip_permission_denied, ec), end; !ec && it != end; it.increment(ec)) {
         const fs::path path = it->path();
         std::error_code item_ec;
@@ -25126,6 +25757,14 @@ std::vector<fs::path> ixiptlah_weekly_paths_for_runtime(const fs::path& root) {
         return path_utf8(a) > path_utf8(b);
     });
     out.erase(std::unique(out.begin(), out.end()), out.end());
+    {
+        std::lock_guard<std::mutex> lock(weekly_cache_mu);
+        auto& c = weekly_cache[cache_key];
+        c.paths = out;
+        c.directory_tick = dir_tick;
+        c.loaded = now;
+        if (weekly_cache.size() > 8u) weekly_cache.erase(weekly_cache.begin());
+    }
     return out;
 }
 
@@ -25263,6 +25902,10 @@ std::string atmospheric_parameter_label(const std::string& pollutant);
 
 std::string atmospheric_catalog_group_for_key(const std::string& raw_key) {
     const std::string key = atmospheric_parameter_key(raw_key);
+    if (key == "flow" || key == "water_level" || key == "storage" || key == "water_temp") return "agua";
+    if (key == "ph" || key == "conductivity" || key == "turbidity" ||
+        key == "dissolved_oxygen" || key == "bod" || key == "cod" ||
+        key == "tds" || key == "tss") return "calidad_agua";
     char group[48];
     ozmvm_atm_catalog_group_copy(key.data(), key.size(), group, sizeof(group));
     return group;
@@ -27283,6 +27926,18 @@ void load_catalogs(UiState& ui, bool scan_native_epidemiology = true) {
     add_atmospheric_default("pblh", "Altura De Capa Límite", "meteorologico");
     add_atmospheric_default("rh", "Humedad Relativa", "meteorologico");
     add_atmospheric_default("pp", "Precipitación", "meteorologico");
+    add_atmospheric_default("flow", "Caudal", "agua");
+    add_atmospheric_default("water_level", "Nivel Del Agua", "agua");
+    add_atmospheric_default("storage", "Almacenamiento En Presa", "agua");
+    add_atmospheric_default("water_temp", "Temperatura Del Agua", "agua");
+    add_atmospheric_default("ph", "pH", "calidad_agua");
+    add_atmospheric_default("conductivity", "Conductividad", "calidad_agua");
+    add_atmospheric_default("turbidity", "Turbidez", "calidad_agua");
+    add_atmospheric_default("dissolved_oxygen", "Oxígeno Disuelto", "calidad_agua");
+    add_atmospheric_default("bod", "DBO", "calidad_agua");
+    add_atmospheric_default("cod", "DQO", "calidad_agua");
+    add_atmospheric_default("tds", "Sólidos Disueltos Totales", "calidad_agua");
+    add_atmospheric_default("tss", "Sólidos Suspendidos Totales", "calidad_agua");
     add_atmospheric_default("pa", "Presión Atmosférica", "meteorologico");
     add_atmospheric_default("tmp", "Temperatura Ambiente", "meteorologico");
     add_atmospheric_default("tmax", "Temperatura Máxima", "meteorologico");
@@ -27435,7 +28090,7 @@ void load_atmospheric_clouds(UiState& ui, bool activate_loaded_keys = false) {
 
     std::vector<AtmosphericCloudPoint> clouds;
 
-    const size_t cloud_reserve = static_cast<size_t>(env_int_clamped_app("TLALPOWA_ATMOS_MAP_POINT_RESERVE", 120000, 12000, 2000000));
+    const size_t cloud_reserve = static_cast<size_t>(env_int_clamped_app("TLALPOWA_ATMOS_MAP_POINT_RESERVE", 30000, 4096, 2000000));
 
     clouds.reserve(cloud_reserve);
 
@@ -27534,13 +28189,15 @@ void load_atmospheric_clouds(UiState& ui, bool activate_loaded_keys = false) {
 
         const auto now = std::chrono::steady_clock::now();
 
+        if (!final_snapshot && atmosphere_blocks_total <= 1) return;
 
         if (!final_snapshot && atmosphere_blocks_done > 1 && now - last_atmosphere_publish < std::chrono::milliseconds(2200)) return;
         last_atmosphere_publish = now;
 
 
         std::lock_guard<std::mutex> lock(ui.mu);
-        ui.atmospheric_clouds = clouds;
+        if (final_snapshot) ui.atmospheric_clouds = std::move(clouds);
+        else ui.atmospheric_clouds = clouds;
         std::set<std::string> visible_cloud_keys;
         for (const auto& c : ui.atmospheric_clouds) {
             const std::string key = atmospheric_parameter_key(c.pollutant);
@@ -27800,7 +28457,14 @@ void load_atmospheric_clouds(UiState& ui, bool activate_loaded_keys = false) {
 
         publish_atmosphere_partial(fs::path{}, true);
 
-        return;
+        bool loaded_from_native = false;
+        {
+            std::lock_guard<std::mutex> lock(ui.mu);
+            loaded_from_native = !ui.atmospheric_clouds.empty();
+        }
+        if (loaded_from_native) return;
+
+        atmosphere_blocks.clear();
     }
 
     for (const auto& block : atmosphere_blocks) {
@@ -28273,8 +28937,6 @@ void request_atmospheric_hourly_snapshot_async(UiState& ui) {
             ui.atmosphere_snapshot_interval_end_hour = interval_end_hour;
             ui.atmosphere_snapshot_filter_signature = filter_signature;
             ui.atmosphere_snapshot_status = "Sin pines radiales: ninguna casilla atmosférica o contaminante está activada.";
-
-            ui.map_revision.fetch_add(1, std::memory_order_relaxed);
             {
 
 
@@ -28423,9 +29085,10 @@ void request_atmospheric_hourly_snapshot_async(UiState& ui) {
                                                  request_generation,
                                                  network_mask,
                                                  playback_step_unit,
-                                                 snapshot_request_key,
+                                                  snapshot_request_key,
 
-                                                 selected_pollutants = std::move(selected_pollutants)]() {
+                                                  selected_pollutants = std::move(selected_pollutants)]() {
+        TlalpowaCrashPhaseScope worker_phase("worker.atmosfera.snapshot_temporal");
 #ifdef _WIN32
 
 
@@ -28485,9 +29148,11 @@ void request_atmospheric_hourly_snapshot_async(UiState& ui) {
             }
 
         } catch (const std::exception& e) {
+            tlalpowa_log_failure("atmosfera.snapshot_temporal", e.what());
             status = std::string("No pude cargar snapshot atmosférico: ") + e.what();
 
         } catch (...) {
+            tlalpowa_log_failure("atmosfera.snapshot_temporal", "excepcion desconocida");
             status = "No pude cargar snapshot atmosférico.";
         }
         if (!snapshot.empty()) atmosphere_snapshot_cache_put(snapshot_request_key, snapshot);
@@ -31228,11 +31893,13 @@ void draw_top_bar(UiState& ui) {
     bool startup_essentials_ready = false;
     {
         std::lock_guard<std::mutex> lock(ui.mu);
+        const bool startup_hotdata_gate_ready =
+            (ui.startup_hotdata_ready && ui.startup_first_visible_hotdata_ready) ||
+            (!ui.startup_hotdata_loading && !ui.startup_hotdata_ready && ui.startup_hotdata_ixiptlah_files == 0ull);
         startup_essentials_ready = ui.startup_catalogs_loaded &&
                                    (!ui.pollutants.empty() || !ui.diseases.empty()) &&
                                    ui.startup_recent_data_ready &&
-                                   ui.startup_hotdata_ready &&
-                                   ui.startup_first_visible_hotdata_ready &&
+                                   startup_hotdata_gate_ready &&
                                    ui.map_assets_loaded;
     }
     const float startup_time_progress = std::clamp(ui.app_uptime / kStartupSplashSolidSeconds, 0.0f, 1.0f);
@@ -31246,8 +31913,7 @@ void draw_top_bar(UiState& ui) {
         if (ui.map_assets_loaded) startup_progress = 1.0f;
     }
     startup_progress = std::min(startup_time_progress, std::clamp(startup_progress, 0.0f, 1.0f));
-    if (ui.app_uptime < kStartupSplashSolidSeconds ||
-        (!startup_essentials_ready && ui.app_uptime < kStartupSplashMaximumSeconds)) {
+    if (ui.app_uptime < kStartupSplashSolidSeconds || !startup_essentials_ready) {
         const float progress_h = tlalpowa_import_track_visual_thickness();
         const float progress_y = wp.y + ws.y - progress_h;
         tlalpowa_draw_canonical_progress_rect(dl, ImVec2(wp.x, progress_y), ImVec2(wp.x + ws.x, wp.y + ws.y),
@@ -35840,7 +36506,7 @@ void start_satellite_import_async(UiState& ui) {
                 source = satellite_source_root(source_id);
             }
             ensure_dir(source);
-            const auto sources = list_satellite_sources_recursive_limited(source, 16000);
+            const auto sources = list_satellite_sources_recursive_limited(source, 0);
             {
 
                 std::lock_guard<std::mutex> lock(ui.mu);
@@ -35865,7 +36531,7 @@ void start_satellite_import_async(UiState& ui) {
             af.forced_provider = satellite_product_label(source_id);
             af.inventory_only = false;
 
-            af.max_files = 30000;
+            af.max_files = 0;
 
             af.sample_lines_per_file = 32;
 
@@ -36963,6 +37629,8 @@ def write_rows(rows):
     return 0
 
 
+)PYCODE"
+R"PYCODE(
 def xlsx_col_index(ref):
     m = re.match(r'([A-Za-z]+)', str(ref or ''))
     if not m:
@@ -37198,6 +37866,8 @@ def xlsx_rows():
     return rows
 
 
+)PYCODE"
+R"PYCODE(
 def within(lon, lat):
     return BBOX[0] <= lon <= BBOX[2] and BBOX[1] <= lat <= BBOX[3]
 
@@ -38708,6 +39378,11 @@ void external_add_sentinel_odata_products_from_json(const nlohmann::json& j,
     if (!j.is_object() || !j.contains("value") || !j["value"].is_array()) return;
     int n = 0;
 
+    const int max_products = download_env_int_local(
+        "TLALPOWA_SENTINEL5P_MAX_PRODUCTS",
+        download_env_flag_enabled_local("TLALPOWA_SENTINEL5P_ALL_PRODUCTS", false) ? 5000 : 720,
+        1,
+        5000);
     for (const auto& item : j["value"]) {
 
         if (!item.is_object()) continue;
@@ -38723,7 +39398,7 @@ void external_add_sentinel_odata_products_from_json(const nlohmann::json& j,
                                (name.empty() ? "Sentinel-5P TROPOMI producto" : name) + " NetCDF Sentinel-5P",
                                "NetCDF");
 
-        if (++n >= download_env_int_local("TLALPOWA_SENTINEL5P_MAX_PRODUCTS", 2, 1, 24)) break;
+        if (++n >= max_products) break;
     }
 }
 
@@ -38868,7 +39543,11 @@ ExternalWebDownloadResult download_external_web_resources(UiState& ui,
 
             const std::string filter = "Collection/Name eq 'SENTINEL-5P' and contains(Name,'" + std::string(product) + "') and ContentDate/Start ge " + start_iso + " and ContentDate/Start le " + end_iso;
 
-            resource_urls.emplace_back("https://catalogue.dataspace.copernicus.eu/odata/v1/Products?$filter=" + url_percent_encode_unsafe(filter) + "&$top=" + std::to_string(download_env_int_local("TLALPOWA_SENTINEL5P_PRODUCTS_PER_VARIABLE", 1, 1, 12)) + "&$orderby=ContentDate/Start desc&$select=Id,Name,ContentDate,ContentLength", std::string("Sentinel-5P ") + product + " OData query", "JSON");
+            const int year_span = std::max(1, ye - ys + 1);
+            const int default_top = download_env_flag_enabled_local("TLALPOWA_SENTINEL5P_ALL_PRODUCTS", false)
+                ? std::clamp(year_span * 366, 1, 5000)
+                : std::clamp(year_span * 48, 24, 720);
+            resource_urls.emplace_back("https://catalogue.dataspace.copernicus.eu/odata/v1/Products?$filter=" + url_percent_encode_unsafe(filter) + "&$top=" + std::to_string(download_env_int_local("TLALPOWA_SENTINEL5P_PRODUCTS_PER_VARIABLE", default_top, 1, 5000)) + "&$orderby=ContentDate/Start desc&$select=Id,Name,ContentDate,ContentLength", std::string("Sentinel-5P ") + product + " OData query", "JSON");
         }
     }
 
@@ -39023,7 +39702,12 @@ ExternalWebDownloadResult download_external_web_resources(UiState& ui,
 
 
 
-        const int max_primary_resources = download_env_int_local("TLALPOWA_EXTERNAL_WEB_MAX_PRIMARY", 96, 1, 1000);
+        const int default_primary_resources =
+            source_id_norm == "sentinel5p_tropomi"
+                ? (download_env_flag_enabled_local("TLALPOWA_SENTINEL5P_ALL_PRODUCTS", false) ? 5000 : 720)
+                : 96;
+        const int max_primary_resources = download_env_int_local(
+            "TLALPOWA_EXTERNAL_WEB_MAX_PRIMARY", default_primary_resources, 1, 5000);
 
         if (ordinal >= max_primary_resources && !download_env_flag_enabled_local("TLALPOWA_EXTERNAL_WEB_UNLIMITED", false)) break;
 
@@ -39241,7 +39925,9 @@ bool external_source_should_materialize_atmosphere_points(const ExternalDataSour
     const std::string d = normalize_key(spec.domain ? spec.domain : "");
 
     return id == "nasa_firms" || id.find("sinaica") != std::string::npos || id.find("simat") != std::string::npos ||
-           d == "atmosfera" || d == "satelital" || d == "riesgo_incendio" || d == "reanálisis" || d == "reanalisis" || d == "reanálisis_químico" || d == "reanalisis_quimico";
+           id.find("conagua") != std::string::npos || id.find("bandas") != std::string::npos || id.find("renameca") != std::string::npos ||
+           d == "atmosfera" || d == "satelital" || d == "agua" || d == "calidad_agua" ||
+           d == "riesgo_incendio" || d == "reanálisis" || d == "reanalisis" || d == "reanálisis_químico" || d == "reanalisis_quimico";
 }
 
 
@@ -39344,7 +40030,9 @@ void start_external_import_async(UiState& ui) {
                     " · fallidos " + std::to_string(sidecar_stats.failed));
             }
 
-            const auto files = list_external_sources_recursive_limited(source, 50000);
+            const size_t scan_limit = static_cast<size_t>(env_int_clamped_app(
+                "TLALPOWA_EXTERNAL_IMPORT_MAX_SCAN_FILES", 0, 0, 1000000));
+            const auto files = list_external_sources_recursive_limited(source, scan_limit);
             {
 
                 std::lock_guard<std::mutex> lock(ui.mu);
@@ -39380,7 +40068,7 @@ void start_external_import_async(UiState& ui) {
             af.output_root = datos_root();
             af.resume = true;
 
-            af.max_files = 50000;
+            af.max_files = env_int_clamped_app("TLALPOWA_EXTERNAL_IMPORT_MAX_FILES", 0, 0, 1000000);
 
 
             af.sample_lines_per_file = 64;
@@ -42579,6 +43267,8 @@ std::string group_label(const std::string& group) {
         {"metales", "Metal"},
         {"meteorologico", "Meteorología Superficial Y Capa Límite"},
         {"radiacion", "Radiación Solar Y Ultravioleta"},
+        {"agua", "Hidrología"},
+        {"calidad_agua", "Calidad Del Agua"},
         {"superficie", "Superficie Terrestre Y Vegetación"},
         {"focos_calor", "Focos De Calor Y Energía Radiativa"},
         {"gas_traza_satelital", "Gases Traza Satelitales"},
@@ -42704,6 +43394,8 @@ float group_hue_degrees(const std::string& group) {
         out["gas_efecto_invernadero_satelital"] = out["gas_efecto_invernadero"];
         out["meteorologico"] = 207.0f;
         out["radiacion"] = 50.0f;
+        out["agua"] = 191.0f;
+        out["calidad_agua"] = 176.0f;
         out["superficie"] = 101.0f;
         out["focos_calor"] = 5.0f;
 
@@ -43825,7 +44517,15 @@ bool draw_side_tree_header_plain(const char* id,
 bool atmospheric_sidebar_key_is_meteorological(const std::string& id, const std::map<std::string, std::string>& groups) {
     const std::string k = atmospheric_parameter_key(id);
     const auto git = groups.find(id);
-    const std::string* g = git == groups.end() ? nullptr : &git->second;
+    const auto cgit = groups.find(k);
+    const std::string* g = git == groups.end() ? (cgit == groups.end() ? nullptr : &cgit->second) : &git->second;
+    const std::string fallback_group = g ? std::string() : atmospheric_catalog_group_for_key(k);
+    const std::string& group = g ? *g : fallback_group;
+    if (group == "agua" || group == "calidad_agua") return true;
+    if (k == "flow" || k == "water_level" || k == "storage" || k == "water_temp" ||
+        k == "ph" || k == "conductivity" || k == "turbidity" ||
+        k == "dissolved_oxygen" || k == "bod" || k == "cod" ||
+        k == "tds" || k == "tss") return true;
     // Frontera C: clasificación sin heap ni árboles durante el repintado de la barra lateral.
     return (g && ozmvm_atm_group_is_meteorological(g->data(), g->size())) ||
            ozmvm_atm_key_is_meteorological(k.data(), k.size()) != 0;
@@ -43869,6 +44569,8 @@ std::string atmospheric_sidebar_compact_group_label(const std::string& group) {
         {"meteorologico_derivado", "Derivados meteorológicos", "meteorología derivados", "Meteorological derivatives"},
         {"radiacion", "Radiación", "tonameyotl", "Radiation"},
         {"radiacion_satelital", "Radiación", "tonameyotl", "Radiation"},
+        {"agua", "Agua", "ātl", "Water"},
+        {"calidad_agua", "Calidad agua", "ātl yekyotl", "Water quality"},
         {"focos_calor", "Focos calor", "totoniliz focos", "Heat sources"},
         {"focos_calor_satelital", "Focos calor", "totoniliz focos", "Heat sources"},
         {"nubes_satelital", "Nubes", "mixtin", "Clouds"},
@@ -44390,7 +45092,7 @@ void draw_side_panel(UiState& ui) {
 
 
     const bool native_epidemiology_available = temporal_has_epidemiology_ixiptlah_records(epidemiology_output_root());
-    ImGui::SetNextItemOpen(false, ImGuiCond_Once);
+    ImGui::SetNextItemOpen(native_epidemiology_available, ImGuiCond_Once);
     const bool open_epidemiological = draw_side_tree_header_checkbox(
         "side-category-epidemiological", "Datos Epidemiológicos",
         side_scope_all_selected(visible_disease_ids, ui.selected_diseases),
@@ -44554,18 +45256,9 @@ void draw_side_panel(UiState& ui) {
         ImGui::Indent(std::max(1.0f, golden_w(kGoldenN11)));
         draw_side_boolean_check("side-territorial-labels", "Etiquetas Territoriales", ui.territorial_show_labels,
                                 group_color_vec("territoriales"), ui.light_theme);
-        draw_side_boolean_check("side-territorial-source-note", "Aviso De Fuente Externa", ui.territorial_show_external_notice,
-                                group_color_vec("territoriales"), ui.light_theme);
-        if (ui.territorial_show_external_notice) {
-            ImGui::TextWrapped("%s", tlalpowa_tr("Para polígonos nacionales completos usa INEGI Marco Geoestadístico o GeoBoundaries; Tlalpowa conserva aquí el árbol territorial sin crear archivos dispersos."));
-        }
-        if (golden_small_button("Actualizar catálogo municipal")) {
-            ensure_dir(territorial_runtime_root());
-            const bool ok = download_url_to_file("https://raw.githubusercontent.com/cisnerosnow/json-estados-municipios-mexico/refs/heads/master/estados-municipios.json",
-                                                 territorial_downloaded_catalog_path(), 1024, 2, false);
-            ui.territorial_status = ok ? "Catálogo municipal actualizado; reabre Datos Territoriales si no ves todos los municipios." : "No pude actualizar el catálogo municipal; se conserva el paquete interno.";
-        }
-        if (!ui.territorial_status.empty()) ImGui::TextDisabled("%s", tlalpowa_trs(ui.territorial_status).c_str());
+        ui.territorial_show_external_notice = false;
+        ui.territorial_status = "División territorial fija desde compilación; sin importación lateral.";
+        ImGui::TextDisabled("%s", tlalpowa_trs(ui.territorial_status).c_str());
         ImGui::Spacing();
 
         for (const auto& state : territorial_states) {
@@ -44645,7 +45338,7 @@ void draw_side_panel(UiState& ui) {
                 }
             }
             if (state.municipalities.empty()) {
-                ImGui::TextWrapped("%s", tlalpowa_tr("Municipios pendientes de actualización externa; pulsa Actualizar catálogo municipal o importa Marco Geoestadístico."));
+                ImGui::TextWrapped("%s", tlalpowa_tr("Municipios no incluidos en la división territorial fija compilada."));
             } else {
                 for (const auto& m : state.municipalities) {
                     if (!needle.empty() && normalize_key(m.name).find(needle) == std::string::npos && normalize_key(state.name).find(needle) == std::string::npos) continue;
@@ -44967,6 +45660,18 @@ std::string atmospheric_parameter_key(const std::string& pollutant) {
     if (p == "radiacion global" || p == "radiación global" || p == "global radiation") return "gr";
     if (p == "potencia radiativa del fuego") return "frp";
     if (p == "temperatura de brillo satelital") return "brightness";
+    if (p == "caudal" || p == "gasto" || p == "flujo" || p == "discharge" || p == "streamflow" || p == "flow" || p == "escurrimiento" || p == "aforo") return "flow";
+    if (p == "nivel" || p == "nivel agua" || p == "nivel del agua" || p == "water level" || p == "stage" || p == "tirante" || p == "cota" || p == "elevacion" || p == "elevación") return "water_level";
+    if (p == "almacenamiento" || p == "volumen" || p == "volumen almacenado" || p == "storage" || p == "embalse" || p == "presa volumen") return "storage";
+    if (p == "temperatura agua" || p == "temperatura del agua" || p == "water temperature" || p == "temp agua") return "water_temp";
+    if (p == "ph" || p == "p h" || p == "potencial hidrogeno" || p == "potencial hidrógeno") return "ph";
+    if (p == "conductividad" || p == "conductividad electrica" || p == "conductividad eléctrica" || p == "conductivity" || p == "specific conductance") return "conductivity";
+    if (p == "turbidez" || p == "turbidity" || p == "ntu") return "turbidity";
+    if (p == "oxigeno disuelto" || p == "oxígeno disuelto" || p == "dissolved oxygen" || p == "od" || p == "do") return "dissolved_oxygen";
+    if (p == "dbo" || p == "bod" || p == "demanda bioquimica de oxigeno" || p == "demanda bioquímica de oxígeno") return "bod";
+    if (p == "dqo" || p == "cod" || p == "demanda quimica de oxigeno" || p == "demanda química de oxígeno") return "cod";
+    if (p == "tds" || p == "solidos disueltos totales" || p == "sólidos disueltos totales" || p == "total dissolved solids") return "tds";
+    if (p == "tss" || p == "sst" || p == "solidos suspendidos totales" || p == "sólidos suspendidos totales" || p == "total suspended solids") return "tss";
 
     if (p == "pm2.5" || p == "pm2 5") return "pm25";
     if (p == "particulas pm10" || p == "partículas pm10") return "pm10";
@@ -45143,6 +45848,175 @@ bool atmospheric_point_matches_time(const AtmosphericCloudPoint& c,
 
     return selected_summary_year > 0 && c.year == selected_summary_year;
 }
+
+struct TlalpowaAtmosphericTemporalIndex {
+    const AtmosphericCloudPoint* data = nullptr;
+    size_t size = 0;
+    std::unordered_map<int64_t, std::vector<std::uint32_t>> punctual_by_minute;
+    std::unordered_map<int, std::vector<std::uint32_t>> summary_by_year;
+    std::vector<std::uint32_t> interval_indices;
+
+    bool matches(const std::vector<AtmosphericCloudPoint>& points) const noexcept {
+        return data == points.data() && size == points.size();
+    }
+
+    void clear() {
+        data = nullptr;
+        size = 0;
+        punctual_by_minute.clear();
+        summary_by_year.clear();
+        interval_indices.clear();
+    }
+
+    void rebuild(const std::vector<AtmosphericCloudPoint>& points) {
+        clear();
+        data = points.data();
+        size = points.size();
+        if (points.empty()) return;
+
+        const size_t capped_size = std::min<size_t>(
+            points.size(), static_cast<size_t>(std::numeric_limits<std::uint32_t>::max()));
+        punctual_by_minute.reserve(std::min<size_t>(capped_size / 8u + 16u, 65536u));
+        summary_by_year.reserve(64u);
+        interval_indices.reserve(std::min<size_t>(capped_size, 256u));
+
+        for (size_t i = 0; i < capped_size; ++i) {
+            const AtmosphericCloudPoint& c = points[i];
+            const std::uint32_t index = static_cast<std::uint32_t>(i);
+            if (c.interval_aggregate) {
+                interval_indices.push_back(index);
+            } else if (c.hour >= 0) {
+                const int64_t source_abs_minute = c.hour * 60 + std::clamp(c.minute, 0, 59);
+                punctual_by_minute[source_abs_minute].push_back(index);
+            } else if (c.year > 0) {
+                summary_by_year[c.year].push_back(index);
+            }
+        }
+    }
+
+    template <typename Fn>
+    void visit_candidates(int64_t timeline_hour,
+                          int timeline_minute,
+                          int selected_summary_year,
+                          Fn&& fn) const {
+        if (!data || size == 0) return;
+
+        const auto visit_index = [&](std::uint32_t index) {
+            const size_t safe_index = static_cast<size_t>(index);
+            if (safe_index < size) fn(data[safe_index]);
+        };
+
+        for (std::uint32_t index : interval_indices) visit_index(index);
+
+        if (timeline_hour >= 0 && !punctual_by_minute.empty()) {
+            const int64_t target_abs_minute = timeline_hour * 60 + std::clamp(timeline_minute, 0, 59);
+            for (int age = 0; age <= kPunctualAtmosphereCarryForwardMinutes; ++age) {
+                const auto it = punctual_by_minute.find(target_abs_minute - age);
+                if (it == punctual_by_minute.end()) continue;
+                for (std::uint32_t index : it->second) visit_index(index);
+            }
+        }
+
+        if (selected_summary_year > 0) {
+            const auto it = summary_by_year.find(selected_summary_year);
+            if (it != summary_by_year.end()) {
+                for (std::uint32_t index : it->second) visit_index(index);
+            }
+        }
+    }
+
+    int summary_display_year(const std::set<std::string>& selected_pollutants,
+                             std::uint8_t active_network_mask,
+                             int timeline_year) const {
+        int latest_before_or_equal = 0;
+        int latest_any = 0;
+        for (const auto& [year, indices] : summary_by_year) {
+            bool has_selected = false;
+            for (std::uint32_t index : indices) {
+                const size_t safe_index = static_cast<size_t>(index);
+                if (safe_index >= size) continue;
+                const AtmosphericCloudPoint& c = data[safe_index];
+                if (!atmospheric_point_selected(c, selected_pollutants)) continue;
+                if (!atmosphere_network_mask_enabled(active_network_mask, c.network_mask)) continue;
+                has_selected = true;
+                break;
+            }
+            if (!has_selected) continue;
+            latest_any = std::max(latest_any, year);
+            if (year == timeline_year) return timeline_year;
+            if (year <= timeline_year) latest_before_or_equal = std::max(latest_before_or_equal, year);
+        }
+        return latest_before_or_equal > 0 ? latest_before_or_equal : latest_any;
+    }
+};
+
+struct TlalpowaVisibleAtmosphereView {
+    const AtmosphericCloudPoint* data = nullptr;
+    size_t size = 0;
+    std::string filter_signature;
+    std::uint8_t network_mask = 0u;
+    int64_t timeline_hour = std::numeric_limits<int64_t>::min();
+    int timeline_minute = -1;
+    int summary_year = 0;
+    std::vector<const AtmosphericCloudPoint*> points;
+    std::unordered_map<std::string, double> max_by_pollutant;
+    std::unordered_map<std::string, double> wind_speed_by_station;
+
+    bool matches(const std::vector<AtmosphericCloudPoint>& source,
+                 const std::string& signature,
+                 std::uint8_t mask,
+                 int64_t hour,
+                 int minute,
+                 int year) const {
+        return data == source.data() &&
+               size == source.size() &&
+               filter_signature == signature &&
+               network_mask == mask &&
+               timeline_hour == hour &&
+               timeline_minute == minute &&
+               summary_year == year;
+    }
+
+    void rebuild(const TlalpowaAtmosphericTemporalIndex& index,
+                 const std::vector<AtmosphericCloudPoint>& source,
+                 const std::set<std::string>& selected_pollutants,
+                 const std::string& signature,
+                 std::uint8_t mask,
+                 int64_t hour,
+                 int minute,
+                 int year) {
+        data = source.data();
+        size = source.size();
+        filter_signature = signature;
+        network_mask = mask;
+        timeline_hour = hour;
+        timeline_minute = minute;
+        summary_year = year;
+        points.clear();
+        max_by_pollutant.clear();
+        wind_speed_by_station.clear();
+        if (source.empty() || selected_pollutants.empty()) return;
+
+        points.reserve(std::min<size_t>(source.size(), 4096u));
+        max_by_pollutant.reserve(selected_pollutants.size() * 2u + 4u);
+        wind_speed_by_station.reserve(64u);
+
+        index.visit_candidates(hour, minute, year, [&](const AtmosphericCloudPoint& c) {
+            if (!atmosphere_network_mask_enabled(mask, c.network_mask)) return;
+            if (!std::isfinite(c.mean)) return;
+
+            if (c.pollutant == "wsp") wind_speed_by_station[c.station_id] = c.mean;
+            if (!atmospheric_point_selected(c, selected_pollutants)) return;
+            if (c.pollutant != "wdr") {
+                const double finite_max = std::isfinite(c.max_value) ? c.max_value : c.mean;
+                const double value = std::max(std::fabs(c.mean), std::fabs(finite_max));
+                max_by_pollutant[c.pollutant] =
+                    std::max(max_by_pollutant[c.pollutant], std::max(1.0e-9, value));
+            }
+            points.push_back(&c);
+        });
+    }
+};
 
 
 
@@ -45438,7 +46312,7 @@ double mobility_corridor_width_meters(const std::string& group, bool tren_ligero
 
 
 std::string atmospheric_parameter_label(const std::string& pollutant) {
-    const std::string p = lower_ascii(pollutant);
+    const std::string p = atmospheric_parameter_key(pollutant);
 
     if (p == "o3") return "Ozono";
 
@@ -45479,6 +46353,18 @@ std::string atmospheric_parameter_label(const std::string& pollutant) {
     if (p == "pa") return "Presion atmosferica";
 
     if (p == "pp") return "Precipitacion";
+    if (p == "flow") return "Caudal";
+    if (p == "water_level") return "Nivel del agua";
+    if (p == "storage") return "Almacenamiento en presa";
+    if (p == "water_temp") return "Temperatura del agua";
+    if (p == "ph") return "pH";
+    if (p == "conductivity") return "Conductividad";
+    if (p == "turbidity") return "Turbidez";
+    if (p == "dissolved_oxygen") return "Oxigeno disuelto";
+    if (p == "bod") return "DBO";
+    if (p == "cod") return "DQO";
+    if (p == "tds") return "Solidos disueltos totales";
+    if (p == "tss") return "Solidos suspendidos totales";
 
     if (p == "pblh") return "Altura de capa limite";
 
@@ -45860,6 +46746,33 @@ TlalFogInputs tlal_fog_inputs_for_view(const std::vector<AtmosphericCloudPoint>&
         else if (k == "pm25") { out.pm25 = out.pm25 < 0.0 ? c.mean : out.pm25 + c.mean; ++pm_n; }
         else if (k == "aod") { out.aod = out.aod < 0.0 ? c.mean : out.aod + c.mean; ++aod_n; }
     }
+    if (rh_n > 1) out.rh /= static_cast<double>(rh_n);
+    if (pm_n > 1) out.pm25 /= static_cast<double>(pm_n);
+    if (aod_n > 1) out.aod /= static_cast<double>(aod_n);
+    return out;
+}
+
+TlalFogInputs tlal_fog_inputs_for_view(const TlalpowaAtmosphericTemporalIndex& index,
+                                       const std::set<std::string>& selected_pollutants,
+                                       const MapViewport& view,
+                                       int64_t timeline_hour,
+                                       int timeline_minute,
+                                       int render_year) {
+    TlalFogInputs out;
+    int rh_n = 0, pm_n = 0, aod_n = 0;
+    index.visit_candidates(timeline_hour, std::clamp(timeline_minute, 0, 59), render_year, [&](const AtmosphericCloudPoint& c) {
+        const std::string k = atmospheric_parameter_key(c.pollutant);
+        if (k != "rh" && k != "pm25" && k != "aod") return;
+        if (!selected_pollutants.empty() && !atmospheric_point_selected(c, selected_pollutants) && k != "rh") return;
+        if (!std::isfinite(c.mean)) return;
+        const ImVec2 p = project_lonlat(Point2{c.lon, c.lat}, view);
+        const float pad = std::max(view.size.x, view.size.y) * 0.18f;
+        if (p.x < view.origin.x - pad || p.x > view.origin.x + view.size.x + pad ||
+            p.y < view.origin.y - pad || p.y > view.origin.y + view.size.y + pad) return;
+        if (k == "rh") { out.rh = out.rh < 0.0 ? c.mean : out.rh + c.mean; ++rh_n; }
+        else if (k == "pm25") { out.pm25 = out.pm25 < 0.0 ? c.mean : out.pm25 + c.mean; ++pm_n; }
+        else if (k == "aod") { out.aod = out.aod < 0.0 ? c.mean : out.aod + c.mean; ++aod_n; }
+    });
     if (rh_n > 1) out.rh /= static_cast<double>(rh_n);
     if (pm_n > 1) out.pm25 /= static_cast<double>(pm_n);
     if (aod_n > 1) out.aod /= static_cast<double>(aod_n);
@@ -50488,17 +51401,18 @@ void draw_tlalpowa_startup_splash_overlay(UiState& ui, ImDrawList* dl,
     bool startup_visuals_ready = false;
     {
         std::lock_guard<std::mutex> lock(ui.mu);
+        const bool startup_hotdata_gate_ready =
+            (ui.startup_hotdata_ready && ui.startup_first_visible_hotdata_ready) ||
+            (!ui.startup_hotdata_loading && !ui.startup_hotdata_ready && ui.startup_hotdata_ixiptlah_files == 0ull);
         startup_visuals_ready = ui.startup_catalogs_loaded &&
                                 (!ui.pollutants.empty() || !ui.diseases.empty()) &&
                                 ui.startup_recent_data_ready &&
-                                ui.startup_hotdata_ready &&
-                                ui.startup_first_visible_hotdata_ready &&
+                                startup_hotdata_gate_ready &&
                                 ui.map_assets_loaded;
     }
-    const bool startup_timeout_escape = visible_uptime >= kStartupSplashMaximumSeconds;
     if (fade_started_at < 0.0 &&
         visible_uptime >= kStartupSplashSolidSeconds &&
-        (startup_visuals_ready || startup_timeout_escape)) {
+        startup_visuals_ready) {
         fade_started_at = now;
     }
 
@@ -50538,7 +51452,8 @@ void draw_tlalpowa_startup_splash_overlay(UiState& ui, ImDrawList* dl,
         if (ui.startup_catalogs_loading) loading_lines.push_back("Cargando catalogos esenciales");
         if (ui.startup_recent_data_loading) loading_lines.push_back("Cargando fechas reales disponibles");
         if (ui.startup_hotdata_loading) loading_lines.push_back("Cargando hotdata esencial: ultima semana con >=75% de cobertura");
-        if (!ui.startup_hotdata_loading && !ui.startup_hotdata_ready) loading_lines.push_back("Reteniendo bienvenida: falta una semana esencial suficientemente cubierta");
+        if (!ui.startup_hotdata_loading && !ui.startup_hotdata_ready && ui.startup_hotdata_ixiptlah_files == 0ull) loading_lines.push_back("Sin IXIPTLAH local; interfaz lista para importar o jalar datos");
+        else if (!ui.startup_hotdata_loading && !ui.startup_hotdata_ready) loading_lines.push_back("Reteniendo bienvenida: falta una semana esencial suficientemente cubierta");
         if (ui.startup_hotdata_ready && !ui.startup_first_visible_hotdata_ready) loading_lines.push_back("Preparando primera fecha visible antes de soltar la bienvenida");
         if (ui.startup_first_visible_hotdata_ready && ui.startup_recent_data_ready) loading_lines.push_back("Datos esenciales y epidemiologicos recientes listos");
         if (ui.map_assets_loading && !ui.map_assets_loaded) loading_lines.push_back("Cargando mapa esencial antes de quitar el velo");
@@ -50557,6 +51472,8 @@ void draw_tlalpowa_startup_splash_overlay(UiState& ui, ImDrawList* dl,
 void draw_map(UiState& ui, float dt) {
 
 
+
+    TlalpowaCrashPhaseScope crash_phase("ui.draw_map");
 
     ui.map_base_layer = 0;
 
@@ -50760,6 +51677,12 @@ void draw_map(UiState& ui, float dt) {
 
     const bool atmospheric_temporal_mode = (ui.timeline_initialized || ui.timeline_interval_active);
     const std::string atmospheric_badge;
+    static TlalpowaAtmosphericTemporalIndex atmospheric_temporal_index;
+    static std::uint64_t atmospheric_temporal_index_revision = std::numeric_limits<std::uint64_t>::max();
+    if (atmospheric_temporal_index_revision != map_rev || !atmospheric_temporal_index.matches(atmospheric_clouds)) {
+        atmospheric_temporal_index.rebuild(atmospheric_clouds);
+        atmospheric_temporal_index_revision = map_rev;
+    }
 
     static const std::vector<MobilityLine> empty_mobility_lines;
 
@@ -50777,8 +51700,9 @@ void draw_map(UiState& ui, float dt) {
 
     const std::map<std::string, std::string>& disease_names = cached_disease_names;
 
+    bool epidemiology_week_has_exact_data = selected.empty() || !(ui.timeline_initialized || ui.timeline_interval_active);
     if (!selected.empty() && (ui.timeline_initialized || ui.timeline_interval_active)) {
-        sync_week_from_timeline(ui, weeks);
+        epidemiology_week_has_exact_data = sync_week_from_timeline(ui, weeks);
     }
 
     const int max_week = std::max(0, static_cast<int>(weeks.size()) - 1);
@@ -50794,12 +51718,13 @@ void draw_map(UiState& ui, float dt) {
     const int lo = std::min(ui.week_start, ui.week_end);
 
     const int hi = std::max(ui.week_start, ui.week_end);
+    const bool epidemiology_range_has_data = !selected.empty() && !weeks.empty() && epidemiology_week_has_exact_data;
 
 
 
     const std::string map_epi_context_week_key =
 
-        weeks.empty() ? std::string{} : (lo == hi ? weeks[static_cast<size_t>(hi)]
+        !epidemiology_range_has_data ? std::string{} : (lo == hi ? weeks[static_cast<size_t>(hi)]
 
 
                                                   : weeks[static_cast<size_t>(lo)] + " a " + weeks[static_cast<size_t>(hi)]);
@@ -50815,6 +51740,7 @@ void draw_map(UiState& ui, float dt) {
         std::uint64_t obs_revision = 0;
         int lo = -1;
         int hi = -1;
+        bool exact_week = false;
         std::string focus_id;
         std::string selection_key;
     };
@@ -50826,13 +51752,6 @@ void draw_map(UiState& ui, float dt) {
 
     for (const auto& id : selected) { selection_key += id; selection_key.push_back('|'); }
 
-
-    std::map<std::string, int64_t> totals;
-
-    std::map<std::string, std::map<std::string, int64_t>> diseases_by_geo;
-
-    std::map<std::string, std::map<std::string, int64_t>> groups_by_geo;
-    std::map<std::string, std::string> names_by_geo;
 
     std::map<std::string, float> flashes_snapshot;
     static int last_flash_end = -1;
@@ -50849,7 +51768,7 @@ void draw_map(UiState& ui, float dt) {
 
     static MapObservationWeekIndex week_index_cache;
 
-    if (selected.empty()) {
+    if (selected.empty() || !epidemiology_range_has_data) {
         // Sin casillas epidemiológicas activas no se construye índice semanal;
         // evita otro vector grande paralelo a los datos y respeta visualización cero.
         week_index_cache = {};
@@ -50910,7 +51829,8 @@ void draw_map(UiState& ui, float dt) {
     };
     const bool aggregate_dirty = aggregate_cache.obs_revision != obs_rev || aggregate_cache.lo != lo ||
                                  aggregate_cache.hi != hi || aggregate_cache.focus_id != focus_id ||
-                                 aggregate_cache.selection_key != selection_key;
+                                 aggregate_cache.selection_key != selection_key ||
+                                 aggregate_cache.exact_week != epidemiology_range_has_data;
 
     if (aggregate_dirty) {
 
@@ -50920,12 +51840,13 @@ void draw_map(UiState& ui, float dt) {
 
         next.lo = lo;
         next.hi = hi;
+        next.exact_week = epidemiology_range_has_data;
         next.focus_id = focus_id;
         next.selection_key = selection_key;
 
 
 
-        visit_week_rows(lo, hi, [&](const ObservationRow& o) {
+        if (epidemiology_range_has_data) visit_week_rows(lo, hi, [&](const ObservationRow& o) {
 
             if (!o.metric_weekly_incidence) return;
             const bool passes_selection = tlalpowa_disease_selected_for_runtime(selected, o.disease_id);
@@ -50941,16 +51862,25 @@ void draw_map(UiState& ui, float dt) {
         });
         aggregate_cache = std::move(next);
     }
-    totals = aggregate_cache.totals;
-
-    diseases_by_geo = aggregate_cache.diseases_by_geo;
-    groups_by_geo = aggregate_cache.groups_by_geo;
-    names_by_geo = aggregate_cache.names_by_geo;
+    const auto& totals = aggregate_cache.totals;
+    const auto& diseases_by_geo = aggregate_cache.diseases_by_geo;
+    const auto& groups_by_geo = aggregate_cache.groups_by_geo;
+    const auto& names_by_geo = aggregate_cache.names_by_geo;
+    static const std::map<std::string, int64_t> empty_epidemiology_pie_values;
+    const auto total_for_geo = [&](const std::string& geo_id) -> int64_t {
+        const auto it = totals.find(geo_id);
+        return it == totals.end() ? 0 : it->second;
+    };
+    const auto pie_values_for_geo = [&](const std::string& geo_id) -> const std::map<std::string, int64_t>& {
+        const auto& source = aggregate_epidemiology_pies_by_group ? groups_by_geo : diseases_by_geo;
+        const auto it = source.find(geo_id);
+        return it == source.end() ? empty_epidemiology_pie_values : it->second;
+    };
     {
 
         std::lock_guard<std::mutex> lock(ui.mu);
 
-        if (!weeks.empty() && hi != last_flash_end) {
+        if (epidemiology_range_has_data && hi != last_flash_end) {
 
             visit_week_rows(hi, hi, [&](const ObservationRow& o) {
 
@@ -51214,6 +52144,16 @@ void draw_map(UiState& ui, float dt) {
             ui.solar_live_azimuth_deg = live_sun.azimuth_deg;
         }
 
+        const bool wheel_zoom_frame = wheel_consumed_for_map != 0.0f;
+        const bool pointer_drag_frame =
+            map_window_hovered &&
+            (ImGui::IsMouseDragging(ImGuiMouseButton_Left, 0.0f) ||
+             ImGui::IsMouseDragging(ImGuiMouseButton_Right, 0.0f) ||
+             ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f));
+        const bool map_is_being_moved =
+            wheel_zoom_frame || pointer_drag_frame || ui.map_interaction_cooldown > 0.0f;
+        const bool map_interaction_heavy_guard = map_is_being_moved || ui.map_idle_seconds < 0.18f;
+
         const int desired_z_raw = desired_tile_zoom_for_view(ui, view, features, buffer_features);
 
         const int desired_z = progressive_tile_zoom_target_from_previous(ui, desired_z_raw);
@@ -51222,17 +52162,19 @@ void draw_map(UiState& ui, float dt) {
         // resolución calculada para la escala actual. No se atraviesan ni se
         // descargan z intermedios; el único respaldo permitido se decide por
         // tesela dentro de draw_tile_layer y es sólo el padre inmediato z-1.
-        ui.map_lod_previous = std::clamp(desired_z, kMapOpenMapsMinTileZoom, kMapMunicipalTileZoom);
-        ui.map_lod_target = std::clamp(desired_z, kMapOpenMapsMinTileZoom, kMapMunicipalTileZoom);
-        ui.map_lod_current = ui.map_lod_target;
+        const int desired_lod = std::clamp(desired_z, kMapOpenMapsMinTileZoom, kMapMunicipalTileZoom);
+        const int previous_lod = std::clamp(ui.map_lod_current, kMapOpenMapsMinTileZoom, kMapMunicipalTileZoom);
+        const int max_lod_step = map_is_being_moved ? 2 : kMapLodMaxSingleAdvance;
+        const int visible_lod = std::clamp(desired_lod, previous_lod - max_lod_step, previous_lod + max_lod_step);
+        ui.map_lod_previous = previous_lod;
+        ui.map_lod_target = desired_lod;
+        ui.map_lod_current = visible_lod;
         ui.map_lod_alpha = 1.0f;
 
         const MapViewport target_view = remap_viewport_zoom(view, ui.map_lod_target);
 
         const MapViewport mask_view = remap_viewport_zoom(view, kMapStartupTileZoom);
 
-        
-        const bool map_is_being_moved = (ui.map_interaction_cooldown > 0.0f);
         static double map_first_visible_frame_time = -1.0;
         const double map_frame_now = ImGui::GetTime();
         if (map_first_visible_frame_time < 0.0) map_first_visible_frame_time = map_frame_now;
@@ -51244,8 +52186,9 @@ void draw_map(UiState& ui, float dt) {
         const float framebuffer_scale = map_framebuffer_pixel_ratio();
         const double physical_map_pixels = static_cast<double>(size.x) * static_cast<double>(size.y) *
             static_cast<double>(framebuffer_scale) * static_cast<double>(framebuffer_scale);
-        const int screen_budget_cap = physical_map_pixels <= 1200000.0 ? 4 :
-            (physical_map_pixels <= 2600000.0 ? 5 : 6);
+        const int screen_budget_cap = map_is_being_moved ? 1 :
+            (physical_map_pixels <= 1200000.0 ? 4 :
+            (physical_map_pixels <= 2600000.0 ? 5 : 6));
         const int tile_request_budget = std::min({tile_request_budget_raw, kSatelliteSandboxMaxTileRequestsPerFrame, screen_budget_cap});
         g_tile_requests_remaining = tile_request_budget;
 
@@ -51260,7 +52203,9 @@ void draw_map(UiState& ui, float dt) {
         const TileLayer visible_base_layer = TileLayer::Satellite;
         g_osm_boundary_tiles_visible.store(false);
 
-        const float target_tile_coverage = visible_tile_coverage_ratio(target_view, visible_base_layer);
+        const float target_tile_coverage = map_is_being_moved
+            ? ui.startup_tile_coverage
+            : visible_tile_coverage_ratio(target_view, visible_base_layer);
 
         {
             std::lock_guard<std::mutex> lock(ui.mu);
@@ -51268,8 +52213,8 @@ void draw_map(UiState& ui, float dt) {
             ui.startup_tiles_ready = ui.startup_tile_coverage >= 0.995f;
         }
 
-        ui.map_lod_current = ui.map_lod_target;
-        ui.map_lod_previous = ui.map_lod_target;
+        ui.map_lod_current = visible_lod;
+        ui.map_lod_previous = previous_lod;
         ui.map_lod_alpha = 1.0f;
 
         const MapViewport visible_lod_for_scale = remap_viewport_zoom(view, ui.map_lod_current);
@@ -51280,8 +52225,8 @@ void draw_map(UiState& ui, float dt) {
 
         const bool map_pitch_relief_mode = (terrain3d_enabled && ui.map_pitch > 0.035f && ui.map_lod_current >= kMapOverviewTileZoom);
         
-        const bool can_request_dem = (terrain3d_enabled && ui.map_interaction_cooldown <= 0.0f && ui.app_uptime >= 2.0f && (ui.map_lod_current >= kMapFiveHundredTileZoom || map_pitch_relief_mode));
-        const bool can_draw_dem = (terrain3d_enabled && ui.app_uptime >= 1.0f && (ui.map_lod_current >= kMapFiveHundredTileZoom || map_pitch_relief_mode));
+        const bool can_request_dem = (terrain3d_enabled && !map_interaction_heavy_guard && ui.app_uptime >= 2.0f && (ui.map_lod_current >= kMapFiveHundredTileZoom || map_pitch_relief_mode));
+        const bool can_draw_dem = (terrain3d_enabled && !map_interaction_heavy_guard && ui.app_uptime >= 1.0f && (ui.map_lod_current >= kMapFiveHundredTileZoom || map_pitch_relief_mode));
 
         g_terrain_requests_remaining = can_request_dem ? kMaxTerrainTileRequestsPerFrame : 0;
 
@@ -51336,7 +52281,8 @@ void draw_map(UiState& ui, float dt) {
 
         dl->AddRectFilled(origin, ImVec2(origin.x + size.x, origin.y + size.y), map_base_opacity_wash, 0.0f);
 
-        if (ui.historical_maps_layer_enabled && (ui.historical_maps_show_kmz_geometry || ui.historical_maps_load_3d)) {
+        if (ui.historical_maps_layer_enabled && !map_interaction_heavy_guard &&
+            (ui.historical_maps_show_kmz_geometry || ui.historical_maps_load_3d)) {
 
             const int historical_render_year = std::clamp(
 
@@ -51380,7 +52326,7 @@ void draw_map(UiState& ui, float dt) {
         draw_solar_daylight_overlay(dl, visible_lod_for_scale, ui.timeline_hour, ui.timeline_minute);
         {
             const int fog_year = timeline_year_from_hour(ui.timeline_hour);
-            const TlalFogInputs fog_inputs = tlal_fog_inputs_for_view(atmospheric_clouds, selected_pollutants, visible_lod_for_scale,
+            const TlalFogInputs fog_inputs = tlal_fog_inputs_for_view(atmospheric_temporal_index, selected_pollutants, visible_lod_for_scale,
                                                                        ui.timeline_hour, ui.timeline_minute, fog_year);
             const float fog = tlal_fog_strength(ui.map_fog_manual, fog_inputs.rh, fog_inputs.pm25, fog_inputs.aod,
                                                 map_is_being_moved ? 1 : 0, ui.map_idle_seconds);
@@ -51450,56 +52396,40 @@ void draw_map(UiState& ui, float dt) {
 
         std::vector<AtmosphericRenderPoint> wind_points;
 
-        std::unordered_map<std::string, double> wind_speed_by_station;
-
         const int timeline_render_year = timeline_year_from_hour(ui.timeline_hour);
 
-        const int atmospheric_render_year = atmospheric_summary_display_year(atmospheric_clouds, selected_pollutants, timeline_render_year);
+        const int atmospheric_render_year = atmospheric_temporal_index.summary_display_year(
+            selected_pollutants, active_atmosphere_network_mask, timeline_render_year);
+        const std::string active_atmosphere_view_signature =
+            active_pollutant_signature + "|rev:" + std::to_string(map_rev);
 
-        if (!atmospheric_clouds.empty()) {
+        static TlalpowaVisibleAtmosphereView visible_atmosphere_cache;
+        if (!visible_atmosphere_cache.matches(atmospheric_clouds,
+                                              active_atmosphere_view_signature,
+                                              active_atmosphere_network_mask,
+                                              atmospheric_match_hour,
+                                              atmospheric_match_minute,
+                                              atmospheric_render_year)) {
+            visible_atmosphere_cache.rebuild(atmospheric_temporal_index,
+                                             atmospheric_clouds,
+                                             selected_pollutants,
+                                             active_atmosphere_view_signature,
+                                             active_atmosphere_network_mask,
+                                             atmospheric_match_hour,
+                                             atmospheric_match_minute,
+                                             atmospheric_render_year);
+        }
+        const TlalpowaVisibleAtmosphereView& visible_atmosphere = visible_atmosphere_cache;
+        const auto& wind_speed_by_station = visible_atmosphere.wind_speed_by_station;
 
-            std::unordered_map<std::string, double> max_by_pollutant;
+        if (!visible_atmosphere.points.empty()) {
 
-            wind_speed_by_station.reserve(64);
+            atmospheric_points.reserve(visible_atmosphere.points.size());
 
-            max_by_pollutant.reserve(selected_pollutants.size() * 2 + 4);
+            for (const AtmosphericCloudPoint* source_point : visible_atmosphere.points) {
 
-            for (const auto& c : atmospheric_clouds) {
-
-                if (c.pollutant != "wsp") continue;
-
-                if (!atmospheric_point_matches_time(c, atmospheric_match_hour, atmospheric_match_minute, atmospheric_render_year)) continue;
-
-                if (!std::isfinite(c.mean)) continue;
-                wind_speed_by_station[c.station_id] = c.mean;
-            }
-
-            for (const auto& c : atmospheric_clouds) {
-
-                if (!atmospheric_point_selected(c, selected_pollutants)) continue;
-
-                if (c.pollutant == "wdr") continue;
-
-                if (!atmospheric_point_matches_time(c, atmospheric_match_hour, atmospheric_match_minute, atmospheric_render_year)) continue;
-
-                if (!std::isfinite(c.mean)) continue;
-                const double finite_max = std::isfinite(c.max_value) ? c.max_value : c.mean;
-                const double value = std::max(std::fabs(c.mean), std::fabs(finite_max));
-
-
-
-                max_by_pollutant[c.pollutant] = std::max(max_by_pollutant[c.pollutant], std::max(1.0e-9, value));
-            }
-
-            atmospheric_points.reserve(atmospheric_clouds.size());
-
-            for (const auto& c : atmospheric_clouds) {
-
-                if (!atmospheric_point_selected(c, selected_pollutants)) continue;
-
-                if (!atmospheric_point_matches_time(c, atmospheric_match_hour, atmospheric_match_minute, atmospheric_render_year)) continue;
-
-                if (!std::isfinite(c.mean)) continue;
+                if (!source_point) continue;
+                const AtmosphericCloudPoint& c = *source_point;
 
                 const ImVec2 p = project_lonlat(Point2{c.lon, c.lat}, view);
 
@@ -51517,9 +52447,9 @@ void draw_map(UiState& ui, float dt) {
                     wind_points.push_back(AtmosphericRenderPoint{&c, p, 1.0f});
                     continue;
                 }
-                const auto it_max = max_by_pollutant.find(c.pollutant);
+                const auto it_max = visible_atmosphere.max_by_pollutant.find(c.pollutant);
 
-                const double denom = (it_max == max_by_pollutant.end() || it_max->second <= 0.0) ? 1.0 : it_max->second;
+                const double denom = (it_max == visible_atmosphere.max_by_pollutant.end() || it_max->second <= 0.0) ? 1.0 : it_max->second;
                 const double health = c.visual_level >= 0.0f ? static_cast<double>(c.visual_level) * 1.35 : atmospheric_health_ratio(c.pollutant, c.mean, c.unit);
                 const double finite_max = std::isfinite(c.max_value) ? c.max_value : c.mean;
                 const double value = std::max(std::fabs(c.mean), std::fabs(finite_max) * 0.35);
@@ -51539,7 +52469,9 @@ void draw_map(UiState& ui, float dt) {
 
                 tlalpowa_apply_point_pin_stack(atmospheric_points);
                 tlalpowa_apply_point_pin_stack(wind_points, 9.0f);
-                draw_atmospheric_cloud_field(dl, atmospheric_points, stations, view, {}, origin, size, ui.light_theme);
+                if (!map_interaction_heavy_guard) {
+                    draw_atmospheric_cloud_field(dl, atmospheric_points, stations, view, {}, origin, size, ui.light_theme);
+                }
         }
 
         
@@ -51596,7 +52528,7 @@ void draw_map(UiState& ui, float dt) {
             std::string feature_id;
             std::string feature_name;
 
-            std::map<std::string, int64_t> values;
+            const std::map<std::string, int64_t>* values = nullptr;
         };
 
         std::vector<PieRenderItem> pending_epidemiological_pies;
@@ -51754,7 +52686,7 @@ void draw_map(UiState& ui, float dt) {
         for (std::size_t feature_index = 0; feature_index < features.size(); ++feature_index) {
             const auto& f = features[feature_index];
             epidemiological_feature_ids.insert(f.id);
-            const int64_t feature_total = totals[f.id];
+            const int64_t feature_total = total_for_geo(f.id);
             const bool has_data = feature_total > 0;
             const bool out_of_focus = !focus_id.empty() && f.id != focus_id;
             const bool territorial_selected = territorial_zmvm_feature_selected(ui, f);
@@ -51780,7 +52712,8 @@ void draw_map(UiState& ui, float dt) {
                     }
                     if (!has_data) continue;
 
-                    const std::vector<ImVec2> pts = project_ring_lod_metric(ring, view, 1);
+                    const int ring_stride = map_interaction_heavy_guard ? 4 : 1;
+                    const std::vector<ImVec2> pts = project_ring_lod_metric(ring, view, ring_stride);
                     if (pts.size() < 3) continue;
                     if (has_data && !territorial_selected) {
                         const ImU32 boundary_col = ui.light_theme
@@ -51813,16 +52746,20 @@ void draw_map(UiState& ui, float dt) {
 
             }
 
-            if (!out_of_focus && totals[f.id] > 0 && best_area > 0.0) {
-                const float max_radius_by_area = std::sqrt(static_cast<float>(std::max(1.0, best_area)) / 3.14159265f) * 0.36f;
-                const float containment_cap = std::max(0.0f, best_inside_radius - 2.0f);
+            if (!out_of_focus && feature_total > 0 && best_area > 0.0) {
+                const float max_radius_by_area = std::sqrt(static_cast<float>(std::max(1.0, best_area)) / 3.14159265f) * 0.54f;
+                const float containment_cap = std::max(0.0f, best_inside_radius - 4.5f);
 
                 const float population_scale = std::sqrt(static_cast<float>(feature_total) / static_cast<float>(max_total));
 
-                const float target_radius = 5.0f + population_scale * max_radius_by_area;
-                const float radius = std::min(std::clamp(target_radius, 3.0f, std::max(3.0f, max_radius_by_area)), containment_cap);
+                const float target_radius = 7.0f + population_scale * max_radius_by_area;
+                const float desired_radius = std::clamp(target_radius, 4.25f, std::max(4.25f, max_radius_by_area));
+                const float radius = std::min(desired_radius, containment_cap);
 
-                if (radius >= 2.5f) pending_epidemiological_pies.push_back(PieRenderItem{best_center, radius, f.id, f.name, aggregate_epidemiology_pies_by_group ? groups_by_geo[f.id] : diseases_by_geo[f.id]});
+                const auto& pie_values = pie_values_for_geo(f.id);
+                if (radius >= 3.25f && !pie_values.empty()) {
+                    pending_epidemiological_pies.push_back(PieRenderItem{best_center, radius, f.id, f.name, &pie_values});
+                }
             }
         }
 
@@ -51843,9 +52780,19 @@ void draw_map(UiState& ui, float dt) {
             if (!geo) continue;
             const ImVec2 p = project_lonlat(*geo, view);
             const float population_scale = std::sqrt(static_cast<float>(geo_total) / static_cast<float>(max_total));
-            const float radius = std::clamp(4.5f + population_scale * 12.5f, 4.5f, 17.0f);
-            if (p.x < origin.x - radius || p.x > origin.x + size.x + radius || p.y < origin.y - radius || p.y > origin.y + size.y + radius) continue;
-            pending_epidemiological_pies.push_back(PieRenderItem{p, radius, geo_id, geo_name, aggregate_epidemiology_pies_by_group ? groups_by_geo[geo_id] : diseases_by_geo[geo_id]});
+            const float desired_radius = std::clamp(7.0f + population_scale * 23.0f, 7.0f, 30.0f);
+            const float canvas_cap = std::min({
+                p.x - origin.x - 5.0f,
+                origin.x + size.x - p.x - 5.0f,
+                p.y - origin.y - 5.0f,
+                origin.y + size.y - p.y - 5.0f
+            });
+            const float radius = std::min(desired_radius, canvas_cap);
+            if (p.x < origin.x || p.x > origin.x + size.x || p.y < origin.y || p.y > origin.y + size.y || radius < 4.0f) continue;
+            const auto& pie_values = pie_values_for_geo(geo_id);
+            if (!pie_values.empty()) {
+                pending_epidemiological_pies.push_back(PieRenderItem{p, radius, geo_id, geo_name, &pie_values});
+            }
         }
 
 
@@ -52009,14 +52956,15 @@ void draw_map(UiState& ui, float dt) {
 
         for (const auto& pie : pending_epidemiological_pies) {
 
-            draw_pie_chart(dl, pie.center, pie.radius, pie.values, disease_groups, flashes_snapshot, pie.feature_id, ui.light_theme);
-            draw_epi_compact_value_labels(dl, pie.center, pie.radius, pie.values, disease_groups, disease_names, selected, ui.light_theme, origin, size);
+            if (!pie.values || pie.values->empty()) continue;
+            draw_pie_chart(dl, pie.center, pie.radius, *pie.values, disease_groups, flashes_snapshot, pie.feature_id, ui.light_theme);
+            draw_epi_compact_value_labels(dl, pie.center, pie.radius, *pie.values, disease_groups, disease_names, selected, ui.light_theme, origin, size);
 
             if (!map_input_blocked) {
                 const float d = std::hypot(mouse.x - pie.center.x, mouse.y - pie.center.y);
 
                 if (d <= pie.radius + 3.0f) {
-                    hovered_epi_pie = build_epi_pie_popup_data(pie.feature_id, pie.feature_name, pie.center, pie.radius, pie.values, disease_groups, disease_names);
+                    hovered_epi_pie = build_epi_pie_popup_data(pie.feature_id, pie.feature_name, pie.center, pie.radius, *pie.values, disease_groups, disease_names);
 
                     if (hovered_epi_pie.valid) last_hovered_epi_pie = hovered_epi_pie;
                     hovered_id = pie.feature_id;
@@ -52079,7 +53027,8 @@ void draw_map(UiState& ui, float dt) {
             if (p.x < origin.x - 28.0f || p.x > origin.x + size.x + 28.0f ||
                 p.y < origin.y - 28.0f || p.y > origin.y + size.y + 28.0f) continue;
             const double deg = std::isfinite(rp.source->mean) ? rp.source->mean : 0.0;
-            const double speed = wind_speed_by_station.count(rp.source->station_id) ? wind_speed_by_station[rp.source->station_id] : 1.0;
+            const auto speed_it = wind_speed_by_station.find(rp.source->station_id);
+            const double speed = speed_it != wind_speed_by_station.end() ? speed_it->second : 1.0;
             const float len = std::clamp(30.0f + static_cast<float>(speed) * 7.2f, 34.0f, 94.0f);
             const float rad = static_cast<float>(deg * 3.14159265358979323846 / 180.0);
             const ImVec2 dir(std::sin(rad), -std::cos(rad));
@@ -55593,7 +56542,7 @@ std::vector<ChartPoint> build_epidemiological_chart_points_for_spec(UiState& ui,
         labels[bucket.first] = bucket.second;
     };
 
-    const size_t progressive_threshold = static_cast<size_t>(env_int_clamped_app("TLALPOWA_GRAPH_PROGRESSIVE_THRESHOLD_ROWS", 96, 32, 4096));
+    const size_t progressive_threshold = static_cast<size_t>(env_int_clamped_app("TLALPOWA_GRAPH_PROGRESSIVE_THRESHOLD_ROWS", 32, 16, 4096));
     if (!allow_progressive || observations.size() <= progressive_threshold) {
         std::unordered_map<std::string, int64_t> totals;
         std::unordered_map<std::string, std::string> labels;
@@ -55626,8 +56575,8 @@ std::vector<ChartPoint> build_epidemiological_chart_points_for_spec(UiState& ui,
 
     const auto start_time = std::chrono::steady_clock::now();
     const size_t kRowsBeforeClock = static_cast<size_t>(env_int_clamped_app("TLALPOWA_GRAPH_PROGRESS_ROWS_BEFORE_CLOCK", 24, 8, 512));
-    const size_t kRowsHardSlice = static_cast<size_t>(env_int_clamped_app("TLALPOWA_GRAPH_PROGRESS_ROWS_PER_FRAME", 768, 64, 8192));
-    const int64_t kBudgetMicros = static_cast<int64_t>(env_int_clamped_app("TLALPOWA_GRAPH_PROGRESS_BUDGET_US", 450, 100, 3000));
+    const size_t kRowsHardSlice = static_cast<size_t>(env_int_clamped_app("TLALPOWA_GRAPH_PROGRESS_ROWS_PER_FRAME", 384, 32, 8192));
+    const int64_t kBudgetMicros = static_cast<int64_t>(env_int_clamped_app("TLALPOWA_GRAPH_PROGRESS_BUDGET_US", 240, 50, 3000));
     size_t processed = 0;
 
     while (state.cursor < observations.size()) {
@@ -60187,6 +61136,46 @@ bool step_ozone_best_lag_search(UiState& ui, GraphSpec& spec) {
 
 
 
+std::vector<ImVec2> chart_visual_envelope_points(const std::vector<ImVec2>& src, float plot_width) {
+    const size_t n = src.size();
+    const size_t bucket_count = static_cast<size_t>(std::clamp(
+        static_cast<int>(std::ceil(std::max(1.0f, plot_width) * 1.35f)), 192, 4096));
+    if (n <= bucket_count * 2u) return src;
+
+    std::vector<ImVec2> out;
+    out.reserve(std::min(n, bucket_count * 4u + 2u));
+    const auto append_index = [&](size_t idx) {
+        if (idx >= n) return;
+        if (!out.empty()) {
+            const ImVec2& prev = out.back();
+            const ImVec2& cur = src[idx];
+            if (std::fabs(prev.x - cur.x) < 0.001f && std::fabs(prev.y - cur.y) < 0.001f) return;
+        }
+        out.push_back(src[idx]);
+    };
+
+    for (size_t bucket = 0; bucket < bucket_count; ++bucket) {
+        const size_t begin = (bucket * n) / bucket_count;
+        const size_t end = std::min(n, ((bucket + 1u) * n) / bucket_count);
+        if (end <= begin) continue;
+        size_t min_i = begin;
+        size_t max_i = begin;
+        for (size_t i = begin + 1u; i < end; ++i) {
+            if (src[i].y < src[min_i].y) min_i = i;
+            if (src[i].y > src[max_i].y) max_i = i;
+        }
+        std::array<size_t, 4> indices{begin, min_i, max_i, end - 1u};
+        std::sort(indices.begin(), indices.end());
+        size_t last = std::numeric_limits<size_t>::max();
+        for (size_t idx : indices) {
+            if (idx == last) continue;
+            append_index(idx);
+            last = idx;
+        }
+    }
+    return out.empty() ? src : out;
+}
+
 void draw_chart_points(ImDrawList* dl, const ImVec2& a, const ImVec2& b, const std::vector<ChartPoint>& pts, int chart_type,
 
                        const ImVec4& accent, bool light_theme, bool show_fit_line, int fit_model) {
@@ -60257,7 +61246,8 @@ void draw_chart_points(ImDrawList* dl, const ImVec2& a, const ImVec2& b, const s
         }
     } else {
         std::vector<ImVec2> line_pts;
-        line_pts.reserve(pts.size());
+        const bool collect_line_points = chart_type == 2 || chart_type == 4 || chart_type == 6;
+        if (collect_line_points) line_pts.reserve(pts.size());
         const int n = static_cast<int>(pts.size());
         for (int i = 0; i < n; ++i) {
             const float cx = x_for_index(i, n);
@@ -60267,7 +61257,7 @@ void draw_chart_points(ImDrawList* dl, const ImVec2& a, const ImVec2& b, const s
                 const float bw = std::clamp(slot * 0.62f, 2.0f, 36.0f);
                 dl->AddRectFilled(ImVec2(cx - bw * 0.5f, y), ImVec2(cx + bw * 0.5f, plot_max.y), fill, 3.0f);
             }
-            line_pts.push_back(ImVec2(cx, y));
+            if (collect_line_points) line_pts.push_back(ImVec2(cx, y));
             if (chart_type == 6) {
                 const float jitter = (std::sin(static_cast<float>(i) * 12.9898f) * 0.5f + 0.5f - 0.5f) * std::min(18.0f, slot * 0.28f);
                 dl->AddCircleFilled(ImVec2(cx + jitter, y), chart_type == 6 ? 3.0f : 3.6f, i % 2 ? line : fill_soft, 16);
@@ -60278,17 +61268,21 @@ void draw_chart_points(ImDrawList* dl, const ImVec2& a, const ImVec2& b, const s
             }
         }
         if ((chart_type == 2 || chart_type == 4) && line_pts.size() >= 2) {
+            const std::vector<ImVec2> visual_line_pts = chart_visual_envelope_points(line_pts, w);
             if (chart_type == 4) {
                 std::vector<ImVec2> area;
-                area.reserve(line_pts.size() + 2);
-                area.push_back(ImVec2(line_pts.front().x, plot_max.y));
-                area.insert(area.end(), line_pts.begin(), line_pts.end());
-                area.push_back(ImVec2(line_pts.back().x, plot_max.y));
+                area.reserve(visual_line_pts.size() + 2);
+                area.push_back(ImVec2(visual_line_pts.front().x, plot_max.y));
+                area.insert(area.end(), visual_line_pts.begin(), visual_line_pts.end());
+                area.push_back(ImVec2(visual_line_pts.back().x, plot_max.y));
                 dl->AddConvexPolyFilled(area.data(), static_cast<int>(area.size()), fill_soft);
             }
-            dl->AddPolyline(line_pts.data(), static_cast<int>(line_pts.size()), line, 0, 2.2f);
+            dl->AddPolyline(visual_line_pts.data(), static_cast<int>(visual_line_pts.size()), line, 0, 2.2f);
             if (chart_type == 2) {
-                for (const ImVec2& p : line_pts) dl->AddCircleFilled(p, 2.8f, line, 14);
+                const size_t circle_stride = visual_line_pts.size() > 900u ? (visual_line_pts.size() / 450u + 1u) : 1u;
+                for (size_t i = 0; i < visual_line_pts.size(); i += circle_stride) {
+                    dl->AddCircleFilled(visual_line_pts[i], 2.8f, line, 14);
+                }
             }
         }
         if (show_fit_line && chart_type == 6 && line_pts.size() >= 2) {
@@ -61856,8 +62850,10 @@ void ensure_graph_ixiptlah_epidemiology_loaded(UiState& ui) {
         const bool graph_rows_compatible = graph_epidemiology_rows_compatible(
             ui, graph_requests_unfiltered_rows, graph_requests_selected_rows, all_diseases_signature);
         const auto now = std::chrono::steady_clock::now();
-        if (!graph_rows_compatible && !ui.observations_loading && now >= ui.graph_ixiptlah_next_retry) {
+        if (!graph_rows_compatible && !ui.observations_loading && !ui.observations_full_thread.joinable() &&
+            now >= ui.graph_ixiptlah_next_retry) {
             ui.observations_loading = true;
+            ui.observations_full_loading = true;
             ui.observations_loading_rows = 0;
             ui.observations_loading_sources_done = 0;
             ui.observations_loading_sources_total = 1;
@@ -61870,14 +62866,26 @@ void ensure_graph_ixiptlah_epidemiology_loaded(UiState& ui) {
     }
     if (!launch) return;
 
-    std::thread([&ui, attempt]() {
+    ui.observations_full_thread = std::thread([&ui, attempt]() {
+        TlalpowaCrashPhaseScope worker_phase("worker.graficas.ixiptlah");
 #ifdef _WIN32
         SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
 #endif
+        std::unique_lock<std::mutex> load_lock(epidemiology_observation_load_mutex(), std::try_to_lock);
+        if (!load_lock.owns_lock()) {
+            std::lock_guard<std::mutex> lock(ui.mu);
+            ui.observations_loading = false;
+            ui.observations_full_loading = false;
+            ui.observations_loading_phase = "Carga epidemiologica compartida en curso; graficas esperan el snapshot existente.";
+            ui.graph_ixiptlah_next_retry = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+            if (ui.status.find("No pude") == std::string::npos) ui.status = ui.observations_loading_phase;
+            ui.observations_revision.fetch_add(1, std::memory_order_relaxed);
+            return;
+        }
         try {
             EpiRenderDiskCache cache;
             const fs::path epi_root = epidemiology_output_root();
-            const int recent_files = env_int_clamped_app("TLALPOWA_GRAPH_IXIPTLAH_RECENT_FILES", 36, 1, 128);
+            const int recent_files = env_int_clamped_app("TLALPOWA_GRAPH_IXIPTLAH_RECENT_FILES", 18, 1, 128);
             bool loaded = read_epidemiology_render_cache_filtered_recent_files(epi_root, all_diseases, recent_files, cache);
             bool full_fallback = false;
             if (!loaded && attempt >= 2) {
@@ -61896,6 +62904,7 @@ void ensure_graph_ixiptlah_epidemiology_loaded(UiState& ui) {
             } else {
                 std::lock_guard<std::mutex> lock(ui.mu);
                 ui.observations_loading = false;
+                ui.observations_full_loading = false;
                 ui.observations_loading_rows = 0;
                 ui.observations_loading_sources_done = 1;
                 ui.observations_loading_sources_total = 1;
@@ -61910,6 +62919,7 @@ void ensure_graph_ixiptlah_epidemiology_loaded(UiState& ui) {
         } catch (const std::exception& e) {
             std::lock_guard<std::mutex> lock(ui.mu);
             ui.observations_loading = false;
+            ui.observations_full_loading = false;
             ui.observations_loading_phase = std::string("No pude cargar IXIPTLAH para graficas: ") + e.what();
             ui.graph_ixiptlah_next_retry = std::chrono::steady_clock::now() + std::chrono::seconds(15);
             ui.status = ui.observations_loading_phase;
@@ -61917,6 +62927,7 @@ void ensure_graph_ixiptlah_epidemiology_loaded(UiState& ui) {
         } catch (...) {
             std::lock_guard<std::mutex> lock(ui.mu);
             ui.observations_loading = false;
+            ui.observations_full_loading = false;
             ui.observations_loading_phase = "No pude cargar IXIPTLAH para graficas.";
             ui.graph_ixiptlah_next_retry = std::chrono::steady_clock::now() + std::chrono::seconds(15);
             ui.status = ui.observations_loading_phase;
@@ -61925,7 +62936,7 @@ void ensure_graph_ixiptlah_epidemiology_loaded(UiState& ui) {
 #ifdef _WIN32
         SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_END);
 #endif
-    }).detach();
+    });
 }
 
 void draw_graph_axis_editor_popup(UiState& ui) {
@@ -62285,6 +63296,28 @@ void load_atmospheric_clouds_on_demand_from_active_checkbox(UiState& ui) {
         }
 
         load_atmospheric_clouds(ui, true);
+        bool loaded_after_native = false;
+        {
+            std::lock_guard<std::mutex> lock(ui.mu);
+            loaded_after_native = !ui.atmospheric_clouds.empty();
+        }
+        if (!loaded_after_native) {
+            for (int source : reconstruction_sources) {
+                AtmosphereFoundationOptions af;
+                af.source_root = selected_csv_source_root(source);
+                af.output_root = atmosphere_output_root_for_source(source);
+                af.forced_source_family = atmosphere_forced_source_family_for_import_source(source);
+                af.resume = true;
+                af.max_files = env_int_clamped_app("TLALPOWA_ON_DEMAND_ATMOS_MAX_FILES", 2000, 1, 250000);
+                af.sample_lines_per_file = env_int_clamped_app("TLALPOWA_ON_DEMAND_ATMOS_SAMPLE_LINES", 40, 1, 2000);
+                std::lock_guard<std::mutex> prepare_lock(g_atmosphere_prepare_mu);
+                const AtmosphereFoundationReport report = AtmosphericReconstructionEngine::prepare_foundation(af);
+                indexed_total += report.indexed_files;
+                discovered_total += report.discovered_files;
+                cloud_total += report.cloud_points;
+            }
+            load_atmospheric_clouds(ui, true);
+        }
         std::lock_guard<std::mutex> lock(ui.mu);
         ui.atmospheric_clouds_attempted = true;
         ui.atmospheric_clouds_loading = false;
@@ -62301,6 +63334,7 @@ void load_atmospheric_clouds_on_demand_from_active_checkbox(UiState& ui) {
         if (ui.status.find("No pude") == std::string::npos) ui.status = ui.atmosphere_import_status;
         ui.map_revision.fetch_add(1, std::memory_order_relaxed);
     } catch (const std::exception& e) {
+        tlalpowa_log_failure("atmosfera.carga_activa", e.what());
         std::lock_guard<std::mutex> lock(ui.mu);
         ui.atmospheric_clouds_attempted = true;
         ui.atmospheric_clouds_loading = false;
@@ -62308,6 +63342,7 @@ void load_atmospheric_clouds_on_demand_from_active_checkbox(UiState& ui) {
         ui.atmosphere_import_status = std::string("No pude cargar datos atmosféricos por casilla activa: ") + e.what();
         ui.status = ui.atmosphere_import_status;
     } catch (...) {
+        tlalpowa_log_failure("atmosfera.carga_activa", "excepcion desconocida");
         std::lock_guard<std::mutex> lock(ui.mu);
         ui.atmospheric_clouds_attempted = true;
         ui.atmospheric_clouds_loading = false;
@@ -62321,6 +63356,8 @@ void load_atmospheric_clouds_on_demand_from_active_checkbox(UiState& ui) {
 }
 
 void request_data_loads_for_active_layer_checkboxes(UiState& ui) {
+    static std::string last_epi_reload_request_key;
+    static std::chrono::steady_clock::time_point last_epi_reload_request_changed_at{};
     bool need_epi = false;
     bool need_atmosphere = false;
     bool need_mobility = false;
@@ -62331,6 +63368,7 @@ void request_data_loads_for_active_layer_checkboxes(UiState& ui) {
     std::string loaded_disease_signature;
     std::string requested_anchor_week;
     std::string loaded_anchor_week;
+    const auto request_now = std::chrono::steady_clock::now();
 
     {
         std::lock_guard<std::mutex> lock(ui.mu);
@@ -62347,11 +63385,28 @@ void request_data_loads_for_active_layer_checkboxes(UiState& ui) {
                         ui.mobility_show_electric || ui.mobility_show_trains || ui.mobility_show_rtp ||
                         ui.mobility_show_pumabus || ui.mobility_show_concessioned || ui.mobility_show_other;
 
-        const bool epi_filter_stale = need_epi &&
-            (!ui.observations_full_loaded ||
-             loaded_disease_signature != requested_disease_signature ||
-             (!requested_anchor_week.empty() && loaded_anchor_week != requested_anchor_week));
-        can_start_epi = epi_filter_stale && !ui.observations_full_loading &&
+        const bool epi_current_answer_loaded =
+            ui.observations_loaded &&
+            loaded_disease_signature == requested_disease_signature &&
+            (requested_anchor_week.empty() || loaded_anchor_week == requested_anchor_week);
+        const bool epi_filter_stale = need_epi && !epi_current_answer_loaded;
+        bool epi_request_stable = true;
+        if (epi_filter_stale) {
+            const std::string epi_reload_request_key = requested_disease_signature + "|" + requested_anchor_week;
+            if (epi_reload_request_key != last_epi_reload_request_key) {
+                last_epi_reload_request_key = epi_reload_request_key;
+                last_epi_reload_request_changed_at = request_now;
+                epi_request_stable = false;
+            } else {
+                const int debounce_ms = env_int_clamped_app("TLALPOWA_EPI_ACTIVE_RELOAD_DEBOUNCE_MS", 140, 0, 1000);
+                epi_request_stable = debounce_ms <= 0 ||
+                    request_now - last_epi_reload_request_changed_at >= std::chrono::milliseconds(debounce_ms);
+            }
+        } else {
+            last_epi_reload_request_key.clear();
+            last_epi_reload_request_changed_at = {};
+        }
+        can_start_epi = epi_filter_stale && epi_request_stable && !ui.observations_full_loading &&
                         !ui.observations_loading &&
                         !ui.running.load(std::memory_order_relaxed) && !ui.observations_full_thread.joinable();
         can_start_atmosphere = need_atmosphere && !ui.atmospheric_clouds_loaded && !ui.atmospheric_clouds_loading &&
@@ -62398,6 +63453,7 @@ void request_data_loads_for_active_layer_checkboxes(UiState& ui) {
 
     if (can_start_epi) {
         ui.observations_full_thread = std::thread([&ui]() {
+            TlalpowaCrashPhaseScope worker_phase("worker.epidemiologia.carga_activa");
 #ifdef _WIN32
             SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
 #endif
@@ -62413,12 +63469,14 @@ void request_data_loads_for_active_layer_checkboxes(UiState& ui) {
                     if (ui.status.find("No pude") == std::string::npos) ui.status = ui.observations_loading_phase;
                 }
             } catch (const std::exception& e) {
+                tlalpowa_log_failure("epidemiologia.carga_activa", e.what());
                 std::lock_guard<std::mutex> lock(ui.mu);
                 ui.observations_full_loaded = false;
                 ui.observations_full_loading = false;
                 ui.observations_loading = false;
                 ui.status = std::string("No pude cargar todos los datos epidemiológicos por casilla activa: ") + e.what();
             } catch (...) {
+                tlalpowa_log_failure("epidemiologia.carga_activa", "excepcion desconocida");
                 std::lock_guard<std::mutex> lock(ui.mu);
                 ui.observations_full_loaded = false;
                 ui.observations_full_loading = false;
@@ -62433,12 +63491,14 @@ void request_data_loads_for_active_layer_checkboxes(UiState& ui) {
 
     if (can_start_atmosphere) {
         ui.atmospheric_clouds_thread = std::thread([&ui]() {
+            TlalpowaCrashPhaseScope worker_phase("worker.atmosfera.carga_activa");
             load_atmospheric_clouds_on_demand_from_active_checkbox(ui);
         });
     }
 
     if (can_start_mobility) {
         ui.mobility_runtime_thread = std::thread([&ui]() {
+            TlalpowaCrashPhaseScope worker_phase("worker.movilidad.carga_activa");
 #ifdef _WIN32
             SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
 #endif
@@ -62451,11 +63511,13 @@ void request_data_loads_for_active_layer_checkboxes(UiState& ui) {
                     ui.status = ui.mobility_status;
                 }
             } catch (const std::exception& e) {
+                tlalpowa_log_failure("movilidad.carga_activa", e.what());
                 std::lock_guard<std::mutex> lock(ui.mu);
                 ui.mobility_loading = false;
                 ui.mobility_status = std::string("No pude cargar movilidad por casilla activa: ") + e.what();
                 ui.status = ui.mobility_status;
             } catch (...) {
+                tlalpowa_log_failure("movilidad.carga_activa", "excepcion desconocida");
                 std::lock_guard<std::mutex> lock(ui.mu);
                 ui.mobility_loading = false;
                 ui.mobility_status = "No pude cargar movilidad por casilla activa.";
@@ -62465,6 +63527,51 @@ void request_data_loads_for_active_layer_checkboxes(UiState& ui) {
             SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_END);
 #endif
         });
+    }
+}
+
+void tlalpowa_run_diagnostic_timeline_stress(UiState& ui) {
+    static const bool enabled = download_env_flag_enabled_local("TLALPOWA_DIAGNOSTIC_TIMELINE_STRESS", false);
+    static const int configured_steps = env_int_clamped_app("TLALPOWA_DIAGNOSTIC_TIMELINE_STRESS_STEPS", 360, 1, 50000);
+    static const int frame_interval = env_int_clamped_app("TLALPOWA_DIAGNOSTIC_TIMELINE_STRESS_FRAME_INTERVAL", 1, 1, 120);
+    static int steps_left = configured_steps;
+    static int frames_until_next = 0;
+    static int sequence = 0;
+
+    if (!enabled || steps_left <= 0) return;
+    if (frames_until_next > 0) {
+        --frames_until_next;
+        return;
+    }
+    frames_until_next = frame_interval - 1;
+
+    TlalpowaCrashPhaseScope crash_phase("diagnostic.timeline_stress");
+    try {
+        tlalpowa_ensure_timeline_initialized_for_replay(ui);
+        ui.timeline_interval_active = false;
+        ui.playing = false;
+
+        const int pattern = positive_mod_i64(sequence, 8);
+        int64_t delta_minutes = 60LL;
+        switch (pattern) {
+        case 0: delta_minutes = 1LL; break;
+        case 1: delta_minutes = 60LL; break;
+        case 2: delta_minutes = 24LL * 60LL; break;
+        case 3: delta_minutes = 7LL * 24LL * 60LL; break;
+        case 4: delta_minutes = -3LL * 24LL * 60LL; break;
+        case 5: delta_minutes = 31LL * 24LL * 60LL; break;
+        case 6: delta_minutes = -17LL * 24LL * 60LL; break;
+        default: delta_minutes = 6LL * 60LL; break;
+        }
+        tlalpowa_shift_timeline_minutes_direct(ui, delta_minutes);
+        ++sequence;
+        --steps_left;
+    } catch (const std::exception& e) {
+        tlalpowa_log_failure("diagnostic.timeline_stress", e.what());
+        steps_left = 0;
+    } catch (...) {
+        tlalpowa_log_failure("diagnostic.timeline_stress", "excepcion desconocida");
+        steps_left = 0;
     }
 }
 
@@ -62520,7 +63627,8 @@ int run_tlalpowa_app() {
 
     ImGui_ImplOpenGL3_Init("#version 150");
 
-    UiState ui;
+    auto ui_owner = std::make_unique<UiState>();
+    UiState& ui = *ui_owner;
     tlalpowa_ensure_default_csv_source_roots();
     load_user_location_state(ui);
     if (download_env_flag_enabled_local("TLALPOWA_DIAGNOSTIC_TENOCHTITLAN_3D", false)) {
@@ -62562,7 +63670,8 @@ int run_tlalpowa_app() {
     apply_minimal_theme(ui.light_theme, ui.accent);
     auto startup_first_frame_presented = std::make_shared<std::atomic_bool>(false);
     ui.startup_catalogs_loading = true;
-    ui.startup_recent_data_loading = true;
+    ui.startup_recent_data_loading = false;
+    ui.startup_recent_data_ready = true;
     ui.startup_hotdata_loading = true;
     tlalpowa_present_boot_clear_frame(window, ui);
     startup_first_frame_presented->store(true, std::memory_order_release);
@@ -62605,9 +63714,9 @@ int run_tlalpowa_app() {
         }).detach();
 #endif
         TlalpowaHotDataConfig cfg = tlalpowa_hotdata_default_config();
-        // REGLA FIJA DE BIENVENIDA: se precalienta solo lo esencial:
-        // epidemiologia, meteorologia y contaminantes de la ultima semana real
-        // con cobertura minima de 75% de categorias fisicas. Mapa, movilidad,
+        // REGLA FIJA DE BIENVENIDA: se precalienta solo lo esencial activo al abrir:
+        // meteorologia y contaminantes de la ultima semana real. Epidemiologia
+        // queda en disco hasta que una casilla o grafica la solicite. Mapa, movilidad,
         // teselas y reconstrucciones quedan fuera del candado y siguen despues.
         cfg.max_total_touch_bytes = static_cast<std::uint64_t>(env_int_clamped_app(
             "TLALPOWA_HOTDATA_STARTUP_TOUCH_MB", 24, 24, 128)) * 1024ull * 1024ull;
@@ -62629,27 +63738,40 @@ int run_tlalpowa_app() {
             "TLALPOWA_HOTDATA_STARTUP_GATE_KB", 48, 16, 256)) * 1024u;
         cfg.startup_gate_category_limit = static_cast<std::uint32_t>(env_int_clamped_app(
             "TLALPOWA_HOTDATA_STARTUP_CATEGORY_LIMIT", 128, 16, 256));
+        cfg.startup_gate_core_mask = TLALPOWA_HOTDATA_STARTUP_CORE_ATMOSPHERE;
+        if (download_env_flag_enabled_local("TLALPOWA_HOTDATA_STARTUP_INCLUDE_EPI", false)) {
+            cfg.startup_gate_core_mask |= TLALPOWA_HOTDATA_STARTUP_CORE_EPIDEMIOLOGY;
+        }
         cfg.keep_runtime_index = 1u;
         TlalpowaHotDataStats st{};
         const int ok = tlalpowa_hotdata_prewarm_root(hotdata_root_utf8.c_str(), &cfg, &st);
+        const int startup_gate_min_year = env_int_clamped_app(
+            "TLALPOWA_HOTDATA_STARTUP_MIN_YEAR",
+            std::max(2026, approximate_current_epi_year()),
+            2000, 2300);
+        const std::uint64_t startup_gate_min_week = static_cast<std::uint64_t>(startup_gate_min_year) * 100ull + 1ull;
+        const bool startup_gate_recent_enough = st.startup_gate_selected_week_bucket >= startup_gate_min_week;
+        const bool startup_gate_coverage_ok = st.startup_gate_selected_coverage_percent >= 75ull;
+        const bool startup_gate_loaded_ok = st.startup_gate_expected_hits > 0ull &&
+                                            st.startup_gate_hits >= st.startup_gate_expected_hits;
         const bool hotdata_ready_now = ok && st.ixiptlah_files > 0ull && st.indexed_records > 0ull &&
-                                       st.startup_gate_expected_hits > 0ull &&
-                                       st.startup_gate_hits >= st.startup_gate_expected_hits;
+                                       startup_gate_loaded_ok && startup_gate_recent_enough && startup_gate_coverage_ok;
 
-        std::uint64_t first_visible_key = hotdata_ready_now ? tlalpowa_best_latest_atmospheric_key(st) : 0ull;
+        std::uint64_t first_visible_key = hotdata_ready_now ? tlalpowa_best_startup_atmospheric_key_for_gate(st) : 0ull;
         bool first_visible_ready_now = false;
         bool first_visible_key_parsed = false;
         int64_t first_visible_hour = 0;
         int first_visible_minute = 0;
+        int64_t gate_week_hour = 0;
+        const bool gate_week_parsed = hotdata_ready_now &&
+            tlalpowa_timeline_from_startup_gate_week_bucket(st.startup_gate_selected_week_bucket, gate_week_hour);
         if (hotdata_ready_now) {
             TlalpowaHotDataStats first_con{};
             TlalpowaHotDataStats first_met{};
-            TlalpowaHotDataStats first_epi{};
             TlalpowaHotDataHit first_con_hits[16]{};
             TlalpowaHotDataHit first_met_hits[12]{};
-            TlalpowaHotDataHit first_epi_hits[16]{};
-            const std::uint64_t con_key = st.latest_contaminant_key != 0ull ? st.latest_contaminant_key : first_visible_key;
-            const std::uint64_t met_key = st.latest_meteorology_key != 0ull ? st.latest_meteorology_key : first_visible_key;
+            const std::uint64_t con_key = first_visible_key != 0ull ? first_visible_key : st.latest_contaminant_key;
+            const std::uint64_t met_key = first_visible_key != 0ull ? first_visible_key : st.latest_meteorology_key;
             if (con_key != 0ull) {
                 (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_CONTAMINANT,
                                                                     con_key, 10u, 256u * 1024u,
@@ -62660,25 +63782,31 @@ int run_tlalpowa_app() {
                                                                     met_key, 8u, 192u * 1024u,
                                                                     0u, 0u, first_met_hits, &first_met);
             }
-            if (st.latest_epidemiology_key != 0ull) {
-                (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY,
-                                                                    st.latest_epidemiology_key, 10u, 256u * 1024u,
-                                                                    0u, 0u, first_epi_hits, &first_epi);
+            const bool atmosphere_ready = (first_con.prepared_hits + first_met.prepared_hits) > 0ull;
+            first_visible_ready_now = atmosphere_ready;
+            if (first_visible_key != 0ull) {
+                first_visible_key_parsed =
+                    tlalpowa_timeline_from_atmospheric_temporal_key(first_visible_key, first_visible_hour, first_visible_minute);
             }
-            first_visible_ready_now = (first_con.prepared_hits + first_met.prepared_hits + first_epi.prepared_hits) > 0ull;
-            first_visible_key_parsed = tlalpowa_timeline_from_atmospheric_temporal_key(first_visible_key, first_visible_hour, first_visible_minute);
-            if (!first_visible_key_parsed) {
-                first_visible_key = st.latest_meteorology_key != 0ull ? st.latest_meteorology_key : st.latest_contaminant_key;
-                first_visible_key_parsed = tlalpowa_timeline_from_atmospheric_temporal_key(first_visible_key, first_visible_hour, first_visible_minute);
+            if (!first_visible_key_parsed && gate_week_parsed) {
+                first_visible_hour = gate_week_hour;
+                first_visible_minute = 0;
+                first_visible_key_parsed = true;
             }
         }
 
         {
             std::lock_guard<std::mutex> lock(ui.mu);
-            if (hotdata_ready_now && first_visible_key != 0ull && first_visible_key_parsed && !ui.startup_timeline_aligned_to_latest_real_data) {
+            if (hotdata_ready_now && first_visible_key_parsed && !ui.startup_timeline_aligned_to_latest_real_data) {
+                // No esperar a que atmósfera y epidemiología coincidan exactamente:
+                // si existe una semana IXIPTLAH con >75% de cobertura, esa fecha
+                // domina el arranque y jamás se cae al borde 2000.
                 ui.timeline_hour = first_visible_hour;
                 ui.timeline_minute = std::clamp(first_visible_minute, 0, 59);
                 ui.timeline_initialized = true;
+                ui.timeline_interval_active = false;
+                ui.timeline_interval_start_hour = ui.timeline_hour;
+                ui.timeline_interval_end_hour = ui.timeline_hour;
                 ui.timeline_max_hour = std::max<int64_t>(std::max<int64_t>(ui.timeline_max_hour, current_local_timeline_hour()), first_visible_hour);
                 ui.startup_timeline_aligned_to_latest_real_data = true;
                 refresh_timeline_input(ui);
@@ -62695,14 +63823,67 @@ int run_tlalpowa_app() {
             ui.startup_hotdata_loading = false;
             ui.startup_hotdata_ready = hotdata_ready_now;
             if (ui.startup_hotdata_ready) {
+                if (!first_visible_ready_now) {
+                    std::ostringstream failure;
+                    failure << "hotdata_ready=1 pero first_visible_ready=0"
+                            << "; ixiptlah_files=" << st.ixiptlah_files
+                            << "; indexed_records=" << st.indexed_records
+                            << "; startup_gate_min_year=" << startup_gate_min_year
+                            << "; startup_gate_week=" << st.startup_gate_selected_week_bucket
+                            << "; startup_gate_coverage_percent=" << st.startup_gate_selected_coverage_percent
+                            << "; startup_gate_hits=" << st.startup_gate_hits
+                            << "; startup_gate_expected_hits=" << st.startup_gate_expected_hits
+                            << "; latest_contaminant_key=" << st.latest_contaminant_key
+                            << "; latest_meteorology_key=" << st.latest_meteorology_key
+                            << "; latest_epidemiology_key=" << st.latest_epidemiology_key
+                            << "; first_visible_key=" << first_visible_key
+                            << "; gate_week_parsed=" << (gate_week_parsed ? 1 : 0)
+                            << "; first_visible_key_parsed=" << (first_visible_key_parsed ? 1 : 0);
+                    tlalpowa_log_failure("startup.hotdata.first_visible", failure.str());
+                }
                 ui.startup_hotdata_status = "Hotdata esencial lista: semana " + std::to_string(st.startup_gate_selected_week_bucket) +
                     " con " + std::to_string(st.startup_gate_selected_coverage_percent) +
                     "% de cobertura, " + std::to_string(st.startup_gate_hits) +
                     " / " + std::to_string(st.startup_gate_expected_hits) +
-                    " categorias, " + std::to_string(st.startup_gate_bytes / 1024ull) +
-                    " KiB; primera fecha visible lista y el resto cargara despues";
+                    " categorias, " + std::to_string(st.startup_gate_bytes / 1024ull) + " KiB; " +
+                    (first_visible_ready_now
+                        ? std::string("primera fecha visible atmosferica lista y epidemiologia esperara casilla activa")
+                        : std::string("reteniendo bienvenida: falta preparar atmosfera en la primera fecha"));
                 if (ui.status.find("No pude") == std::string::npos) ui.status = ui.startup_hotdata_status;
             } else {
+                std::ostringstream failure;
+                failure << "hotdata_ready=0"
+                        << "; prewarm_ok=" << ok
+                        << "; ixiptlah_files=" << st.ixiptlah_files
+                        << "; files_seen=" << st.files_seen
+                        << "; ixiptlah_directories=" << st.ixiptlah_directories
+                        << "; failed_files=" << st.failed_files
+                        << "; indexed_records=" << st.indexed_records
+                        << "; ixiptlah_records=" << st.ixiptlah_records
+                        << "; startup_gate_min_year=" << startup_gate_min_year
+                        << "; startup_gate_recent_enough=" << (startup_gate_recent_enough ? 1 : 0)
+                        << "; startup_gate_coverage_ok=" << (startup_gate_coverage_ok ? 1 : 0)
+                        << "; startup_gate_loaded_ok=" << (startup_gate_loaded_ok ? 1 : 0)
+                        << "; startup_gate_week=" << st.startup_gate_selected_week_bucket
+                        << "; startup_gate_coverage_percent=" << st.startup_gate_selected_coverage_percent
+                        << "; startup_gate_latest_candidate_year=" << st.startup_gate_latest_candidate_year
+                        << "; startup_gate_best_relaxed_week=" << st.startup_gate_best_relaxed_week_bucket
+                        << "; startup_gate_best_relaxed_coverage_percent=" << st.startup_gate_best_relaxed_coverage_percent
+                        << "; startup_gate_best_relaxed_categories=" << st.startup_gate_best_relaxed_categories
+                        << "; startup_gate_best_relaxed_core_mask=" << st.startup_gate_best_relaxed_core_mask
+                        << "; startup_gate_hits=" << st.startup_gate_hits
+                        << "; startup_gate_expected_hits=" << st.startup_gate_expected_hits
+                        << "; startup_gate_categories=" << st.startup_gate_categories
+                        << "; startup_gate_bytes=" << st.startup_gate_bytes
+                        << "; touched_bytes=" << st.touched_bytes
+                        << "; mapped_files=" << st.mapped_files
+                        << "; cache_hits=" << st.cache_hits
+                        << "; cache_misses=" << st.cache_misses
+                        << "; latest_temporal_key=" << st.latest_temporal_key
+                        << "; latest_contaminant_key=" << st.latest_contaminant_key
+                        << "; latest_meteorology_key=" << st.latest_meteorology_key
+                        << "; latest_epidemiology_key=" << st.latest_epidemiology_key;
+                tlalpowa_log_failure("startup.hotdata.coverage_gate", failure.str());
                 ui.startup_hotdata_status = "Bienvenida retenida: falta semana esencial con cobertura suficiente";
                 if (ui.status.find("No pude") == std::string::npos) ui.status = ui.startup_hotdata_status;
             }
@@ -62713,13 +63894,12 @@ int run_tlalpowa_app() {
         if (hotdata_ready_now) {
             const std::uint64_t con_key = st.latest_contaminant_key;
             const std::uint64_t met_key = st.latest_meteorology_key;
-            const std::uint64_t epi_key = st.latest_epidemiology_key;
             const std::uint64_t any_key = st.latest_temporal_key;
             const std::uint32_t bg_neighbors = static_cast<std::uint32_t>(env_int_clamped_app(
                 "TLALPOWA_HOTDATA_BACKGROUND_NEIGHBORS", 2, 0, 16));
             const std::uint32_t bg_kb = static_cast<std::uint32_t>(env_int_clamped_app(
                 "TLALPOWA_HOTDATA_BACKGROUND_NEIGHBOR_KB", 32, 8, 96));
-            std::thread([con_key, met_key, epi_key, any_key, bg_neighbors, bg_kb]() {
+            std::thread([con_key, met_key, any_key, bg_neighbors, bg_kb]() {
 #ifdef _WIN32
                 SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
                 Sleep(450);
@@ -62729,11 +63909,9 @@ int run_tlalpowa_app() {
                 const std::uint32_t bytes = bg_kb * 1024u;
                 TlalpowaHotDataStats st_con{};
                 TlalpowaHotDataStats st_met{};
-                TlalpowaHotDataStats st_epi{};
                 TlalpowaHotDataStats st_any{};
                 if (con_key != 0ull) (void)tlalpowa_hotdata_prefetch_temporal(TLALPOWA_HOTDATA_CORE_CONTAMINANT, con_key, bg_neighbors, bytes, &st_con);
                 if (met_key != 0ull) (void)tlalpowa_hotdata_prefetch_temporal(TLALPOWA_HOTDATA_CORE_METEOROLOGY, met_key, bg_neighbors, bytes, &st_met);
-                if (epi_key != 0ull) (void)tlalpowa_hotdata_prefetch_temporal(TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY, epi_key, bg_neighbors, bytes, &st_epi);
                 if (any_key != 0ull) (void)tlalpowa_hotdata_prefetch_temporal(TLALPOWA_HOTDATA_CORE_ANY, any_key, bg_neighbors / 2u, bytes, &st_any);
 #ifdef _WIN32
                 SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_END);
@@ -62745,6 +63923,7 @@ int run_tlalpowa_app() {
 #endif
     });
     std::thread catalog_loader([&ui, tlalpowa_wait_first_welcome_frame]() {
+        TlalpowaCrashPhaseScope worker_phase("startup.catalogos");
         tlalpowa_wait_first_welcome_frame();
 #ifdef _WIN32
         SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
@@ -62762,6 +63941,7 @@ int run_tlalpowa_app() {
                 ui.startup_catalogs_loading = false;
             }
 
+            if (download_env_flag_enabled_local("TLALPOWA_STARTUP_LOAD_RECENT_EPI", false)) {
             static const std::set<std::string> all_diseases{kTlalpowaAllEpidemiologySelection};
             EpiRenderDiskCache recent_cache;
             const int startup_recent_files = env_int_clamped_app("TLALPOWA_STARTUP_RECENT_IXIPTLAH_FILES", 5, 1, 12);
@@ -62771,20 +63951,33 @@ int run_tlalpowa_app() {
                 publish_epidemiology_cache_to_ui(
                     ui, std::move(recent_cache), all_diseases,
                     disease_filter_signature(all_diseases),
-                    "Datos reales iniciales disponibles listos", true, {}, false);
+                    "Datos epidemiológicos reales iniciales visibles", true, {}, false);
+            }
             }
 
             {
                 std::lock_guard<std::mutex> lock(ui.mu);
+                if (download_env_flag_enabled_local("TLALPOWA_DIAGNOSTIC_SELECT_ALL_EPI", false)) {
+                    ui.selected_diseases.clear();
+                    ui.selected_diseases.insert(kTlalpowaAllEpidemiologySelection);
+                }
+                if (download_env_flag_enabled_local("TLALPOWA_DIAGNOSTIC_SELECT_ALL_ATMOSPHERE", false)) {
+                    ui.selected_pollutants.clear();
+                    for (const auto& [id, _] : ui.pollutants) {
+                        const std::string key = atmospheric_parameter_key(id);
+                        if (!key.empty()) ui.selected_pollutants.insert(key);
+                    }
+                }
                 ui.observations_full_loaded = false;
                 ui.observations_loading = false;
                 ui.startup_recent_data_loading = false;
                 ui.startup_recent_data_ready = true;
-                if (!recent_loaded && ui.status.find("No pude") == std::string::npos) {
-                    ui.status = "Catalogo lateral listo; no hay registros recientes disponibles.";
+                if (ui.status.find("No pude") == std::string::npos) {
+                    ui.status = "Catalogo lateral listo; epidemiologia apagada hasta seleccionar una casilla.";
                 }
             }
         } catch (const std::exception& e) {
+            tlalpowa_log_failure("startup.catalogos", e.what());
             std::lock_guard<std::mutex> lock(ui.mu);
             ui.startup_catalogs_loaded = false;
             ui.startup_catalogs_loading = false;
@@ -62793,6 +63986,7 @@ int run_tlalpowa_app() {
             ui.observations_loading = false;
             ui.status = std::string("No pude cargar catalogos iniciales: ") + e.what();
         } catch (...) {
+            tlalpowa_log_failure("startup.catalogos", "excepcion desconocida");
             std::lock_guard<std::mutex> lock(ui.mu);
             ui.startup_catalogs_loaded = false;
             ui.startup_catalogs_loading = false;
@@ -62817,12 +64011,13 @@ int run_tlalpowa_app() {
                     : (startup_light_observations
                         ? "Cargando datos epidemiologicos recientes en modo RAM ligera"
                         : "Interfaz lista en modo RAM minima; datos pesados se cargan solo al importar o activar su flujo");
-    ui.observations_loading = true;
+    ui.observations_loading = false;
     ui.mobility_loading = startup_data_loaders;
 
 
     std::thread data_loader;
     if (startup_data_loaders) data_loader = std::thread([&ui, tlalpowa_wait_first_welcome_frame]() {
+        TlalpowaCrashPhaseScope worker_phase("startup.epidemiologia");
         tlalpowa_wait_first_welcome_frame();
 #ifdef _WIN32
 
@@ -62848,6 +64043,7 @@ int run_tlalpowa_app() {
 #endif
 
         } catch (const std::exception& e) {
+            tlalpowa_log_failure("startup.epidemiologia", e.what());
 
             std::lock_guard<std::mutex> lock(ui.mu);
             ui.observations_loading = false;
@@ -62858,6 +64054,7 @@ int run_tlalpowa_app() {
 
     std::thread mobility_loader;
     if (startup_data_loaders) mobility_loader = std::thread([&ui, tlalpowa_wait_first_welcome_frame]() {
+        TlalpowaCrashPhaseScope worker_phase("startup.movilidad");
         tlalpowa_wait_first_welcome_frame();
 #ifdef _WIN32
 
@@ -62868,6 +64065,7 @@ int run_tlalpowa_app() {
             load_mobility_integrated(ui);
 
         } catch (...) {
+            tlalpowa_log_failure("startup.movilidad", "excepcion desconocida");
 
             std::lock_guard<std::mutex> lock(ui.mu);
             ui.mobility_loading = false;
@@ -62883,6 +64081,7 @@ int run_tlalpowa_app() {
 
     std::thread atmosphere_loader;
     if (startup_data_loaders) atmosphere_loader = std::thread([&ui, tlalpowa_wait_first_welcome_frame]() {
+        TlalpowaCrashPhaseScope worker_phase("startup.atmosfera");
         tlalpowa_wait_first_welcome_frame();
 #ifdef _WIN32
 
@@ -62903,7 +64102,9 @@ int run_tlalpowa_app() {
                     ui.status = "Datos atmosfericos nativos detectados; RAMA/REDMET/RUOA se cargan rapido por minuto visible.";
                 }
                 }
-                try { load_atmospheric_clouds(ui, true); } catch (...) {}
+                try { load_atmospheric_clouds(ui, true); }
+                catch (const std::exception& e) { tlalpowa_log_failure("startup.atmosfera.nativa", e.what()); }
+                catch (...) { tlalpowa_log_failure("startup.atmosfera.nativa", "excepcion desconocida"); }
 
             } else {
 
@@ -62924,7 +64125,7 @@ int run_tlalpowa_app() {
                     af.forced_source_family = atmosphere_forced_source_family_for_import_source(source);
                     af.resume = true;
 
-                    af.max_files = 400;
+                    af.max_files = 0;
 
                     af.sample_lines_per_file = 20;
                     {
@@ -62950,8 +64151,18 @@ int run_tlalpowa_app() {
                 }
             }
 
+        } catch (const std::exception& e) {
+            tlalpowa_log_failure("startup.atmosfera", e.what());
+            std::lock_guard<std::mutex> lock(ui.mu);
+            ui.atmospheric_clouds_loading = false;
+            ui.atmosphere_import_status = std::string("No pude cargar atmosfera integrada: ") + e.what();
+            if (ui.status.find("No pude") == std::string::npos) ui.status = ui.atmosphere_import_status;
         } catch (...) {
-
+            tlalpowa_log_failure("startup.atmosfera", "excepcion desconocida");
+            std::lock_guard<std::mutex> lock(ui.mu);
+            ui.atmospheric_clouds_loading = false;
+            ui.atmosphere_import_status = "No pude cargar atmosfera integrada";
+            if (ui.status.find("No pude") == std::string::npos) ui.status = ui.atmosphere_import_status;
         }
 #ifdef _WIN32
 
@@ -62963,13 +64174,13 @@ int run_tlalpowa_app() {
 
 
     std::thread map_loader([&ui, tlalpowa_wait_first_welcome_frame]() {
+        TlalpowaCrashPhaseScope worker_phase("startup.mapa_delimitaciones");
         tlalpowa_wait_first_welcome_frame();
-        tlalpowa_wait_startup_hotdata_quiet(ui, 220, 9000);
-        tlalpowa_wait_startup_catalog_quiet(ui, 0, 1800);
         try {
             prune_map_tile_cache_if_needed();
 
             const fs::path geo_root = ui_config_root();
+            (void)tlalpowa_materialize_embedded_territorial_resources();
 
             const fs::path regional_geometry = territorial_installed_geometry_path();
             auto features = load_territorial_geometry(territorial_installed_binary_path(), regional_geometry);
@@ -63014,6 +64225,7 @@ int run_tlalpowa_app() {
 
 
         } catch (const std::exception& e) {
+            tlalpowa_log_failure("startup.mapa_delimitaciones", e.what());
 
             std::lock_guard<std::mutex> lock(ui.mu);
 
@@ -63040,9 +64252,10 @@ int run_tlalpowa_app() {
             // entrar a este estado mediante background_busy.
             glfwWaitEvents();
         } else if (low_power_background) {
-            // El progreso de tareas de fondo se actualiza cada 5 s. Renderizarlo
-            // a cientos de cuadros por segundo solo desperdicia CPU.
-            glfwWaitEventsTimeout(5.0);
+            // Tareas de fondo activas: esperar poco mantiene CPU baja sin que
+            // Windows marque la ventana como "No responde" durante carga pesada.
+            const int wait_ms = env_int_clamped_app("TLALPOWA_BACKGROUND_EVENT_WAIT_MS", 50, 10, 1000);
+            glfwWaitEventsTimeout(static_cast<double>(wait_ms) / 1000.0);
         } else {
             glfwPollEvents();
         }
@@ -63131,7 +64344,7 @@ int run_tlalpowa_app() {
 
         if (atmosphere_snapshot_finished && ui.atmosphere_snapshot_thread.joinable()) {
 
-            ui.atmosphere_snapshot_thread.join();
+            ui.atmosphere_snapshot_thread.detach();
         }
 
         if (observations_full_finished && ui.observations_full_thread.joinable()) {
@@ -63155,6 +64368,7 @@ int run_tlalpowa_app() {
 
         request_data_loads_for_active_layer_checkboxes(ui);
         maybe_execute_queued_import_cleanup(ui);
+        tlalpowa_run_diagnostic_timeline_stress(ui);
 
         if (ui.active_tab == 0) {
 
@@ -63322,36 +64536,39 @@ int run_tlalpowa_app() {
     ui.pause_requested.store(false);
     ui.epi_cancel_requested.store(true);
 
-    if (map_loader.joinable()) map_loader.detach();
-    if (hotdata_loader.joinable()) hotdata_loader.detach();
-    if (catalog_loader.joinable()) catalog_loader.detach();
+    bool detached_ui_worker = false;
+    const auto join_ui_worker = [&](std::thread& worker) {
+        if (!worker.joinable()) return;
+        worker.join();
+    };
+    const auto detach_ui_worker = [&](std::thread& worker) {
+        if (!worker.joinable()) return;
+        worker.detach();
+        detached_ui_worker = true;
+    };
 
-    if (data_loader.joinable()) data_loader.detach();
+    join_ui_worker(data_loader);
+    join_ui_worker(ui.observations_full_thread);
 
-    if (mobility_loader.joinable()) mobility_loader.detach();
+    detach_ui_worker(map_loader);
+    detach_ui_worker(hotdata_loader);
+    detach_ui_worker(catalog_loader);
+    detach_ui_worker(mobility_loader);
+    detach_ui_worker(atmosphere_loader);
+    detach_ui_worker(ui.mobility_download_thread);
+    detach_ui_worker(ui.epi_download_thread);
+    detach_ui_worker(ui.atmosphere_import_thread);
+    detach_ui_worker(ui.satellite_import_thread);
+    detach_ui_worker(ui.external_import_thread);
+    detach_ui_worker(ui.import_3d_thread);
+    detach_ui_worker(ui.atmosphere_snapshot_thread);
+    detach_ui_worker(ui.atmospheric_clouds_thread);
+    detach_ui_worker(ui.mobility_runtime_thread);
+    detach_ui_worker(ui.github_update_thread);
 
-    if (atmosphere_loader.joinable()) atmosphere_loader.detach();
-
-    if (ui.mobility_download_thread.joinable()) ui.mobility_download_thread.detach();
-
-    if (ui.epi_download_thread.joinable()) ui.epi_download_thread.detach();
-
-    if (ui.atmosphere_import_thread.joinable()) ui.atmosphere_import_thread.detach();
-
-    if (ui.satellite_import_thread.joinable()) ui.satellite_import_thread.detach();
-
-    if (ui.external_import_thread.joinable()) ui.external_import_thread.detach();
-    if (ui.import_3d_thread.joinable()) ui.import_3d_thread.detach();
-
-    if (ui.atmosphere_snapshot_thread.joinable()) ui.atmosphere_snapshot_thread.detach();
-
-    if (ui.observations_full_thread.joinable()) ui.observations_full_thread.detach();
-
-    if (ui.atmospheric_clouds_thread.joinable()) ui.atmospheric_clouds_thread.detach();
-
-    if (ui.mobility_runtime_thread.joinable()) ui.mobility_runtime_thread.detach();
-
-    if (ui.github_update_thread.joinable()) ui.github_update_thread.detach();
+    // Los trabajos desprendidos conservan referencias a UiState. Mantener el
+    // objeto vivo hasta terminar el proceso evita acceso a memoria liberada.
+    if (detached_ui_worker) (void)ui_owner.release();
 
     ImGui_ImplOpenGL3_Shutdown();
 
@@ -63421,7 +64638,7 @@ int run_atmosphere_web_import_cli(int source, int year_start, int year_end, bool
 
     af.resume = !overwrite_category;
 
-    af.max_files = 2000;
+    af.max_files = 0;
 
     af.sample_lines_per_file = 40;
 
@@ -63533,13 +64750,13 @@ int run_external_import_smoke_cli(const fs::path& source_root_arg, const fs::pat
 
     const ExternalArchiveExpansionStats zip_stats = external_expand_primary_archives_for_import(source_root);
     const ExternalVisualSidecarStats sidecar_stats = external_generate_visual_sidecars_for_import(source_root);
-    const auto files = list_external_sources_recursive_limited(source_root, 200000);
+    const auto files = list_external_sources_recursive_limited(source_root, 0);
 
     AtmosphereFoundationOptions af;
     af.source_root = source_root;
     af.output_root = output_root;
     af.resume = false;
-    af.max_files = 50000;
+    af.max_files = 0;
     af.sample_lines_per_file = 64;
     af.live_flush_every_files = 10;
     af.year_start = year_start;
@@ -63599,13 +64816,13 @@ int run_satellite_web_import_cli(int source, const fs::path& output_root_arg, in
     const bool download_ok = download_satellite_catalog_for_import(ui, source, year_start, year_end);
     const fs::path source_root = satellite_source_root(source);
     ensure_dir(source_root);
-    const auto files = list_satellite_sources_recursive_limited(source_root, 16000);
+    const auto files = list_satellite_sources_recursive_limited(source_root, 0);
 
     AtmosphereFoundationOptions af;
     af.source_root = source_root;
     af.output_root = output_root;
     af.resume = false;
-    af.max_files = 30000;
+    af.max_files = 0;
     af.sample_lines_per_file = 32;
     af.live_flush_every_files = 20;
     af.year_start = year_start;

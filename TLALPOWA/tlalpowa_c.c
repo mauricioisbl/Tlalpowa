@@ -2730,7 +2730,18 @@ static const OzmvmAtomSpan ozmvm_atm_contaminant_keys[] = {
     OZMVM_ATOM("nox"), OZMVM_ATOM("so2"), OZMVM_ATOM("pm10"), OZMVM_ATOM("pm25"),
     OZMVM_ATOM("pmco"), OZMVM_ATOM("pb"), OZMVM_ATOM("cd"), OZMVM_ATOM("as"),
     OZMVM_ATOM("ni"), OZMVM_ATOM("hg"), OZMVM_ATOM("cr"), OZMVM_ATOM("bc"),
-    OZMVM_ATOM("ec"), OZMVM_ATOM("oc")
+    OZMVM_ATOM("ec"), OZMVM_ATOM("oc"), OZMVM_ATOM("tc"), OZMVM_ATOM("h2s"),
+    OZMVM_ATOM("ben"), OZMVM_ATOM("tol"), OZMVM_ATOM("xyl"), OZMVM_ATOM("btex"),
+    OZMVM_ATOM("hcho"), OZMVM_ATOM("nh3"), OZMVM_ATOM("co2"), OZMVM_ATOM("ch4"),
+    OZMVM_ATOM("so4"), OZMVM_ATOM("no3a"), OZMVM_ATOM("aod"), OZMVM_ATOM("uvai"),
+    OZMVM_ATOM("inorg_aer"), OZMVM_ATOM("ox"), OZMVM_ATOM("pm25_pm10"),
+    OZMVM_ATOM("pmco_pm10"), OZMVM_ATOM("no2_nox"), OZMVM_ATOM("no_nox"),
+    OZMVM_ATOM("no_no2"), OZMVM_ATOM("hcho_no2"), OZMVM_ATOM("hcho_nox"),
+    OZMVM_ATOM("oc_ec"), OZMVM_ATOM("ec_oc"), OZMVM_ATOM("ec_tc"),
+    OZMVM_ATOM("oc_tc"), OZMVM_ATOM("bc_pm25"), OZMVM_ATOM("ec_pm25"),
+    OZMVM_ATOM("oc_pm25"), OZMVM_ATOM("so4_no3a"), OZMVM_ATOM("tol_ben"),
+    OZMVM_ATOM("xyl_ben"), OZMVM_ATOM("btex_ben"), OZMVM_ATOM("o3_no2"),
+    OZMVM_ATOM("co_no2")
 };
 
 static const OzmvmAtomSpan ozmvm_atm_meteorological_groups[] = {
@@ -2738,7 +2749,13 @@ static const OzmvmAtomSpan ozmvm_atm_meteorological_groups[] = {
 };
 
 static const OzmvmAtomSpan ozmvm_atm_contaminant_groups[] = {
-    OZMVM_ATOM("contaminante_criterio")
+    OZMVM_ATOM("contaminante_criterio"), OZMVM_ATOM("gas"),
+    OZMVM_ATOM("gas_traza"), OZMVM_ATOM("gas_traza_satelital"),
+    OZMVM_ATOM("gas_efecto_invernadero"), OZMVM_ATOM("gas_efecto_invernadero_satelital"),
+    OZMVM_ATOM("gases_derivados"), OZMVM_ATOM("cov"), OZMVM_ATOM("cov_derivados"),
+    OZMVM_ATOM("aerosoles"), OZMVM_ATOM("aerosoles_derivados"),
+    OZMVM_ATOM("aerosol_satelital"), OZMVM_ATOM("metal"), OZMVM_ATOM("metales"),
+    OZMVM_ATOM("carbono"), OZMVM_ATOM("carbono_derivado")
 };
 
 int ozmvm_atm_key_is_meteorological(const char* key, size_t n) {
@@ -5569,6 +5586,18 @@ static const TlalPembuColDef g_pembu_defs[] = {
     {"wdr_gust", "grados", {"wdr gust", "gust direction", "dir rachas", "dir_rachas", "hi wind dir", NULL}},
     {"pa",  "hPa",     {"pa", "bp", "presion", "presión", "presion bar", "presion_bar", "bar", "barometer", "barometric pressure", "pressure", "presion atmosferica", "presión atmosférica", NULL}},
     {"pp",  "mm",      {"pp", "precipitacion", "precipitación", "rain", "rainfall", "rain rate", "rainrate", "precipitation", "precip", NULL}},
+    {"flow", "m3/s",   {"flow", "caudal", "gasto", "flujo", "discharge", "streamflow", "escurrimiento", "aforo", NULL}},
+    {"water_level", "m", {"water level", "nivel agua", "nivel del agua", "nivel", "stage", "tirante", "cota", "elevacion", "elevación", NULL}},
+    {"storage", "hm3", {"storage", "almacenamiento", "volumen", "volumen almacenado", "embalse", "presa volumen", NULL}},
+    {"water_temp", "C", {"water temperature", "temperatura agua", "temperatura del agua", "temp agua", NULL}},
+    {"ph", "pH",       {"ph", "p h", "potencial hidrogeno", "potencial hidrógeno", NULL}},
+    {"conductivity", "uS/cm", {"conductividad", "conductividad electrica", "conductividad eléctrica", "conductivity", "specific conductance", NULL}},
+    {"turbidity", "NTU", {"turbidez", "turbidity", "ntu", NULL}},
+    {"dissolved_oxygen", "mg/L", {"oxigeno disuelto", "oxígeno disuelto", "dissolved oxygen", "od", "do", NULL}},
+    {"bod", "mg/L",   {"dbo", "bod", "demanda bioquimica de oxigeno", "demanda bioquímica de oxígeno", NULL}},
+    {"cod", "mg/L",   {"dqo", "cod", "demanda quimica de oxigeno", "demanda química de oxígeno", NULL}},
+    {"tds", "mg/L",   {"tds", "solidos disueltos totales", "sólidos disueltos totales", "total dissolved solids", NULL}},
+    {"tss", "mg/L",   {"tss", "sst", "solidos suspendidos totales", "sólidos suspendidos totales", "total suspended solids", NULL}},
     {"gr",  "W/m2",    {"gr", "rs", "rad solar", "rad_solar", "radiacion solar", "radiación solar", "solar rad", "solarrad", "solar radiation", "global radiation", NULL}},
     {"uv",  "indice",  {"uv", "indice uv", "indice_uv", "uv index", "uvindex", NULL}},
     {"uv_dose", "mJ/cm2", {"dosis uv", "dosis_uv", "uv dose", NULL}},
@@ -5929,6 +5958,10 @@ static int tlal_parameter_is_meteorological_canonical(const char* canonical) {
 static int tlal_atmos_source_family_from_path(const char* path_utf8) {
     char key[TLAL_ATMOS_MAX_PATH_KEY];
     tlal_norm_cstr_copy(path_utf8, key, sizeof(key));
+    if (tlal_norm_has_phrase(key, "conagua") || tlal_norm_has_phrase(key, "bandas") ||
+        tlal_norm_has_phrase(key, "renameca") || tlal_norm_has_phrase(key, "hidro") ||
+        tlal_norm_has_phrase(key, "hidrometr") || tlal_norm_has_phrase(key, "agua") ||
+        tlal_norm_has_phrase(key, "presa")) return TLAL_ATMOS_SOURCE_UNKNOWN;
     if (tlal_norm_has_phrase(key, "ruoa") || tlal_norm_has_phrase(key, "pembu") ||
         tlal_norm_has_phrase(key, "observatorios atmosfericos")) return TLAL_ATMOS_SOURCE_RUOA;
     if (tlal_norm_has_phrase(key, "redmet") || tlal_norm_has_phrase(key, "redma") || tlal_norm_has_phrase(key, "meteorologicos") || tlal_norm_has_phrase(key, "meteorologico") ||
@@ -7356,6 +7389,19 @@ static uint64_t tlal_temporal_week_bucket_from_key(uint64_t key) {
         if (w > 53) w = 53;
         return (uint64_t)y * 100ull + (uint64_t)w;
     }
+    if (key >= 19000101ull && key <= 23001231ull) {
+        d = (int)(key % 100ull);
+        key /= 100ull;
+        m = (int)(key % 100ull);
+        key /= 100ull;
+        y = (int)key;
+        doy = tlal_hot_day_of_year(y, m, d);
+        if (doy <= 0) return 0ull;
+        w = (doy + 6) / 7;
+        if (w < 1) w = 1;
+        if (w > 53) w = 53;
+        return (uint64_t)y * 100ull + (uint64_t)w;
+    }
     if (key >= 1000000ull) {
         uint64_t yw = key / 10000ull;
         y = (int)(yw / 100ull);
@@ -7374,7 +7420,12 @@ static uint64_t tlal_record_week_bucket(const TlalHotRecord* r) {
     if (!r) return 0ull;
     if (r->week_bucket != 0ull) {
         if (r->week_bucket > 1000000ull) return tlal_temporal_week_bucket_from_key(r->week_bucket);
-        return r->week_bucket;
+        if (r->week_bucket >= 190001ull) return r->week_bucket;
+        if (r->week_bucket >= 1ull && r->week_bucket <= 53ull) {
+            const uint64_t temporal_week = tlal_temporal_week_bucket_from_key(r->temporal_key);
+            const uint64_t year = temporal_week / 100ull;
+            if (year >= 1900ull) return year * 100ull + r->week_bucket;
+        }
     }
     return tlal_temporal_week_bucket_from_key(r->temporal_key);
 }
@@ -7382,8 +7433,61 @@ static uint64_t tlal_record_week_bucket(const TlalHotRecord* r) {
 typedef struct TlalStartupWeekGate {
     uint64_t week_bucket;
     uint32_t covered_categories;
+    uint32_t core_mask;
     uint32_t record_by_category[TLAL_HOT_STARTUP_CATEGORY_LIMIT_MAX];
 } TlalStartupWeekGate;
+
+static uint32_t tlal_startup_core_mask_bit(uint32_t core_group) {
+    if (core_group == TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY) return 1u;
+    if (core_group == TLALPOWA_HOTDATA_CORE_METEOROLOGY) return 2u;
+    if (core_group == TLALPOWA_HOTDATA_CORE_CONTAMINANT) return 4u;
+    return 0u;
+}
+
+static uint32_t tlal_startup_enabled_core_mask(const TlalHotState* st) {
+    uint32_t mask = st ? st->cfg.startup_gate_core_mask : 0u;
+    const uint32_t known = TLALPOWA_HOTDATA_STARTUP_CORE_EPIDEMIOLOGY |
+                           TLALPOWA_HOTDATA_STARTUP_CORE_METEOROLOGY |
+                           TLALPOWA_HOTDATA_STARTUP_CORE_CONTAMINANT;
+    mask &= known;
+    return mask ? mask : TLALPOWA_HOTDATA_STARTUP_CORE_ATMOSPHERE;
+}
+
+static int tlal_startup_core_enabled(const TlalHotState* st, uint32_t core_group) {
+    const uint32_t bit = tlal_startup_core_mask_bit(core_group);
+    return bit != 0u && (tlal_startup_enabled_core_mask(st) & bit) != 0u;
+}
+
+static uint32_t tlal_startup_week_year(uint64_t week_bucket) {
+    return (week_bucket >= 100ull) ? (uint32_t)(week_bucket / 100ull) : 0u;
+}
+
+static int tlal_startup_week_has_enabled_core(const TlalHotState* st, const TlalStartupWeekGate* week) {
+    const uint32_t mask = week ? week->core_mask : 0u;
+    return (mask & tlal_startup_enabled_core_mask(st)) != 0u;
+}
+
+static uint32_t tlal_startup_year_category_count(const TlalStartupWeekGate* weeks,
+                                                 uint32_t week_count,
+                                                 uint32_t category_count,
+                                                 uint32_t year) {
+    uint32_t cat, wi, count = 0u;
+    if (!weeks || week_count == 0u || category_count == 0u || year == 0u) return 0u;
+    for (cat = 0u; cat < category_count; ++cat) {
+        int present = 0;
+        for (wi = 0u; wi < week_count; ++wi) {
+            if (tlal_startup_week_year(weeks[wi].week_bucket) != year) continue;
+            if (weeks[wi].record_by_category[cat] != UINT32_MAX) { present = 1; break; }
+        }
+        if (present) ++count;
+    }
+    return count;
+}
+
+static uint32_t tlal_startup_coverage_percent(uint32_t covered, uint32_t denominator) {
+    if (denominator == 0u) return 0u;
+    return (uint32_t)(((uint64_t)covered * 100ull) / (uint64_t)denominator);
+}
 
 static uint32_t tlal_startup_find_category_index(const TlalStartupCategory* cats, uint32_t count, const TlalHotRecord* r) {
     uint32_t i;
@@ -7404,6 +7508,7 @@ static uint32_t tlal_startup_find_week_index(TlalStartupWeekGate* weeks, uint32_
         uint32_t pos = (*count)++;
         weeks[pos].week_bucket = week_bucket;
         weeks[pos].covered_categories = 0u;
+        weeks[pos].core_mask = 0u;
         for (i = 0u; i < TLAL_HOT_STARTUP_CATEGORY_LIMIT_MAX; ++i) weeks[pos].record_by_category[i] = UINT32_MAX;
         return pos;
     }
@@ -7415,6 +7520,7 @@ static uint32_t tlal_startup_find_week_index(TlalStartupWeekGate* weeks, uint32_
     if (weakest != UINT32_MAX && week_bucket > weakest_week) {
         weeks[weakest].week_bucket = week_bucket;
         weeks[weakest].covered_categories = 0u;
+        weeks[weakest].core_mask = 0u;
         for (i = 0u; i < TLAL_HOT_STARTUP_CATEGORY_LIMIT_MAX; ++i) weeks[weakest].record_by_category[i] = UINT32_MAX;
         return weakest;
     }
@@ -7430,6 +7536,53 @@ static int tlal_startup_record_is_better_for_week(const TlalHotRuntimeIndex* ix,
     b = &ix->records[new_ri];
     if (b->temporal_key != a->temporal_key) return b->temporal_key > a->temporal_key;
     return b->stored_size > a->stored_size;
+}
+
+static uint32_t tlal_startup_collect_year_window_records(const TlalStartupCategory* cats,
+                                                         uint32_t count,
+                                                         const TlalHotRuntimeIndex* ix,
+                                                         uint64_t target_week_bucket,
+                                                         uint32_t max_week_distance,
+                                                         uint32_t* out_records,
+                                                         uint32_t* out_core_mask) {
+    uint32_t cat, j, covered = 0u;
+    const uint32_t target_year = tlal_startup_week_year(target_week_bucket);
+    const uint32_t target_week = (uint32_t)(target_week_bucket % 100ull);
+    if (out_core_mask) *out_core_mask = 0u;
+    if (out_records) {
+        for (cat = 0u; cat < TLAL_HOT_STARTUP_CATEGORY_LIMIT_MAX; ++cat) out_records[cat] = UINT32_MAX;
+    }
+    if (!cats || !ix || !out_records || target_year == 0u || target_week == 0u) return 0u;
+    for (cat = 0u; cat < count; ++cat) {
+        uint32_t best_ri = UINT32_MAX;
+        uint32_t best_distance = UINT32_MAX;
+        for (j = 0u; j < cats[cat].record_count; ++j) {
+            const uint32_t ri = cats[cat].record_indices[j];
+            const TlalHotRecord* r;
+            uint64_t wk;
+            uint32_t record_week, distance;
+            if (ri >= ix->record_count) continue;
+            r = &ix->records[ri];
+            wk = tlal_record_week_bucket(r);
+            if (tlal_startup_week_year(wk) != target_year) continue;
+            record_week = (uint32_t)(wk % 100ull);
+            if (record_week == 0u) continue;
+            distance = record_week > target_week ? record_week - target_week : target_week - record_week;
+            if (distance > max_week_distance) continue;
+            if (distance < best_distance ||
+                (distance == best_distance && tlal_startup_record_is_better_for_week(ix, best_ri, ri))) {
+                best_ri = ri;
+                best_distance = distance;
+            }
+        }
+        if (best_ri != UINT32_MAX) {
+            const TlalHotRecord* r = &ix->records[best_ri];
+            out_records[cat] = best_ri;
+            if (out_core_mask) *out_core_mask |= tlal_startup_core_mask_bit(r->core_group);
+            ++covered;
+        }
+    }
+    return covered;
 }
 
 static void tlal_startup_category_insert_record(TlalStartupCategory* c,
@@ -7522,6 +7675,8 @@ static int tlal_startup_category_cmp_desc(const void* a, const void* b) {
 static void tlal_prewarm_latest_categories(TlalHotState* st) {
     TlalStartupCategory cats[TLAL_HOT_STARTUP_CATEGORY_LIMIT_MAX];
     TlalStartupWeekGate weeks[TLAL_HOT_STARTUP_WEEK_LIMIT_MAX];
+    uint32_t relaxed_records[TLAL_HOT_STARTUP_CATEGORY_LIMIT_MAX];
+    uint32_t best_relaxed_records[TLAL_HOT_STARTUP_CATEGORY_LIMIT_MAX];
     uint32_t count = 0u;
     uint32_t week_count = 0u;
     uint32_t limit, per_category, i, j;
@@ -7529,7 +7684,14 @@ static void tlal_prewarm_latest_categories(TlalHotState* st) {
     uint64_t selected_week = 0ull;
     uint32_t selected_week_index = UINT32_MAX;
     uint32_t selected_covered = 0u;
-    uint32_t required_covered = 0u;
+    uint32_t selected_year_categories = 0u;
+    uint32_t selected_coverage_percent = 0u;
+    uint32_t latest_year = 0u;
+    uint32_t best_relaxed_mask = 0u;
+    uint64_t diagnostic_best_relaxed_week = 0ull;
+    uint32_t diagnostic_best_relaxed_coverage = 0u;
+    uint32_t diagnostic_best_relaxed_categories = 0u;
+    uint32_t diagnostic_best_relaxed_mask = 0u;
     TlalHotCandidate selected_any;
     TlalHotCandidate selected_epi;
     TlalHotCandidate selected_met;
@@ -7547,35 +7709,34 @@ static void tlal_prewarm_latest_categories(TlalHotState* st) {
     if (per_category > TLAL_HOT_STARTUP_GATE_RECORDS_MAX) per_category = TLAL_HOT_STARTUP_GATE_RECORDS_MAX;
     memset(cats, 0, sizeof(cats));
     memset(weeks, 0, sizeof(weeks));
+    for (i = 0u; i < TLAL_HOT_STARTUP_CATEGORY_LIMIT_MAX; ++i) {
+        relaxed_records[i] = UINT32_MAX;
+        best_relaxed_records[i] = UINT32_MAX;
+    }
     for (i = 0u; i < TLAL_HOT_STARTUP_WEEK_LIMIT_MAX; ++i) {
         for (j = 0u; j < TLAL_HOT_STARTUP_CATEGORY_LIMIT_MAX; ++j) weeks[i].record_by_category[j] = UINT32_MAX;
     }
 
     for (i = 0u; i < st->index.record_count; ++i) {
         const TlalHotRecord* r = &st->index.records[i];
-        if (r->core_group != TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY &&
-            r->core_group != TLALPOWA_HOTDATA_CORE_METEOROLOGY &&
-            r->core_group != TLALPOWA_HOTDATA_CORE_CONTAMINANT) continue;
+        if (!tlal_startup_core_enabled(st, r->core_group)) continue;
         tlal_startup_category_consider(cats, &count, limit, &st->index, i, per_category);
     }
     if (count > 1u) qsort(cats, count, sizeof(cats[0]), tlal_startup_category_cmp_desc);
     if (count == 0u) return;
-    required_covered = (count * 3u + 3u) / 4u;
-    if (required_covered == 0u) required_covered = 1u;
 
     for (i = 0u; i < st->index.record_count; ++i) {
         const TlalHotRecord* r = &st->index.records[i];
         uint32_t cat_ix, wk_ix;
         uint64_t wk;
-        if (r->core_group != TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY &&
-            r->core_group != TLALPOWA_HOTDATA_CORE_METEOROLOGY &&
-            r->core_group != TLALPOWA_HOTDATA_CORE_CONTAMINANT) continue;
+        if (!tlal_startup_core_enabled(st, r->core_group)) continue;
         cat_ix = tlal_startup_find_category_index(cats, count, r);
         if (cat_ix == UINT32_MAX) continue;
         wk = tlal_record_week_bucket(r);
         if (wk == 0ull) continue;
         wk_ix = tlal_startup_find_week_index(weeks, &week_count, wk);
         if (wk_ix == UINT32_MAX) continue;
+        weeks[wk_ix].core_mask |= tlal_startup_core_mask_bit(r->core_group);
         if (weeks[wk_ix].record_by_category[cat_ix] == UINT32_MAX) weeks[wk_ix].covered_categories += 1u;
         if (tlal_startup_record_is_better_for_week(&st->index, weeks[wk_ix].record_by_category[cat_ix], i)) {
             weeks[wk_ix].record_by_category[cat_ix] = i;
@@ -7583,19 +7744,128 @@ static void tlal_prewarm_latest_categories(TlalHotState* st) {
     }
 
     for (i = 0u; i < week_count; ++i) {
-        if (weeks[i].covered_categories >= required_covered && weeks[i].week_bucket >= selected_week) {
-            selected_week = weeks[i].week_bucket;
-            selected_week_index = i;
-            selected_covered = weeks[i].covered_categories;
+        const uint32_t year = tlal_startup_week_year(weeks[i].week_bucket);
+        uint32_t k, year_mask = 0u;
+        if (year == 0u || weeks[i].covered_categories == 0u) continue;
+        for (k = 0u; k < week_count; ++k) {
+            if (tlal_startup_week_year(weeks[k].week_bucket) == year) year_mask |= weeks[k].core_mask;
         }
+        if ((year_mask & tlal_startup_enabled_core_mask(st)) == 0u) continue;
+        if (year > latest_year) latest_year = year;
     }
-    if (selected_week_index == UINT32_MAX) {
+
+    if (latest_year != 0u) {
+        const uint32_t denominator = tlal_startup_year_category_count(weeks, week_count, count, latest_year);
+        uint32_t required_for_year = (denominator * 3u + 3u) / 4u;
+        if (required_for_year == 0u) required_for_year = 1u;
         for (i = 0u; i < week_count; ++i) {
-            if (weeks[i].covered_categories > selected_covered ||
-                (weeks[i].covered_categories == selected_covered && weeks[i].week_bucket > selected_week)) {
+            const uint32_t percent = tlal_startup_coverage_percent(weeks[i].covered_categories, denominator);
+            if (tlal_startup_week_year(weeks[i].week_bucket) != latest_year) continue;
+            if (!tlal_startup_week_has_enabled_core(st, &weeks[i])) continue;
+            if (denominator != 0u && weeks[i].covered_categories >= required_for_year && weeks[i].week_bucket >= selected_week) {
                 selected_week = weeks[i].week_bucket;
                 selected_week_index = i;
                 selected_covered = weeks[i].covered_categories;
+                selected_year_categories = denominator;
+                selected_coverage_percent = percent;
+            }
+        }
+    }
+
+    if (selected_week_index == UINT32_MAX && latest_year != 0u) {
+        const uint32_t denominator = tlal_startup_year_category_count(weeks, week_count, count, latest_year);
+        uint32_t required_for_year = (denominator * 3u + 3u) / 4u;
+        if (required_for_year == 0u) required_for_year = 1u;
+        for (i = 0u; i < week_count; ++i) {
+            uint32_t relaxed_mask = 0u;
+            uint32_t relaxed_covered, percent;
+            if (tlal_startup_week_year(weeks[i].week_bucket) != latest_year) continue;
+            if (!tlal_startup_week_has_enabled_core(st, &weeks[i])) continue;
+            relaxed_covered = tlal_startup_collect_year_window_records(cats, count, &st->index,
+                                                                       weeks[i].week_bucket, 26u,
+                                                                       relaxed_records, &relaxed_mask);
+            percent = tlal_startup_coverage_percent(relaxed_covered, denominator);
+            if (percent > diagnostic_best_relaxed_coverage ||
+                (percent == diagnostic_best_relaxed_coverage && weeks[i].week_bucket > diagnostic_best_relaxed_week)) {
+                diagnostic_best_relaxed_week = weeks[i].week_bucket;
+                diagnostic_best_relaxed_coverage = percent;
+                diagnostic_best_relaxed_categories = denominator;
+                diagnostic_best_relaxed_mask = relaxed_mask;
+            }
+            if (denominator != 0u && (relaxed_mask & tlal_startup_enabled_core_mask(st)) != 0u &&
+                relaxed_covered >= required_for_year && weeks[i].week_bucket >= selected_week) {
+                uint32_t k;
+                selected_week = weeks[i].week_bucket;
+                selected_week_index = i;
+                selected_covered = relaxed_covered;
+                selected_year_categories = denominator;
+                selected_coverage_percent = percent;
+                best_relaxed_mask = relaxed_mask;
+                for (k = 0u; k < count; ++k) best_relaxed_records[k] = relaxed_records[k];
+            }
+        }
+        if (selected_week_index != UINT32_MAX && best_relaxed_mask != 0u) {
+            uint32_t k;
+            weeks[selected_week_index].covered_categories = selected_covered;
+            weeks[selected_week_index].core_mask = best_relaxed_mask;
+            for (k = 0u; k < count; ++k) {
+                weeks[selected_week_index].record_by_category[k] = best_relaxed_records[k];
+            }
+        }
+    }
+
+    if (selected_week_index == UINT32_MAX) {
+        for (i = 0u; i < week_count; ++i) {
+            const uint32_t year = tlal_startup_week_year(weeks[i].week_bucket);
+            const uint32_t denominator = tlal_startup_year_category_count(weeks, week_count, count, year);
+            uint32_t required_for_year = (denominator * 3u + 3u) / 4u;
+            const uint32_t percent = tlal_startup_coverage_percent(weeks[i].covered_categories, denominator);
+            if (year == 0u || denominator == 0u) continue;
+            if (!tlal_startup_week_has_enabled_core(st, &weeks[i])) continue;
+            if (required_for_year == 0u) required_for_year = 1u;
+            if (weeks[i].covered_categories >= required_for_year && weeks[i].week_bucket >= selected_week) {
+                selected_week = weeks[i].week_bucket;
+                selected_week_index = i;
+                selected_covered = weeks[i].covered_categories;
+                selected_year_categories = denominator;
+                selected_coverage_percent = percent;
+            }
+        }
+    }
+
+    if (selected_week_index == UINT32_MAX && latest_year != 0u) {
+        const uint32_t denominator = tlal_startup_year_category_count(weeks, week_count, count, latest_year);
+        for (i = 0u; i < week_count; ++i) {
+            const uint32_t percent = tlal_startup_coverage_percent(weeks[i].covered_categories, denominator);
+            if (tlal_startup_week_year(weeks[i].week_bucket) != latest_year) continue;
+            if (!tlal_startup_week_has_enabled_core(st, &weeks[i])) continue;
+            if (percent > selected_coverage_percent ||
+                (percent == selected_coverage_percent && weeks[i].covered_categories > selected_covered) ||
+                (percent == selected_coverage_percent && weeks[i].covered_categories == selected_covered && weeks[i].week_bucket > selected_week)) {
+                selected_week = weeks[i].week_bucket;
+                selected_week_index = i;
+                selected_covered = weeks[i].covered_categories;
+                selected_year_categories = denominator;
+                selected_coverage_percent = percent;
+            }
+        }
+    }
+
+    if (selected_week_index == UINT32_MAX) {
+        for (i = 0u; i < week_count; ++i) {
+            const uint32_t year = tlal_startup_week_year(weeks[i].week_bucket);
+            const uint32_t denominator = tlal_startup_year_category_count(weeks, week_count, count, year);
+            const uint32_t percent = tlal_startup_coverage_percent(weeks[i].covered_categories, denominator);
+            if (year == 0u || denominator == 0u) continue;
+            if (!tlal_startup_week_has_enabled_core(st, &weeks[i])) continue;
+            if (percent > selected_coverage_percent ||
+                (percent == selected_coverage_percent && weeks[i].covered_categories > selected_covered) ||
+                (percent == selected_coverage_percent && weeks[i].covered_categories == selected_covered && weeks[i].week_bucket > selected_week)) {
+                selected_week = weeks[i].week_bucket;
+                selected_week_index = i;
+                selected_covered = weeks[i].covered_categories;
+                selected_year_categories = denominator;
+                selected_coverage_percent = percent;
             }
         }
     }
@@ -7619,7 +7889,12 @@ static void tlal_prewarm_latest_categories(TlalHotState* st) {
     if (st->stats) {
         st->stats->startup_gate_expected_hits = expected;
         st->stats->startup_gate_selected_week_bucket = selected_week;
-        st->stats->startup_gate_selected_coverage_percent = count ? ((uint64_t)selected_covered * 100ull) / (uint64_t)count : 0ull;
+        st->stats->startup_gate_selected_coverage_percent = selected_coverage_percent;
+        st->stats->startup_gate_latest_candidate_year = latest_year;
+        st->stats->startup_gate_best_relaxed_week_bucket = diagnostic_best_relaxed_week;
+        st->stats->startup_gate_best_relaxed_coverage_percent = diagnostic_best_relaxed_coverage;
+        st->stats->startup_gate_best_relaxed_categories = diagnostic_best_relaxed_categories;
+        st->stats->startup_gate_best_relaxed_core_mask = diagnostic_best_relaxed_mask;
     }
     bytes = st->cfg.startup_gate_bytes_per_record;
     if (bytes == 0ull) bytes = TLAL_HOT_STARTUP_GATE_BYTES_DEFAULT;
@@ -7648,7 +7923,7 @@ static void tlal_prewarm_latest_categories(TlalHotState* st) {
     if (selected_met.temporal_key != 0ull) st->latest_met = selected_met;
     if (selected_con.temporal_key != 0ull) st->latest_con = selected_con;
     if (st->stats) {
-        st->stats->startup_gate_categories = count;
+        st->stats->startup_gate_categories = selected_year_categories ? selected_year_categories : count;
         st->stats->progressive_records_touched += st->stats->startup_gate_hits;
         st->stats->cache_bytes = st->index.cache_bytes;
         st->stats->latest_contaminant_key = st->latest_con.temporal_key;
@@ -7697,9 +7972,12 @@ static void tlal_prewarm_startup_gate(TlalHotState* st) {
     before = st->stats ? st->stats->startup_gate_hits : 0ull;
     tlal_prewarm_latest_categories(st);
     if (st->stats && st->stats->startup_gate_hits > before) { st->stats->cache_bytes = st->index.cache_bytes; return; }
-    tlal_startup_gate_core(st, TLALPOWA_HOTDATA_CORE_CONTAMINANT, st->latest_con.temporal_key);
-    tlal_startup_gate_core(st, TLALPOWA_HOTDATA_CORE_METEOROLOGY, st->latest_met.temporal_key);
-    tlal_startup_gate_core(st, TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY, st->latest_epi.temporal_key);
+    if (tlal_startup_core_enabled(st, TLALPOWA_HOTDATA_CORE_CONTAMINANT))
+        tlal_startup_gate_core(st, TLALPOWA_HOTDATA_CORE_CONTAMINANT, st->latest_con.temporal_key);
+    if (tlal_startup_core_enabled(st, TLALPOWA_HOTDATA_CORE_METEOROLOGY))
+        tlal_startup_gate_core(st, TLALPOWA_HOTDATA_CORE_METEOROLOGY, st->latest_met.temporal_key);
+    if (tlal_startup_core_enabled(st, TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY))
+        tlal_startup_gate_core(st, TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY, st->latest_epi.temporal_key);
     tlal_startup_gate_core(st, TLALPOWA_HOTDATA_CORE_OTHER, st->latest_oth.temporal_key);
     if (st->stats) st->stats->cache_bytes = st->index.cache_bytes;
 }
@@ -7809,6 +8087,10 @@ static void tlal_config_normalize(TlalpowaHotDataConfig* c) {
     if (c->startup_gate_bytes_per_record > TLAL_HOT_STARTUP_GATE_BYTES_MAX) c->startup_gate_bytes_per_record = TLAL_HOT_STARTUP_GATE_BYTES_MAX;
     if (c->startup_gate_category_limit == 0u) c->startup_gate_category_limit = TLAL_HOT_STARTUP_CATEGORY_LIMIT_DEFAULT;
     if (c->startup_gate_category_limit > TLAL_HOT_STARTUP_CATEGORY_LIMIT_MAX) c->startup_gate_category_limit = TLAL_HOT_STARTUP_CATEGORY_LIMIT_MAX;
+    c->startup_gate_core_mask &= (TLALPOWA_HOTDATA_STARTUP_CORE_EPIDEMIOLOGY |
+                                  TLALPOWA_HOTDATA_STARTUP_CORE_METEOROLOGY |
+                                  TLALPOWA_HOTDATA_STARTUP_CORE_CONTAMINANT);
+    if (c->startup_gate_core_mask == 0u) c->startup_gate_core_mask = TLALPOWA_HOTDATA_STARTUP_CORE_ATMOSPHERE;
 }
 
 TlalpowaHotDataConfig tlalpowa_hotdata_default_config(void) {
@@ -7826,7 +8108,8 @@ TlalpowaHotDataConfig tlalpowa_hotdata_default_config(void) {
         TLAL_HOT_CACHE_LINES_DEFAULT,
         TLAL_HOT_STARTUP_GATE_RECORDS_DEFAULT,
         TLAL_HOT_STARTUP_GATE_BYTES_DEFAULT,
-        TLAL_HOT_STARTUP_CATEGORY_LIMIT_DEFAULT
+        TLAL_HOT_STARTUP_CATEGORY_LIMIT_DEFAULT,
+        TLALPOWA_HOTDATA_STARTUP_CORE_ATMOSPHERE
     };
     return defaults;
 }

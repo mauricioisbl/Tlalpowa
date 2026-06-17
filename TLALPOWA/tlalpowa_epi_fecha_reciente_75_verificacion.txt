@@ -1,0 +1,13 @@
+TLALPOWA · verificación de fecha epidemiológica reciente >75%
+Fecha: 2026-06-15
+
+Cambios aplicados:
+- La epidemiología ya no queda anclada al borde histórico 2000 cuando la semana civil actual aún no existe en IXIPTLAH.
+- Si la semana activa no existe, se carga un fallback compacto de shards IXIPTLAH recientes y se elige la semana más reciente con cobertura estrictamente mayor a 75% del universo epidemiológico visible.
+- El selector usa cobertura por enfermedades únicas por semana. Si hay selección concreta de enfermedades, el universo es esa selección; si se usa "Todas", se usa el mayor universo detectado y, si existe, el catálogo configurado.
+- La línea temporal se realinea a la semana epidemiológica elegida durante el arranque, incluso si todavía no existe coincidencia atmosférica exacta.
+- El estado de UI reporta explícitamente: "fecha anclada >75% YYYY-WW".
+
+Regla dura:
+- required = floor(reference * 0.75) + 1, por tanto la cobertura exigida es >75%, no solamente >=75%.
+- Si ninguna semana cumple, se usa como respaldo la semana más reciente con mayor cobertura encontrada, sin caer a 2000.

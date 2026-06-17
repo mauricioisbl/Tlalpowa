@@ -1,0 +1,15 @@
+TLALPOWA · verificación VS2026 · 2026-06-16
+
+Corrección aplicada:
+- Declaración adelantada de tlalpowa_select_recent_epidemiology_week_gt75_locked antes de publish_observations_progressive_snapshot.
+- MSVC 19.50 ya no debe reportar C3861 en la línea de selección epidemiológica.
+- La asignación de anchor_week recibe std::string con tipo conocido y evita el C2593 derivado.
+- El anclaje de carga epidemiológica ignora semanas preferidas viejas y toma la fecha más reciente con cobertura histórica estrictamente mayor a 75%.
+- La rama nativa .ixiptlah también reancla con la misma regla >75%.
+
+Validación local:
+- Balance de llaves/paréntesis/corchetes revisado estáticamente.
+- ZIP empaquetado con raíz MiausoftSuite.
+
+Nota:
+- La compilación ejecutable debe hacerse en Windows con Visual Studio 2026/MSVC 19.50 mediante Compilar.cmd.

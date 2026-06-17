@@ -1,0 +1,14 @@
+MiausoftSuite · publicador incremental por KB
+
+Cambios aplicados:
+- Publicar.cmd queda en la raíz de MiausoftSuite.
+- CORE/Publicar.ps1 publica únicamente archivos cuyo tamaño en KB cambió.
+- GitHub sólo recibe la lista de archivos con KB cambiado; no se hace git add -A global.
+- La copia externa a D:\MiausoftSuite es opcional y no detiene el publicador si D: no existe o no está conectado.
+- Si la suite se ejecuta desde D:, el respaldo D se omite para evitar copiar sobre el mismo disco.
+- La misma ejecución genera una lista única en Logs con los archivos actualizados para GitHub y respaldo externo.
+- Se eliminó el flujo destructivo de limpiar/espejear completos antes de publicar.
+
+Validación estática:
+- No se usa robocopy /MIR ni Clear-Snapshot en el flujo nuevo.
+- El criterio de cambio es KB redondeado hacia arriba desde bytes.

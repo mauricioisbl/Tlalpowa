@@ -1,0 +1,13 @@
+TLALPOWA · territorio fijo corregido · 2026-06-16
+
+Estado actual:
+- La división territorial queda fija en el paquete y es validada por CMake al configurar.
+- No existe botón lateral para actualizar/importar catálogo municipal.
+- No se compila GeneratedTerritorialResources.c porque MSVC 19.50 puede agotar heap con megacadenas C.
+- La geometría municipal, la geometría estatal y el catálogo territorial se leen desde TLALPOWA/Datos como archivos obligatorios del paquete.
+- El build copia esos datos al directorio del ejecutable como respaldo de ejecución directa.
+
+Archivos obligatorios:
+- Datos/territorio_centro_mexico.tlalgeo
+- Datos/estados_centro_mexico.tlalgeo
+- Datos/territorio_centro_mexico_catalogo.json

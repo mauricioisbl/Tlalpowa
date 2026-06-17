@@ -1032,3 +1032,27 @@ Se redujo apenas la densidad de vértices del trazo territorial mediante toleran
 - Las teselas faltantes ya no dejan huecos: usan padres residentes hasta cinco niveles y, como ultimo respaldo, el underlay satelital embebido.
 - Se agrego margen de una tesela satelital alrededor del viewport para evitar bordes vacios al desplazar.
 - Se conserva solicitud directa del Z real de pantalla; no se descargan Z intermedios ni se baja resolucion por movimiento.
+
+## 2026-06-14 · Reparación de lectura de contaminantes
+
+Se corrigió la causa que impedía ver contaminantes cuando existían archivos IXIPTLAH atmosféricos, pero ninguno contenía la capa seleccionada. La ruta nativa ya no retorna vacío por mera presencia de bloques: sólo termina si realmente cargó nubes visibles; si no, cae al respaldo CSV/RAMA y reconstruye bajo demanda. Además, la clasificación de contaminantes se amplió a gases traza, GEI, COV, aerosoles, metales, carbono y derivados, de modo que las casillas extendidas entren al lector real, a la máscara de red y al filtrado territorial sin depender de que sean contaminantes criterio.
+
+## 2026-06-15 · Epidemiología visible y territorio fijo compilado
+
+- La rama epidemiológica queda abierta automáticamente cuando existen IXIPTLAH epidemiológicos nativos y selecciona la cohorte epidemiológica completa al arrancar si hay caché reciente disponible.
+- Las gráficas de pastel epidemiológicas aumentan su radio útil, pero cada radio se recorta contra el radio interior del polígono o contra el lienzo visible para no rebasar su delimitación.
+- Se eliminó el botón lateral de actualización/importación territorial; la barra lateral ya no ofrece importación para divisiones territoriales.
+- La geometría municipal, estatal y el catálogo territorial quedan embebidos en `GeneratedTerritorialResources.c` y se materializan desde el binario al arrancar, de modo que las divisiones territoriales queden fijas desde compilación.
+
+### 2026-06-15 · Fecha epidemiológica reciente con cobertura >75%
+- Se añadió un selector interno de semana epidemiológica que elige la fecha más reciente con cobertura estrictamente mayor a 75% del universo visible.
+- La semana civil actual ya no bloquea la visualización cuando no existe todavía en los IXIPTLAH; se usa fallback compacto de shards recientes.
+- La línea temporal se reancla a la semana epidemiológica válida durante el arranque para evitar caer al borde histórico 2000.
+- Se conserva la lectura exacta por semana cuando la fecha activa sí existe, sin barrer el corpus completo.
+
+## 2026-06-16 · Territorio fijo sin megacadena C
+
+- Se retiró `GeneratedTerritorialResources.c` del build para evitar `C1060` en MSVC 19.50 / VS2026.
+- Los `.tlalgeo` y el catálogo territorial quedan como datos fijos obligatorios del paquete y CMake falla si faltan.
+- El arranque territorial valida archivos fijos en `TLALPOWA/Datos` sin decodificar ni reservar memoria masiva.
+- La selección epidemiológica ignora anclas antiguas y elige la fecha más reciente con cobertura histórica estrictamente mayor a 75%.

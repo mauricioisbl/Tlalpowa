@@ -44,6 +44,18 @@ set(TLALPOWA_SOURCES
   "${TLALPOWA_FUENTE_DIR}/Tlalpowa.cpp"
   "${TLALPOWA_FUENTE_DIR}/GeneratedRuntimeResources.c")
 
+
+set(TLALPOWA_TERRITORIO_FIJO_ARCHIVOS
+  "${TLALPOWA_FUENTE_DIR}/Datos/territorio_centro_mexico.tlalgeo"
+  "${TLALPOWA_FUENTE_DIR}/Datos/estados_centro_mexico.tlalgeo"
+  "${TLALPOWA_FUENTE_DIR}/Datos/territorio_centro_mexico_catalogo.json")
+
+foreach(_tlalpowa_territorio_fijo IN LISTS TLALPOWA_TERRITORIO_FIJO_ARCHIVOS)
+  if(NOT EXISTS "${_tlalpowa_territorio_fijo}")
+    message(FATAL_ERROR "Falta dato territorial fijo: ${_tlalpowa_territorio_fijo}")
+  endif()
+endforeach()
+
 if(NOT TARGET miausoft_core)
   add_library(miausoft_core STATIC
     "${TLALPOWA_COMMON_DIR}/miausoft_core.c"
@@ -65,6 +77,10 @@ target_include_directories(Tlalpowa PRIVATE
 target_link_libraries(Tlalpowa PRIVATE nlohmann_json::nlohmann_json miausoft_core)
 set_property(TARGET Tlalpowa PROPERTY MIAUSOFT_CORE_ATTACHED TRUE)
 
+add_custom_command(TARGET Tlalpowa POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:Tlalpowa>/TLALPOWA/Datos"
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${TLALPOWA_TERRITORIO_FIJO_ARCHIVOS} "$<TARGET_FILE_DIR:Tlalpowa>/TLALPOWA/Datos")
+
 target_compile_definitions(Tlalpowa PRIVATE
   _CRT_SECURE_NO_WARNINGS
   NOMINMAX
@@ -78,7 +94,11 @@ if(MSVC)
     target_compile_options(Tlalpowa PRIVATE /MP)
   endif()
   target_compile_options(Tlalpowa PRIVATE "$<$<CONFIG:Release>:/O2>" "$<$<CONFIG:Release>:/Gw>" "$<$<CONFIG:Release>:/Gy>")
-  target_link_options(Tlalpowa PRIVATE /INCREMENTAL:NO "$<$<CONFIG:Release>:/OPT:REF>" "$<$<CONFIG:Release>:/OPT:ICF>")
+  target_link_options(Tlalpowa PRIVATE
+    /INCREMENTAL:NO
+    /STACK:16777216
+    "$<$<CONFIG:Release>:/OPT:REF>"
+    "$<$<CONFIG:Release>:/OPT:ICF>")
 else()
   target_compile_options(Tlalpowa PRIVATE -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers)
 endif()

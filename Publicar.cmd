@@ -3,13 +3,51 @@ setlocal EnableExtensions DisableDelayedExpansion
 chcp 65001 >nul 2>nul
 title MiausoftSuite - Publicador central
 cd /d "%~dp0"
+set "SCRIPT_DIR=%~dp0"
 
-if /I "%~1"=="Tlalpowa" goto run_tlalpowa
-if /I "%~1"=="Ilnamiki" goto run_ilnamiki
-if /I "%~1"=="Biblioteca" goto run_biblioteca
-if /I "%~1"=="MiausoftTools" goto run_tools
-if /I "%~1"=="Suite" goto run_suite
-if /I "%~1"=="Todo" goto run_todo
+if /I "%~1"=="/?" goto help
+if /I "%~1"=="-h" goto help
+if /I "%~1"=="--help" goto help
+
+set "EXTRA="
+set "DRYRUN="
+set "LOGIN="
+set "TARGET="
+set "HADARGS="
+
+:parse_args
+if "%~1"=="" goto args_done
+set "HADARGS=1"
+if /I "%~1"=="/simulacion" set "EXTRA=%EXTRA% -DryRun"&set "DRYRUN=1"&shift&goto parse_args
+if /I "%~1"=="--dry-run" set "EXTRA=%EXTRA% -DryRun"&set "DRYRUN=1"&shift&goto parse_args
+if /I "%~1"=="/sin-compilar" set "EXTRA=%EXTRA% -NoCompile"&shift&goto parse_args
+if /I "%~1"=="--no-compile" set "EXTRA=%EXTRA% -NoCompile"&shift&goto parse_args
+if /I "%~1"=="/iniciar-sesion" set "LOGIN=1"&shift&goto parse_args
+if /I "%~1"=="--login" set "LOGIN=1"&shift&goto parse_args
+if /I "%~1"=="Tlalpowa" set "TARGET=Tlalpowa"&shift&goto parse_args
+if /I "%~1"=="Ilnamiki" set "TARGET=Ilnamiki"&shift&goto parse_args
+if /I "%~1"=="Biblioteca" set "TARGET=Biblioteca"&shift&goto parse_args
+if /I "%~1"=="MiausoftTools" set "TARGET=MiausoftTools"&shift&goto parse_args
+if /I "%~1"=="Suite" set "TARGET=Suite"&shift&goto parse_args
+if /I "%~1"=="Todo" set "TARGET=Todo"&shift&goto parse_args
+if /I "%~1"=="ConvertidorCompleto" set "TARGET=ConvertidorCompleto"&shift&goto parse_args
+if /I "%~1"=="ConvertidorCapitulos" set "TARGET=ConvertidorCapitulos"&shift&goto parse_args
+if /I "%~1"=="FusionadorDivisor" set "TARGET=FusionadorDivisor"&shift&goto parse_args
+if /I "%~1"=="Reemplazador" set "TARGET=Reemplazador"&shift&goto parse_args
+if /I "%~1"=="Organizador" set "TARGET=Organizador"&shift&goto parse_args
+if /I "%~1"=="Installer" set "TARGET=Installer"&shift&goto parse_args
+echo Argumento no reconocido: %~1
+echo Usa Publicar.cmd /? para ver la ayuda.
+exit /b 2
+
+:args_done
+if "%LOGIN%"=="1" (
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%CORE\Publicar.ps1" -Login
+  set "RC=%ERRORLEVEL%"
+  if not "%RC%"=="0" exit /b %RC%
+  if "%TARGET%"=="" exit /b 0
+)
+if not "%TARGET%"=="" goto run
 
 :main
 cls
@@ -78,15 +116,31 @@ set "TARGET=Todo"
 :run
 cls
 echo Publicando %TARGET%...
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0CORE\Publicar.ps1" -Target "%TARGET%"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%CORE\Publicar.ps1" -Target "%TARGET%" %EXTRA%
 set "RC=%ERRORLEVEL%"
 echo.
 if not "%RC%"=="0" (
   echo [ERROR] La publicacion termino con codigo %RC%.
 ) else (
-  echo [OK] %TARGET% quedo publicado.
+  if "%DRYRUN%"=="1" (
+    echo [OK] Simulacion de %TARGET% completada.
+  ) else (
+    echo [OK] %TARGET% quedo publicado.
+  )
 )
-if not "%~1"=="" exit /b %RC%
+if "%HADARGS%"=="1" exit /b %RC%
 choice /C 10 /N /M "Pulsa 1 para volver al menu o 0 para salir: "
 if errorlevel 2 exit /b %RC%
 goto main
+
+:help
+echo(Publicar.cmd [Tlalpowa^|Ilnamiki^|Biblioteca^|MiausoftTools^|Suite^|Todo] [/simulacion] [/sin-compilar] [/iniciar-sesion]
+echo(
+echo(Publica el destino indicado. Sin argumentos abre el menu interactivo.
+echo(
+echo(  /?             Muestra esta ayuda.
+echo(  --help         Muestra esta ayuda.
+echo(  /simulacion    Prepara y detecta cambios sin commit ni push.
+echo(  /sin-compilar  Publica sin ejecutar la compilacion previa.
+echo(  /iniciar-sesion  Abre/valida el login GitHub de Git Credential Manager.
+exit /b 0

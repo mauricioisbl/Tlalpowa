@@ -1,0 +1,19 @@
+TLALPOWA · verificación de lectura de contaminantes
+Fecha: 2026-06-14
+
+Error localizado
+- La lectura atmosférica por IXIPTLAH terminaba con retorno temprano cuando existían bloques nativos, aunque esos bloques no contuvieran la variable contaminante activa.
+- Ese retorno dejaba vacío el vector visible y bloqueaba el respaldo local desde CSV/RAMA, dando la impresión de que los contaminantes no se podían leer.
+- El clasificador C de contaminantes sólo reconocía el núcleo criterio y dejaba fuera COV, GEI, gases traza, aerosoles, metales, carbono y derivados ya presentes en el catálogo.
+
+Reparación
+- load_atmospheric_clouds() ya no retorna vacío por la sola presencia de IXIPTLAH: si no cargó nubes reales para la selección activa, libera la ruta nativa y permite los respaldos.
+- load_atmospheric_clouds_on_demand_from_active_checkbox() fuerza reconstrucción local desde CSV cuando la lectura nativa queda vacía.
+- ozmvm_atm_key_is_contaminant() y ozmvm_atm_group_is_contaminant() cubren ahora los contaminantes extendidos del catálogo visible.
+- tlalpowa_nucleo.cpp alinea la clasificación de escritura, purga y categoría con esos contaminantes extendidos.
+- Se conserva el mapa satelital liviano por resolución física y el streaming sin huecos acumulado.
+
+Validación
+- gcc -std=c11 -fsyntax-only tlalpowa_c.c: OK
+- g++ -std=c++17 -fsyntax-only -I. Tlalpowa.cpp: OK
+- tlalpowa_nucleo.cpp: no se pudo validar con g++ puro por ausencia local de nlohmann/json.hpp; el archivo no introdujo errores sintácticos evidentes en las regiones modificadas.
