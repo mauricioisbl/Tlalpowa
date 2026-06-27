@@ -6529,9 +6529,8 @@ static volatile unsigned char g_tlal_hot_sink;
 
 /*
 CONTRATO FIJO DE HOT DATA TLALPOWA:
-1) La bienvenida NO busca la fecha civil actual. Casi nunca los datos regionales
-   estan al dia; por tanto el primer plano toma la ULTIMA SEMANA REAL con
-   registros de al menos el 75% de las categorias fisicas esenciales.
+1) La bienvenida toma una semana real con cobertura suficiente, pero debe
+   conservar epidemiologia en el candado inicial junto con atmosfera.
 2) Categoria fisica significa nucleo/tipo/esquema/capa; asi contaminantes,
    meteorologia y epidemiologia no se colapsan en un unico resumen ni en una
    fecha inventada.
@@ -7450,7 +7449,7 @@ static uint32_t tlal_startup_enabled_core_mask(const TlalHotState* st) {
                            TLALPOWA_HOTDATA_STARTUP_CORE_METEOROLOGY |
                            TLALPOWA_HOTDATA_STARTUP_CORE_CONTAMINANT;
     mask &= known;
-    return mask ? mask : TLALPOWA_HOTDATA_STARTUP_CORE_ATMOSPHERE;
+    return mask ? mask : (TLALPOWA_HOTDATA_STARTUP_CORE_ATMOSPHERE | TLALPOWA_HOTDATA_STARTUP_CORE_EPIDEMIOLOGY);
 }
 
 static int tlal_startup_core_enabled(const TlalHotState* st, uint32_t core_group) {
@@ -8090,7 +8089,8 @@ static void tlal_config_normalize(TlalpowaHotDataConfig* c) {
     c->startup_gate_core_mask &= (TLALPOWA_HOTDATA_STARTUP_CORE_EPIDEMIOLOGY |
                                   TLALPOWA_HOTDATA_STARTUP_CORE_METEOROLOGY |
                                   TLALPOWA_HOTDATA_STARTUP_CORE_CONTAMINANT);
-    if (c->startup_gate_core_mask == 0u) c->startup_gate_core_mask = TLALPOWA_HOTDATA_STARTUP_CORE_ATMOSPHERE;
+    if (c->startup_gate_core_mask == 0u) c->startup_gate_core_mask =
+        TLALPOWA_HOTDATA_STARTUP_CORE_ATMOSPHERE | TLALPOWA_HOTDATA_STARTUP_CORE_EPIDEMIOLOGY;
 }
 
 TlalpowaHotDataConfig tlalpowa_hotdata_default_config(void) {
@@ -8109,7 +8109,7 @@ TlalpowaHotDataConfig tlalpowa_hotdata_default_config(void) {
         TLAL_HOT_STARTUP_GATE_RECORDS_DEFAULT,
         TLAL_HOT_STARTUP_GATE_BYTES_DEFAULT,
         TLAL_HOT_STARTUP_CATEGORY_LIMIT_DEFAULT,
-        TLALPOWA_HOTDATA_STARTUP_CORE_ATMOSPHERE
+        TLALPOWA_HOTDATA_STARTUP_CORE_ATMOSPHERE | TLALPOWA_HOTDATA_STARTUP_CORE_EPIDEMIOLOGY
     };
     return defaults;
 }
@@ -8138,10 +8138,10 @@ int tlalpowa_hotdata_prewarm_root(const char* root_utf8,
     (void)tlal_runtime_build_temporal_order(&st.index);
     /*
     REGLA DE BIENVENIDA DE PRIMER PLANO:
-    se ignora la fecha civil actual y se toman los ultimos registros IXIPTLAH
-    disponibles por categoria fisica. La pantalla puede permanecer mas tiempo
-    para asegurar ese primer plano real, pero NO espera vecinos cronologicos;
-    ellos se cargan despues, en segundo plano, del mas cercano al mas lejano.
+    se toman registros IXIPTLAH por categoria fisica, incluyendo epidemiologia.
+    La pantalla puede permanecer mas tiempo para asegurar ese primer plano real,
+    pero NO espera vecinos cronologicos; ellos se cargan despues, en segundo
+    plano, del mas cercano al mas lejano.
     */
     tlal_prewarm_latest_candidates(&st);
     tlal_prewarm_startup_gate(&st);
@@ -8278,6 +8278,116 @@ uint64_t tlalpowa_hotdata_read_hit(const TlalpowaHotDataHit* hit,
     return tlal_read_path_span(hit->path, absolute_offset, out_buffer, remain);
 }
 
+
+uint32_t tlalpowa_hotdata_prepare_core_for_anchor_file(uint32_t anchor_core_group,
+                                                       uint64_t anchor_temporal_key,
+                                                       uint32_t wanted_core_group,
+                                                       uint64_t fallback_temporal_key,
+                                                       uint32_t active_hits,
+                                                       uint32_t active_bytes_per_hit,
+                                                       uint32_t neighbor_hits,
+                                                       uint32_t neighbor_bytes_per_hit,
+                                                       TlalpowaHotDataHit* hits,
+                                                       TlalpowaHotDataStats* stats) {
+    TlalHotState st;
+    unsigned char* file_has_wanted;
+    uint32_t cap, i, out = 0u;
+    uint32_t best_file = UINT32_MAX;
+    uint64_t best_distance = UINT64_MAX;
+    uint64_t active_bytes, neighbor_bytes, max_bytes;
+    int used_anchor_file = 0;
+    if (stats) memset(stats, 0, sizeof(*stats));
+    cap = active_hits + neighbor_hits;
+    if (cap == 0u) { active_hits = 1u; cap = 1u; }
+    if (cap > 256u) cap = 256u;
+    if (hits) memset(hits, 0, (size_t)cap * sizeof(*hits));
+    if (anchor_temporal_key == 0ull || wanted_core_group == TLALPOWA_HOTDATA_CORE_ANY) {
+        return fallback_temporal_key != 0ull ?
+            tlalpowa_hotdata_prepare_active_temporal_view(wanted_core_group, fallback_temporal_key,
+                                                          active_hits, active_bytes_per_hit,
+                                                          neighbor_hits, neighbor_bytes_per_hit,
+                                                          hits, stats) : 0u;
+    }
+    active_bytes = active_bytes_per_hit ? (uint64_t)active_bytes_per_hit : 96ull * 1024ull;
+    neighbor_bytes = neighbor_bytes_per_hit ? (uint64_t)neighbor_bytes_per_hit : 64ull * 1024ull;
+    if (active_bytes > 4ull * 1024ull * 1024ull) active_bytes = 4ull * 1024ull * 1024ull;
+    if (neighbor_bytes > 4ull * 1024ull * 1024ull) neighbor_bytes = 4ull * 1024ull * 1024ull;
+
+    tlal_hot_lock();
+    if (!g_tlal_hot_index.records || g_tlal_hot_index.record_count == 0u ||
+        !g_tlal_hot_index.files || g_tlal_hot_index.file_count == 0u) {
+        tlal_hot_unlock();
+        return fallback_temporal_key != 0ull ?
+            tlalpowa_hotdata_prepare_active_temporal_view(wanted_core_group, fallback_temporal_key,
+                                                          active_hits, active_bytes_per_hit,
+                                                          neighbor_hits, neighbor_bytes_per_hit,
+                                                          hits, stats) : 0u;
+    }
+    file_has_wanted = (unsigned char*)calloc(g_tlal_hot_index.file_count, sizeof(unsigned char));
+    if (!file_has_wanted) { tlal_hot_unlock(); return 0u; }
+    for (i = 0u; i < g_tlal_hot_index.record_count; ++i) {
+        const TlalHotRecord* r = &g_tlal_hot_index.records[i];
+        if (r->file_index < g_tlal_hot_index.file_count && tlal_record_matches_core(r, wanted_core_group)) file_has_wanted[r->file_index] = 1u;
+    }
+    for (i = 0u; i < g_tlal_hot_index.record_count; ++i) {
+        const TlalHotRecord* r = &g_tlal_hot_index.records[i];
+        uint64_t d;
+        if (r->file_index >= g_tlal_hot_index.file_count || !file_has_wanted[r->file_index]) continue;
+        if (!tlal_record_matches_core(r, anchor_core_group) || r->temporal_key == 0ull) continue;
+        d = tlal_u64_abs_diff(r->temporal_key, anchor_temporal_key);
+        if (d < best_distance || (d == best_distance && r->file_index > best_file)) {
+            best_distance = d;
+            best_file = r->file_index;
+            if (d == 0ull) break;
+        }
+    }
+    if (best_file != UINT32_MAX) {
+        memset(&st, 0, sizeof(st));
+        st.cfg = tlalpowa_hotdata_default_config();
+        max_bytes = active_bytes > neighbor_bytes ? active_bytes : neighbor_bytes;
+        st.cfg.max_total_touch_bytes = active_bytes * (uint64_t)active_hits + neighbor_bytes * (uint64_t)neighbor_hits;
+        if (st.cfg.max_total_touch_bytes > 64ull * 1024ull * 1024ull) st.cfg.max_total_touch_bytes = 64ull * 1024ull * 1024ull;
+        st.cfg.max_payload_bytes_per_record = (uint32_t)(max_bytes > 32ull * 1024ull * 1024ull ? 32ull * 1024ull * 1024ull : max_bytes);
+        st.cfg.max_runtime_cache_bytes = g_tlal_hot_index.cache_limit_bytes ? g_tlal_hot_index.cache_limit_bytes : TLAL_HOT_DEFAULT_CACHE_BYTES;
+        st.cfg.runtime_cache_lines = g_tlal_hot_index.cache_line_count ? g_tlal_hot_index.cache_line_count : TLAL_HOT_CACHE_LINES_DEFAULT;
+        tlal_config_normalize(&st.cfg);
+        st.stats = stats;
+        st.budget_left = st.cfg.max_total_touch_bytes;
+        st.index = g_tlal_hot_index;
+        for (i = 0u; i < st.index.record_count && out < cap; ++i) {
+            const TlalHotRecord* r = &st.index.records[i];
+            const uint64_t bytes = out < active_hits ? active_bytes : neighbor_bytes;
+            uint64_t got;
+            if (r->file_index != best_file || !tlal_record_matches_core(r, wanted_core_group)) continue;
+            got = tlal_cache_load_record(&st, r, bytes);
+            if (hits) tlal_hit_from_record(&st.index, r, &hits[out]);
+            if (stats && got != 0ull) {
+                stats->prepared_hits += 1ull;
+                stats->prepared_bytes += got;
+            }
+            ++out;
+        }
+        if (stats) {
+            stats->exact_window_hits = best_distance == 0ull ? (uint64_t)out : 0ull;
+            stats->binary_searches += 1ull;
+            stats->cache_bytes = st.index.cache_bytes;
+            stats->progressive_records_touched += out;
+        }
+        g_tlal_hot_index = st.index;
+        memset(&st.index, 0, sizeof(st.index));
+        used_anchor_file = out != 0u;
+    }
+    free(file_has_wanted);
+    tlal_hot_unlock();
+    if (!used_anchor_file && fallback_temporal_key != 0ull) {
+        return tlalpowa_hotdata_prepare_active_temporal_view(wanted_core_group, fallback_temporal_key,
+                                                            active_hits, active_bytes_per_hit,
+                                                            neighbor_hits, neighbor_bytes_per_hit,
+                                                            hits, stats);
+    }
+    return out;
+}
+
 uint32_t tlalpowa_hotdata_prepare_active_temporal_view(uint32_t core_group,
                                                        uint64_t temporal_key,
                                                        uint32_t active_hits,
@@ -8292,12 +8402,11 @@ uint32_t tlalpowa_hotdata_prepare_active_temporal_view(uint32_t core_group,
     uint64_t exact_hits = 0ull;
     uint64_t active_bytes, neighbor_bytes, max_bytes;
     if (stats) memset(stats, 0, sizeof(*stats));
-    if (hits) memset(hits, 0, (size_t)((active_hits + neighbor_hits) > 256u ? 256u : (active_hits + neighbor_hits)) * sizeof(*hits));
     if (temporal_key == 0ull) return 0u;
-    if (active_hits == 0u) active_hits = 1u;
     cap = active_hits + neighbor_hits;
-    if (cap == 0u) return 0u;
+    if (cap == 0u) { active_hits = 1u; cap = 1u; }
     if (cap > 256u) cap = 256u;
+    if (hits) memset(hits, 0, (size_t)cap * sizeof(*hits));
     if (active_hits > cap) active_hits = cap;
     active_bytes = active_bytes_per_hit ? (uint64_t)active_bytes_per_hit : 96ull * 1024ull;
     neighbor_bytes = neighbor_bytes_per_hit ? (uint64_t)neighbor_bytes_per_hit : 64ull * 1024ull;

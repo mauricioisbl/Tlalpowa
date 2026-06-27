@@ -1,5 +1,16 @@
 # Registro consolidado de Tlalpowa
 
+## 2026-06-21 · OpenStreetMap como geometría territorial analítica
+
+El mapa conserva Esri World Imagery como fondo satelital. Un proveedor
+compacto consulta OpenStreetMap/Overpass por celdas y cachea poblados,
+colonias, agua y relaciones administrativas simplificadas. Los límites OSM se
+publican en `features_ptr`, por lo que selección, interpolación, promedios de
+concentración dentro del área y gráficas territoriales consumen los mismos
+polígonos que el mapa. El GeoJSON ZMVM sólo completa identificadores ausentes.
+Los cargadores TSV/CSV/GeoNames heredados quedan fuera de compilación y los
+respaldos satelitales embebidos salen del binario.
+
 
 ---
 
@@ -1056,3 +1067,23 @@ Se corrigió la causa que impedía ver contaminantes cuando existían archivos I
 - Los `.tlalgeo` y el catálogo territorial quedan como datos fijos obligatorios del paquete y CMake falla si faltan.
 - El arranque territorial valida archivos fijos en `TLALPOWA/Datos` sin decodificar ni reservar memoria masiva.
 - La selección epidemiológica ignora anclas antiguas y elige la fecha más reciente con cobertura histórica estrictamente mayor a 75%.
+
+## 2026-06-16 · Precalentamiento epidemiológico semanal recuperado
+
+- El precalentamiento epidemiológico vuelve a ejecutarse sin depender de que el usuario haya seleccionado enfermedades.
+- El gate de arranque esencial incluye atmósfera y epidemiología, de modo que la primera fecha visible no queda marcada como lista hasta tener ambos núcleos precargados.
+- Se añadió `tlalpowa_hotdata_prepare_core_for_anchor_file`, que usa el archivo IXIPTLAH de la fecha atmosférica activa como ancla y precarga la epidemiología semanal de ese shard.
+- Cuando la fecha activa cae en un shard sin epidemiología, la ruta elige el IXIPTLAH más cercano que sí contiene núcleo epidemiológico y usa la llave temporal epidemiológica como respaldo.
+- La precarga vecina en segundo plano también incluye epidemiología para evitar tirones al avanzar por semanas próximas.
+
+## 2026-06-17 — Pasteles epidemiológicos antes de bienvenida
+
+El arranque ya no considera lista la epidemiología sólo por tener IXIPTLAH en caché de páginas. Durante la pantalla de bienvenida se ejecuta una carga exacta del bloque epidemiológico de la semana donde queda parada la fecha activa y se publica en `observations_ptr` antes de desvanecer la bienvenida. La ruta nueva usa la selección centinela de todas las enfermedades para que los pasteles del mapa aparezcan en la primera escena útil sin esperar una lectura tardía por casilla. No se alteran, fusionan ni resumen datos: se conservan `ObservationRow` exactos y el render sigue dibujando sectores por enfermedad.
+
+
+## 2026-06-16 · Epidemiología latente sin autoactivar casilla
+- La precarga epidemiológica semanal queda separada de la selección visual: `selected_diseases` no se toca durante bienvenida.
+- Se introduce `startup_epi_pies_cache` como caché RAM exacto de la semana activa.
+- El clic manual en Datos Epidemiológicos publica el bloque desde RAM por `shared_ptr` aliasing, sin relectura IXIPTLAH ni copia grande.
+- La navegación temporal actualiza en segundo plano la semana epidemiológica latente donde queda parada la fecha.
+- Validación: `g++ -std=c++17 -fsyntax-only -I. Tlalpowa.cpp` y `gcc -std=c11 -fsyntax-only -I. tlalpowa_c.c` sin errores.

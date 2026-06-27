@@ -3,14 +3,7 @@ param(
     [ValidateSet(
         "Tlalpowa",
         "Ilnamiki",
-        "Biblioteca",
-        "ConvertidorCompleto",
-        "ConvertidorCapitulos",
-        "FusionadorDivisor",
-        "Reemplazador",
         "Organizador",
-        "Installer",
-        "MiausoftTools",
         "Todo"
     )]
     [string]$Target = "Todo",
@@ -43,73 +36,18 @@ $targetInfo = @{
         Tlalpowa = $false
         Apps = $true
     }
-    Biblioteca = @{
-        CMake = @("Biblioteca")
-        Outputs = @("Biblioteca.exe")
-        Tlalpowa = $false
-        Apps = $true
-    }
-    ConvertidorCompleto = @{
-        CMake = @("Convertidor_Completo")
-        Outputs = @("Miausoft_Convertidor_Completo.exe")
-        Tlalpowa = $false
-        Apps = $true
-    }
-    ConvertidorCapitulos = @{
-        CMake = @("Convertidor_Por_Capitulos")
-        Outputs = @("Miausoft_Convertidor_Por_Capitulos.exe")
-        Tlalpowa = $false
-        Apps = $true
-    }
-    FusionadorDivisor = @{
-        CMake = @("Fusionador_Divisor")
-        Outputs = @("Miausoft_Fusionador_Divisor.exe")
-        Tlalpowa = $false
-        Apps = $true
-    }
-    Reemplazador = @{
-        CMake = @("Reemplazador_Caracteres")
-        Outputs = @("Miausoft_Reemplazador_Caracteres.exe")
-        Tlalpowa = $false
-        Apps = $true
-    }
     Organizador = @{
         CMake = @("Organizador")
         Outputs = @("Organizador.exe")
         Tlalpowa = $false
         Apps = $true
     }
-    Installer = @{
-        CMake = @("MiausoftSuite_Installer")
-        Outputs = @("MiausoftSuite_Installer.exe")
-        Tlalpowa = $false
-        Apps = $true
-    }
-    MiausoftTools = @{
-        CMake = @("MiausoftTools")
-        Outputs = @(
-            "Miausoft_Convertidor_Completo.exe",
-            "Miausoft_Convertidor_Por_Capitulos.exe",
-            "Miausoft_Fusionador_Divisor.exe",
-            "Miausoft_Reemplazador_Caracteres.exe",
-            "Organizador.exe",
-            "MiausoftSuite_Installer.exe"
-        )
-        Tlalpowa = $false
-        Apps = $true
-    }
     Todo = @{
-        CMake = @("Tlalpowa", "Ilnamiki", "Biblioteca", "MiausoftTools")
+        CMake = @("Tlalpowa", "Ilnamiki", "Organizador")
         Outputs = @(
             "Tlalpowa.exe",
             "Ilnamiki.exe",
-            "Biblioteca.exe",
-            "Miausoft_Convertidor_Completo.exe",
-            "Miausoft_Convertidor_Por_Capitulos.exe",
-            "Miausoft_Fusionador_Divisor.exe",
-            "Miausoft_Reemplazador_Caracteres.exe",
-            "Organizador.exe",
-            "MiausoftSuite_Installer.exe"
+            "Organizador.exe"
         )
         Tlalpowa = $true
         Apps = $true
@@ -149,6 +87,109 @@ function Invoke-Logged {
     }
 }
 
+
+function Convert-PngToMiausoftIco {
+    param(
+        [Parameter(Mandatory = $true)][string]$PngPath,
+        [Parameter(Mandatory = $true)][string]$IcoPath
+    )
+    Add-Type -AssemblyName System.Drawing
+    $sizes = @(16, 24, 32, 48, 64, 128, 256)
+    $source = [System.Drawing.Image]::FromFile($PngPath)
+    try {
+        $images = New-Object 'System.Collections.Generic.List[byte[]]'
+        foreach ($size in $sizes) {
+            $bmp = New-Object System.Drawing.Bitmap $size, $size, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+            try {
+                $g = [System.Drawing.Graphics]::FromImage($bmp)
+                try {
+                    $g.Clear([System.Drawing.Color]::Transparent)
+                    $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+                    $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+                    $g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+                    $g.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+                    $scale = [Math]::Min($size / $source.Width, $size / $source.Height)
+                    $w = [Math]::Max(1, [int][Math]::Round($source.Width * $scale))
+                    $h = [Math]::Max(1, [int][Math]::Round($source.Height * $scale))
+                    $x = [int](($size - $w) / 2)
+                    $y = [int](($size - $h) / 2)
+                    $g.DrawImage($source, $x, $y, $w, $h)
+                } finally { $g.Dispose() }
+                $ms = New-Object System.IO.MemoryStream
+                try {
+                    $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
+                    $images.Add($ms.ToArray())
+                } finally { $ms.Dispose() }
+            } finally { $bmp.Dispose() }
+        }
+        $dir = Split-Path -Parent $IcoPath
+        if ($dir) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
+        $fs = [System.IO.File]::Open($IcoPath, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+        try {
+            $bw = New-Object System.IO.BinaryWriter($fs)
+            try {
+                $bw.Write([uint16]0); $bw.Write([uint16]1); $bw.Write([uint16]$sizes.Count)
+                $offset = 6 + 16 * $sizes.Count
+                for ($i = 0; $i -lt $sizes.Count; ++$i) {
+                    $size = $sizes[$i]; $bytes = $images[$i]
+                    $dim = if ($size -ge 256) { 0 } else { $size }
+                    $bw.Write([byte]$dim)
+                    $bw.Write([byte]$dim)
+                    $bw.Write([byte]0); $bw.Write([byte]0)
+                    $bw.Write([uint16]1); $bw.Write([uint16]32)
+                    $bw.Write([uint32]$bytes.Length); $bw.Write([uint32]$offset)
+                    $offset += $bytes.Length
+                }
+                foreach ($bytes in $images) { $bw.Write($bytes) }
+            } finally { $bw.Dispose() }
+        } finally { $fs.Dispose() }
+    } finally { $source.Dispose() }
+}
+
+
+function Remove-IlnamikiWebResidue {
+    param([Parameter(Mandatory = $true)][string]$Root)
+    $ilnamiki = Join-Path $Root "ilnamiki"
+    if (-not (Test-Path -LiteralPath $ilnamiki -PathType Container)) { return }
+    $legacy = @("index.html", "ilnamiki.css", "ilnamiki.js", "ilnamiki.sql", "Ilnamiki.cpp", "LICENCE.md", "home.png", "pomodoro.png", "settings.png", "user.png")
+    foreach ($name in $legacy) {
+        $path = Join-Path $ilnamiki $name
+        if (Test-Path -LiteralPath $path -PathType Leaf) {
+            Remove-Item -LiteralPath $path -Force
+            Add-Content -LiteralPath $logPath -Encoding UTF8 -Value ("Residuo web Ilnamiki eliminado: {0}" -f $path)
+        }
+    }
+}
+
+function Ensure-MiausoftFolderIcons {
+    param([Parameter(Mandatory = $true)][string]$Root)
+    $skip = @('.git', 'Tecnico', 'Build', '.vs', '__pycache__')
+    $dirs = @(Get-Item -LiteralPath $Root)
+    $dirs += Get-ChildItem -LiteralPath $Root -Directory -Recurse -ErrorAction SilentlyContinue |
+        Where-Object { $skip -notcontains $_.Name }
+    foreach ($dir in $dirs) {
+        $folderName = $dir.Name
+        if ([string]::IsNullOrWhiteSpace($folderName)) { continue }
+        $png = Get-ChildItem -LiteralPath $dir.FullName -File -ErrorAction SilentlyContinue |
+            Where-Object {
+                $_.Extension -ieq '.png' -and
+                ([System.IO.Path]::GetFileNameWithoutExtension($_.Name) -ieq $folderName)
+            } |
+            Sort-Object LastWriteTimeUtc -Descending |
+            Select-Object -First 1
+        if (-not $png) { continue }
+        $icoPath = Join-Path $dir.FullName ($folderName + '.ico')
+        $needsIcon = $true
+        if (Test-Path -LiteralPath $icoPath -PathType Leaf) {
+            $needsIcon = ((Get-Item -LiteralPath $icoPath).LastWriteTimeUtc -lt $png.LastWriteTimeUtc)
+        }
+        if ($needsIcon) {
+            Convert-PngToMiausoftIco -PngPath $png.FullName -IcoPath $icoPath
+            Add-Content -LiteralPath $logPath -Encoding UTF8 -Value ("Icono generado: {0}" -f $icoPath)
+        }
+    }
+}
+
 $mutex = New-Object System.Threading.Mutex($false, "MiausoftSuite.Compiler")
 $ownsMutex = $false
 try {
@@ -179,6 +220,9 @@ try {
         "Build: $buildRoot",
         ""
     )
+
+    Remove-IlnamikiWebResidue -Root $suiteRoot
+    Ensure-MiausoftFolderIcons -Root $suiteRoot
 
     $cmakeExe = Resolve-Executable -Name "cmake.exe" -Fallbacks @(
         "C:\Program Files\CMake\bin\cmake.exe"
@@ -219,7 +263,8 @@ try {
         "--fresh",
         "-DCMAKE_BUILD_TYPE=$Configuration",
         "-DMIAUSOFT_BUILD_TLALPOWA=$(if ($info.Tlalpowa) { 'ON' } else { 'OFF' })",
-        "-DMIAUSOFT_BUILD_APPS=$(if ($info.Apps) { 'ON' } else { 'OFF' })"
+        "-DMIAUSOFT_BUILD_APPS=$(if ($info.Apps) { 'ON' } else { 'OFF' })",
+        "-DMIAUSOFT_SELECTED_TARGET=$Target"
     ) + $generatorArgs
     Invoke-Logged -FilePath $cmakeExe -Arguments $configureArgs
 
@@ -237,6 +282,13 @@ try {
 
     foreach ($name in $info.Outputs) {
         $path = Join-Path $suiteRoot $name
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            $found = Get-ChildItem -LiteralPath $buildRoot -Filter $name -File -Recurse -ErrorAction SilentlyContinue |
+                Select-Object -First 1
+            if ($found) {
+                Copy-Item -LiteralPath $found.FullName -Destination $path -Force
+            }
+        }
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
             throw "No se genero $path"
         }

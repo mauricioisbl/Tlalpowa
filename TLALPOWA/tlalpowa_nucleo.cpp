@@ -866,7 +866,7 @@ std::vector<fs::path> system_dependency_roots() {
 
 
 
-    add_root(executable_dir() / "CORE" / "Dependencias");
+    add_root(executable_dir() / "core" / "Dependencias");
     add_root(executable_dir() / "Dependencias");
     const std::string deps_root = getenv_utf8_or_empty("TLALPOWA_DEPS_ROOT");
 
@@ -1784,7 +1784,7 @@ fs::path atmosphere_runtime_dir() {
     if (auto p = getenv_path_utf8("LOCALAPPDATA"); !p.empty()) {
         return p / "MiausoftSuite" / "Tlalpowa" / "runtime" / "atmosfera";
     }
-    return project_root() / "CORE" / "Runtime" / "atmosfera";
+    return project_root() / "core" / "Runtime" / "atmosfera";
 }
 
 
@@ -4450,23 +4450,6 @@ std::set<std::string> AtmosphericReconstructionEngine::load_checkpoint_ids(const
     });
 
     return ids;
-#if 0
-
-    std::istringstream in(read_text_file(checkpoint));
-    std::string line;
-
-    while (std::getline(in, line)) {
-
-
-        if (trim(line).empty() || line.find("file_id") == 0) continue;
-        const size_t tab = line.find('\t');
-        const std::string id = tab == std::string::npos ? trim(line) : trim(line.substr(0, tab));
-
-        if (!id.empty()) ids.insert(id);
-    }
-
-    return ids;
-#endif
 }
 
 
@@ -4487,24 +4470,6 @@ void AtmosphericReconstructionEngine::append_checkpoint(const fs::path& checkpoi
     });
 
     return;
-#if 0
-
-    const bool header = !fs::exists(checkpoint);
-
-    ensure_dir(checkpoint.parent_path());
-
-
-    std::ofstream out(checkpoint, std::ios::binary | std::ios::app);
-
-    if (!out) return;
-
-    if (header) out << "file_id\tindexed_utc\tkind\tprovider\tbytes\tmtime_tick\tpath\n";
-
-    out << source.file_id << '\t' << now_utc_iso() << '\t' << source.kind << '\t' << source.provider << '\t'
-
-
-        << static_cast<unsigned long long>(source.bytes) << '\t' << source.mtime_tick << '\t' << path_utf8(source.path) << '\n';
-#endif
 }
 
 
@@ -4751,67 +4716,6 @@ void AtmosphericReconstructionEngine::write_model_base(const fs::path& out) {
     (void)out;
 
     return;
-#if 0
-
-    ensure_dir(out.parent_path());
-    std::ostringstream j;
-    j << "{\n"
-
-
-      << "  \"schema_version\": \"0.2.0-foundation\",\n"
-      << "  \"purpose\": \"base robusta para reconstruccion atmosferica espaciotemporal ZMVM\",\n"
-      << "  \"principles\": [\n"
-      << "    \"nunca bloquear la UI: ingesta por presupuestos, checkpoints y archivos append-only\",\n"
-
-
-      << "    \"nunca sobrescribir datos crudos: bronce/raw, plata/QC, oro/fusion-modelo\",\n"
-      << "    \"cada campo atmosferico debe portar linaje, unidades, incertidumbre, resolucion, fuente y regla de calidad\",\n"
-
-
-      << "    \"la reconstruccion exportara formatos interoperables: NetCDF-CF, GeoTIFF/COG, Zarr, GeoParquet, GeoPackage, CSV largo, JSONL y STAC\"\n"
-
-      << "  ],\n"
-      << "  \"target_domain\": {\n"
-      << "    \"name\": \"ZMVM + 50 km\",\n"
-
-
-      << "    \"horizontal_resolution_candidates_m\": [250, 500, 1000],\n"
-      << "    \"vertical_layers_agl_m\": [2, 10, 30, 60, 120, 250, 500, 1000, 1500, 3000],\n"
-
-      << "    \"time_step_candidates_min\": [5, 10, 60],\n"
-      << "    \"crs_analysis\": \"EPSG:6372 o equivalente metrico local; exportacion EPSG:4326 adicional\"\n"
-      << "  },\n"
-      << "  \"data_layers\": {\n"
-      << "    \"surface_networks\": [\"RAMA/SIMAT contaminantes\", \"RAMA meteorologia\", \"RUOA\", \"PEMBU\"],\n"
-      << "    \"remote_sensing\": [\"Sentinel-5P NO2/SO2/CO/O3/aerosoles\", \"MODIS/MAIAC AOD\", \"VIIRS nubosidad/focos/calidad aerosol\", \"GOES radiacion y nubes\"],\n"
-
-      << "    \"drivers\": [\"ERA5 reanalysis\", \"DEM SRTM/Copernicus\", \"uso de suelo\", \"inventarios de emisiones\", \"red vial y movilidad si esta disponible\"],\n"
-
-      << "    \"models\": [\"WRF/WRF-Chem para meteorologia-quimica online\", \"CMAQ para transporte-quimica multipolutante\", \"HYSPLIT para trayectorias y dispersion diagnostica\"]\n"
-      << "  },\n"
-      << "  \"quality_control\": {\n"
-      << "    \"range_checks\": \"rangos fisicamente posibles por variable/unidad\",\n"
-      << "    \"persistence_checks\": \"valores congelados, saltos imposibles, relojes duplicados\",\n"
-      << "    \"cross_sensor_checks\": \"comparacion entre estaciones cercanas, satelite y reanalisis\",\n"
-
-      << "    \"uncertainty\": \"error instrumental + representatividad espacial + error de fusion/modelo\"\n"
-      << "  },\n"
-      << "  \"fusion_sequence\": [\n"
-
-      << "    \"1_normalizacion_unidades_tiempo_estacion\",\n"
-
-      << "    \"2_qc_y_cuarentena_no_destructiva\",\n"
-      << "    \"3_interpolacion_orografica_anisotropica_con_viento\",\n"
-      << "    \"4_asimilacion_satelital_y_reanalisis\",\n"
-
-      << "    \"5_modelo_fisico_wrf_cmaq_hysplit\",\n"
-      << "    \"6_ensamble_bayesiano_con_incertidumbre_por_celda\",\n"
-      << "    \"7_exportacion_interoperable_y_auditoria_reproducible\"\n"
-      << "  ]\n"
-      << "}\n";
-
-    write_text_file(out, j.str());
-#endif
 }
 
 
@@ -5032,7 +4936,7 @@ std::vector<fs::path> launcher_dependency_roots() {
         roots.push_back(normalized);
     };
 
-    add_root(executable_dir() / "CORE" / "Dependencias");
+    add_root(executable_dir() / "core" / "Dependencias");
     add_root(executable_dir() / "Dependencias");
     const std::string deps_root = getenv_utf8_or_empty("TLALPOWA_DEPS_ROOT");
 
@@ -8281,56 +8185,6 @@ std::set<std::string> load_completed_page_ids(const AppOptions& options, const s
 
 
     return ids;
-#if 0
-
-
-    std::istringstream in(read_text_file(p));
-    std::string line;
-
-
-    while (std::getline(in, line)) {
-
-
-        if (trim(line).empty() || line.find("pdf_id") == 0) continue;
-
-
-        std::vector<std::string> cols;
-        std::string cur;
-
-
-        std::istringstream row(line);
-
-
-        while (std::getline(row, cur, '\t')) cols.push_back(trim(cur));
-
-
-        if (cols.size() < 3) continue;
-
-
-        if (cols[0] != pdf_id) continue;
-        int page = 0;
-        try { page = std::stoi(cols[1]); } catch (...) { continue; }
-
-        const std::string status = cols[2];
-        int accepted = 0;
-        try { if (cols.size() >= 4) accepted = std::stoi(cols[3]); } catch (...) { accepted = 0; }
-
-
-
-        const bool skip_empty = env_flag_enabled_pipeline("TLALPOWA_RESUME_SKIP_EMPTY_PAGES");
-
-
-        if ((skip_empty && (status == "empty" || status == "empty_no_epi_signal")) ||
-
-
-            (status == "ok" && accepted > 0)) {
-
-
-            ids.insert(page_stable_id(pdf_id, page));
-        }
-    }
-
-#endif
 
 
     return ids;
@@ -8395,20 +8249,6 @@ void append_processed_page_id(const AppOptions& options, const PdfDocument& doc,
 
 
     return;
-#if 0
-    std::ostringstream line;
-
-    line << doc.stable_id << '\t' << page.page << '\t' << status << '\t'
-
-
-         << accepted << '\t' << quarantine << '\t' << now_utc_iso() << '\t'
-
-
-         << path_utf8(doc.pdf_path);
-
-
-    append_runtime_tsv_line(p, "pdf_id\tpage\tstatus\taccepted\tquarantine\tprocessed_utc\tpdf_path", line.str());
-#endif
 }
 
 
@@ -8600,15 +8440,6 @@ void append_processed_id(const AppOptions& options, const fs::path& pdf, const s
 
 
     return;
-#if 0
-    std::ostringstream line;
-
-
-    line << id << '\t' << now_utc_iso() << '\t' << path_utf8(pdf);
-
-
-    append_runtime_tsv_line(p, "pdf_id\tprocessed_utc\tpdf_path", line.str(), true);
-#endif
 }
 
 
@@ -18015,145 +17846,6 @@ void temporal_rebuild_json_index_for_tsv(const fs::path& tsv_path) {
     temporal_flush_append_streams();
 
     return;
-#if 0
-
-    if (!temporal_is_lustrum_data_file(tsv_path, ".tsv") || !fs::exists(tsv_path)) return;
-
-    std::ifstream in(tsv_path, std::ios::binary);
-
-    if (!in) return;
-
-    std::string header_line;
-
-    if (!std::getline(in, header_line)) return;
-
-    const auto header = split_tsv_lossless(header_line);
-
-    std::map<std::string, size_t> by_week;
-
-    size_t total = 0;
-
-    std::map<std::string, size_t> totals_by_type;
-    std::string line;
-
-    while (std::getline(in, line)) {
-
-        if (line.empty()) continue;
-
-        const auto cols = split_tsv_lossless(line);
-
-        std::string year = header_value(header, cols, "year");
-
-        if (year.empty()) year = header_value(header, cols, "año");
-
-        std::string week = header_value(header, cols, "epi_week");
-
-        if (week.empty()) week = header_value(header, cols, "semana_epidemiológica");
-
-        std::string type = header_value(header, cols, "record_type");
-
-        if (type.empty()) type = header_value(header, cols, "año").empty() ? "desconocido" : "epidemiologia";
-
-        if (!year.empty() && !week.empty()) by_week[year + "-" + week] += 1;
-        ++totals_by_type[type];
-
-        ++total;
-    }
-
-    const fs::path json_path = tsv_path.parent_path() / (path_utf8(tsv_path.stem()) + ".json");
-
-    const fs::path tmp_path = fs::path(json_path.wstring() + L".tmp");
-
-    std::ofstream out(tmp_path, std::ios::binary | std::ios::trunc);
-
-    if (!out) return;
-    int start = 0, end = 0;
-    std::string entity, territory;
-
-    int annual_year = 0;
-
-    const std::string stem = path_utf8(tsv_path.stem());
-
-    const bool territorial = territorial_annual_name_parts(stem, entity, territory, annual_year);
-
-    const bool annual = !territorial && annual_entity_name_parts(stem, entity, annual_year);
-
-    if (!annual && !territorial) lustrum_name_parts(stem, start, end);
-
-    const bool atmosphere_file = totals_by_type.find("atmosfera_medicion") != totals_by_type.end() ||
-                                 totals_by_type.find("atmosfera_nube") != totals_by_type.end() ||
-                                 totals_by_type.find("atmosfera_municipio_hora") != totals_by_type.end() ||
-                                 std::find(header.begin(), header.end(), "pollutant") != header.end();
-    out << "{\n";
-
-    if (territorial) {
-
-
-        out << "  \"schema_version\":\"tlalpowa.atmosfera_territorio_anual_index.v1\",\n";
-
-        out << "  \"siglas_entidad\":\"" << json_escape(entity) << "\",\n";
-
-        out << "  \"siglas_municipio\":\"" << json_escape(territory) << "\",\n";
-
-        out << "  \"año\":" << annual_year << ",\n";
-
-    } else if (annual) {
-
-        out << "  \"schema_version\":\"" << (atmosphere_file ? "tlalpowa.atmosfera_estacion_anual_index.v1" : "tlalpowa.entidad_anual_index.v1") << "\",\n";
-
-        out << "  \"siglas_entidad\":\"" << json_escape(entity) << "\",\n";
-
-        out << "  \"año\":" << annual_year << ",\n";
-    } else {
-
-        out << "  \"schema_version\":\"tlalpowa.lustro_index.v2\",\n";
-
-        out << "  \"block\":\"" << json_escape(stem) << "\",\n";
-
-        out << "  \"block_start\":" << start << ",\n";
-        out << "  \"block_end\":" << end << ",\n";
-    }
-
-    out << "  \"canonical_tsv\":\"" << json_escape(path_utf8(tsv_path.filename())) << "\",\n";
-
-    out << "  \"canonical_csv\":\"" << json_escape(stem + ".csv") << "\",\n";
-
-    out << "  \"records_total\":" << total << ",\n";
-
-    out << "  \"records_by_type\":" << json_count_map(totals_by_type) << ",\n";
-
-    out << "  \"weeks\":{";
-
-
-    bool first_week = true;
-
-    for (const auto& [week, count] : by_week) {
-
-        if (!first_week) out << ',';
-
-        first_week = false;
-
-        out << "\"" << json_escape(week) << "\":" << count;
-    }
-    out << "}\n}\n";
-    out.close();
-
-    if (!out) return;
-    std::error_code ec;
-
-    fs::rename(tmp_path, json_path, ec);
-
-    if (ec) {
-
-        fs::remove(json_path, ec);
-
-        ec.clear();
-
-        fs::rename(tmp_path, json_path, ec);
-
-        if (ec) fs::remove(tmp_path, ec);
-    }
-#endif
 }
 
 
@@ -19101,11 +18793,15 @@ static fs::path env_path_utf8(const char* name) {
 
 static bool looks_like_project_root(const fs::path& p) {
 
-    return fs::exists(p / "TLALPOWA" / "tlalpowa_datos.json") ||
+    return fs::exists(p / "tlalpowa" / "tlalpowa_datos.json") ||
+
+           fs::exists(p / "TLALPOWA" / "tlalpowa_datos.json") ||
 
            fs::exists(p / "Fuente" / "Tlalpowa" / "tlalpowa_datos.json") ||
 
            fs::exists(p / "Fuente" / "Tlalpowa" / "diseases.tsv") ||
+
+           fs::exists(p / "compilepushpull.cmd") ||
 
            fs::exists(p / "rutas_directorio.txt") ||
 
@@ -19234,10 +18930,12 @@ static void write_binary_file_checked(const fs::path& p, const std::vector<unsig
 static fs::path consolidated_bundle_path() {
 
     const fs::path root = project_root();
-    const std::array<fs::path, 6> candidates = {
+    const auto candidates = std::array{
+        root / "tlalpowa" / "tlalpowa_datos.json",
         root / "TLALPOWA" / "tlalpowa_datos.json",
         root / "Fuente" / "Tlalpowa" / "tlalpowa_datos.json",
         root / "config" / "tlalpowa_datos.json",
+        executable_dir() / "tlalpowa" / "tlalpowa_datos.json",
         executable_dir() / "TLALPOWA" / "tlalpowa_datos.json",
         executable_dir() / "Fuente" / "Tlalpowa" / "tlalpowa_datos.json",
         executable_dir() / "config" / "tlalpowa_datos.json"
@@ -19256,7 +18954,7 @@ static fs::path consolidated_runtime_config_root() {
     if (auto p = env_path_utf8("LOCALAPPDATA"); !p.empty()) {
         return p / "MiausoftSuite" / "Tlalpowa" / "runtime" / "config_consolidada";
     }
-    return project_root() / "TLALPOWA" / "Datos" / ".runtime" / "config_consolidada";
+    return project_root() / "datos" / ".runtime" / "config_consolidada";
 }
 
 
@@ -19355,10 +19053,12 @@ fs::path config_root() {
     if (materialize_consolidated_config()) return consolidated_runtime_config_root();
 
     const fs::path root = project_root();
-    const std::array<fs::path, 6> candidates = {
+    const auto candidates = std::array{
+        root / "tlalpowa",
         root / "TLALPOWA",
         root / "Fuente" / "Tlalpowa",
         root / "config",
+        executable_dir() / "tlalpowa",
         executable_dir() / "TLALPOWA",
         executable_dir() / "Fuente" / "Tlalpowa",
         executable_dir() / "config"
@@ -19369,14 +19069,17 @@ fs::path config_root() {
         if (!usable.empty()) return usable;
     }
 
-    return root / "TLALPOWA";
+    return root / "tlalpowa";
 }
 
 
 
 fs::path internal_data_root() {
 
-    return project_root() / "TLALPOWA" / "Datos";
+    const fs::path root = project_root();
+    const fs::path nuevo = root / "datos";
+    if (fs::exists(nuevo) || !fs::exists(root / "TLALPOWA" / "Datos")) return nuevo;
+    return root / "TLALPOWA" / "Datos";
 }
 
 
@@ -19384,8 +19087,10 @@ fs::path internal_data_root() {
 
 fs::path external_data_root() {
 
-
-    return project_root() / "TLALPOWA" / "Descargas";
+    const fs::path root = project_root();
+    const fs::path nuevo = root / "descargas";
+    if (fs::exists(nuevo) || !fs::exists(root / "TLALPOWA" / "Descargas")) return nuevo;
+    return root / "TLALPOWA" / "Descargas";
 }
 
 

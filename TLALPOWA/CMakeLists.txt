@@ -13,7 +13,7 @@ endif()
 option(TLALPOWA_ENABLE_IMGUI "Compilar interfaz grafica ImGui/GLFW/OpenGL" ON)
 option(TLALPOWA_ENABLE_LTCG "Activar LTCG/IPO en Release" OFF)
 option(TLALPOWA_ENABLE_CL_MP "Activar /MP en MSVC" OFF)
-option(TLALPOWA_PROCESS_ICON_PNGS "Reservado para Compilar.cmd; no procesa PNG desde CMake" OFF)
+option(TLALPOWA_PROCESS_ICON_PNGS "Reservado para compilepushpull.cmd; no procesa PNG desde CMake" OFF)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -35,32 +35,28 @@ if(NOT nlohmann_json_FOUND)
 endif()
 
 set(TLALPOWA_FUENTE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-get_filename_component(TLALPOWA_COMMON_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../CORE" ABSOLUTE)
+get_filename_component(TLALPOWA_COMMON_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../core" ABSOLUTE)
 
 set(TLALPOWA_SOURCES
   "${TLALPOWA_FUENTE_DIR}/main.c"
   "${TLALPOWA_FUENTE_DIR}/tlalpowa_c.c"
   "${TLALPOWA_FUENTE_DIR}/tlalpowa_nucleo.cpp"
+  "${TLALPOWA_FUENTE_DIR}/tlalpowa_openmap.cpp"
   "${TLALPOWA_FUENTE_DIR}/Tlalpowa.cpp"
   "${TLALPOWA_FUENTE_DIR}/GeneratedRuntimeResources.c")
 
-
-set(TLALPOWA_TERRITORIO_FIJO_ARCHIVOS
-  "${TLALPOWA_FUENTE_DIR}/Datos/territorio_centro_mexico.tlalgeo"
-  "${TLALPOWA_FUENTE_DIR}/Datos/estados_centro_mexico.tlalgeo"
-  "${TLALPOWA_FUENTE_DIR}/Datos/territorio_centro_mexico_catalogo.json")
-
-foreach(_tlalpowa_territorio_fijo IN LISTS TLALPOWA_TERRITORIO_FIJO_ARCHIVOS)
-  if(NOT EXISTS "${_tlalpowa_territorio_fijo}")
-    message(FATAL_ERROR "Falta dato territorial fijo: ${_tlalpowa_territorio_fijo}")
-  endif()
-endforeach()
-
 if(NOT TARGET miausoft_core)
-  add_library(miausoft_core STATIC
-    "${TLALPOWA_COMMON_DIR}/miausoft_core.c"
-    "${TLALPOWA_COMMON_DIR}/tlalpowa_common_runtime.c")
+  set(TLALPOWA_MIAUSOFT_CORE_SOURCES
+    "${TLALPOWA_COMMON_DIR}/MiausoftVisual.c")
+  if(WIN32)
+    list(APPEND TLALPOWA_MIAUSOFT_CORE_SOURCES
+      "${TLALPOWA_COMMON_DIR}/MiausoftVisualWin32.c")
+  endif()
+  add_library(miausoft_core STATIC ${TLALPOWA_MIAUSOFT_CORE_SOURCES})
   target_include_directories(miausoft_core PUBLIC "${TLALPOWA_COMMON_DIR}")
+  if(WIN32)
+    target_link_libraries(miausoft_core PUBLIC msimg32)
+  endif()
 endif()
 
 if(WIN32)
@@ -77,9 +73,8 @@ target_include_directories(Tlalpowa PRIVATE
 target_link_libraries(Tlalpowa PRIVATE nlohmann_json::nlohmann_json miausoft_core)
 set_property(TARGET Tlalpowa PROPERTY MIAUSOFT_CORE_ATTACHED TRUE)
 
-add_custom_command(TARGET Tlalpowa POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:Tlalpowa>/TLALPOWA/Datos"
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${TLALPOWA_TERRITORIO_FIJO_ARCHIVOS} "$<TARGET_FILE_DIR:Tlalpowa>/TLALPOWA/Datos")
+# Los datos viven en la raíz de MiausoftSuite/datos.
+# Tlalpowa.exe también sale a raíz; no se copian sobre sí mismos en POST_BUILD.
 
 target_compile_definitions(Tlalpowa PRIVATE
   _CRT_SECURE_NO_WARNINGS

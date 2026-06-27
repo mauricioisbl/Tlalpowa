@@ -1,14 +1,12 @@
-MiausoftSuite · publicador incremental por KB
+Publicador robusto. Log directo: <raiz>\PUBLICAR.LOG.
 
-Cambios aplicados:
-- Publicar.cmd queda en la raíz de MiausoftSuite.
-- CORE/Publicar.ps1 publica únicamente archivos cuyo tamaño en KB cambió.
-- GitHub sólo recibe la lista de archivos con KB cambiado; no se hace git add -A global.
-- La copia externa a D:\MiausoftSuite es opcional y no detiene el publicador si D: no existe o no está conectado.
-- Si la suite se ejecuta desde D:, el respaldo D se omite para evitar copiar sobre el mismo disco.
-- La misma ejecución genera una lista única en Logs con los archivos actualizados para GitHub y respaldo externo.
-- Se eliminó el flujo destructivo de limpiar/espejear completos antes de publicar.
-
-Validación estática:
-- No se usa robocopy /MIR ni Clear-Snapshot en el flujo nuevo.
-- El criterio de cambio es KB redondeado hacia arriba desde bytes.
+- No requiere que la carpeta fuente tenga .git.
+- Compara contenido exacto con el indice remoto; nunca decide por KB.
+- Usa clones parciales tecnicos y no descarga ni duplica los 3 GiB de datos.
+- Tlalpowa publica su codigo, ejecutable y datos en Tlalpowa.git.
+- MiausoftSuite publica core, Ilnamiki y Organizador sin duplicar datos de Tlalpowa.
+- Reintenta una carrera non-fast-forward y verifica el commit final en origin.
+- Cada intento usa un indice transaccional desechable; una falla no deja eliminaciones preparadas.
+- La carga del indice se reintenta tres veces y conserva el error real de Git.
+- -DryRun crea y prueba el commit candidato con push --dry-run, sin modificar GitHub.
+- El respaldo D es opcional con -BackupD, se ejecuta despues de un push verificado y compara SHA-256.

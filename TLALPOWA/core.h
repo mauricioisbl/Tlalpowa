@@ -559,14 +559,6 @@ void tlal_historical_native_mesh_release(TlalHistoricalNativeMesh* mesh);
 
 
 
-const unsigned char* obs_embedded_satellite_z5_lowres_png_data(void);
-size_t obs_embedded_satellite_z5_lowres_png_size(void);
-const unsigned char* obs_embedded_satellite_z10_lowres_png_data(void);
-size_t obs_embedded_satellite_z10_lowres_png_size(void);
-const unsigned char* obs_embedded_satellite_z15_lowres_png_data(void);
-size_t obs_embedded_satellite_z15_lowres_png_size(void);
-const unsigned char* obs_embedded_satellite_z19_lowres_png_data(void);
-size_t obs_embedded_satellite_z19_lowres_png_size(void);
 
 /* ===== TLALPOWA: tlalpowa_hotdata.h fusionado en core.h ===== */
 #define TLALPOWA_HOTDATA_CORE_ANY 0u
@@ -574,6 +566,10 @@ size_t obs_embedded_satellite_z19_lowres_png_size(void);
 #define TLALPOWA_HOTDATA_CORE_METEOROLOGY 2u
 #define TLALPOWA_HOTDATA_CORE_CONTAMINANT 3u
 #define TLALPOWA_HOTDATA_CORE_OTHER 255u
+#define TLALPOWA_HOTDATA_STARTUP_CORE_EPIDEMIOLOGY 1u
+#define TLALPOWA_HOTDATA_STARTUP_CORE_METEOROLOGY 2u
+#define TLALPOWA_HOTDATA_STARTUP_CORE_CONTAMINANT 4u
+#define TLALPOWA_HOTDATA_STARTUP_CORE_ATMOSPHERE (TLALPOWA_HOTDATA_STARTUP_CORE_METEOROLOGY | TLALPOWA_HOTDATA_STARTUP_CORE_CONTAMINANT)
 
 typedef struct TlalpowaHotDataConfig {
     uint64_t max_total_touch_bytes;
@@ -590,6 +586,7 @@ typedef struct TlalpowaHotDataConfig {
     uint32_t startup_gate_records_per_core;
     uint32_t startup_gate_bytes_per_record;
     uint32_t startup_gate_category_limit;
+    uint32_t startup_gate_core_mask;
 } TlalpowaHotDataConfig;
 
 typedef struct TlalpowaHotDataStats {
@@ -624,6 +621,11 @@ typedef struct TlalpowaHotDataStats {
     uint64_t startup_gate_expected_hits;
     uint64_t startup_gate_selected_week_bucket;
     uint64_t startup_gate_selected_coverage_percent;
+    uint64_t startup_gate_latest_candidate_year;
+    uint64_t startup_gate_best_relaxed_week_bucket;
+    uint64_t startup_gate_best_relaxed_coverage_percent;
+    uint64_t startup_gate_best_relaxed_categories;
+    uint64_t startup_gate_best_relaxed_core_mask;
 } TlalpowaHotDataStats;
 
 typedef struct TlalpowaHotDataHit {
@@ -668,7 +670,7 @@ Contrato fijo de hot data:
 - Bienvenida: no usa la fecha civil actual. Busca la ultima semana real
   con cobertura minima del 75% de las categorias fisicas esenciales
   (epidemiologia, meteorologia y contaminantes). En esa semana precalienta
-  solo la muestra inicial por categoria, dentro del limite de seguridad.
+  epidemiologia junto con atmosfera, dentro del limite de seguridad.
   Esa es la hotdata inicial; el fade solo debe iniciar cuando, ademas, la
   primera fecha visible ya fue preparada para evitar espera posterior.
 - Despues de abrir la interfaz: cada temporal_key solicitado sirve primero, de
@@ -679,6 +681,17 @@ Contrato fijo de hot data:
 */
 uint32_t tlalpowa_hotdata_prepare_active_temporal_view(uint32_t core_group,
                                                        uint64_t temporal_key,
+                                                       uint32_t active_hits,
+                                                       uint32_t active_bytes_per_hit,
+                                                       uint32_t neighbor_hits,
+                                                       uint32_t neighbor_bytes_per_hit,
+                                                       TlalpowaHotDataHit* hits,
+                                                       TlalpowaHotDataStats* stats);
+
+uint32_t tlalpowa_hotdata_prepare_core_for_anchor_file(uint32_t anchor_core_group,
+                                                       uint64_t anchor_temporal_key,
+                                                       uint32_t wanted_core_group,
+                                                       uint64_t fallback_temporal_key,
                                                        uint32_t active_hits,
                                                        uint32_t active_bytes_per_hit,
                                                        uint32_t neighbor_hits,
@@ -824,4 +837,3 @@ int tlal_atmos_csv_parse_file_utf8_for_family_progress(const char* path_utf8,
 #ifdef __cplusplus
 }
 #endif
-

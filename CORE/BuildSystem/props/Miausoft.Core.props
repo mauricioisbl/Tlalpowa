@@ -3,7 +3,7 @@
 
   <!--
     Miausoft.Core.props
-    Configuración común C++/Win32 para todos los ejecutables de Miausoft.
+    Configuración común C/C++/Win32 para las aplicaciones supervivientes.
 
     Política de directorio limpio:
     - Ningún proyecto debe crear build/, dist/, x64/, _build/ ni _linked_release dentro de .Miausoft.
@@ -12,7 +12,7 @@
   -->
 
   <PropertyGroup Label="Miausoft Core Paths">
-    <!-- CORE\BuildSystem\props\ -> CORE\BuildSystem\ -> CORE\ -> MiausoftSuite\ -->
+    <!-- core\BuildSystem\props\ -> core\BuildSystem\ -> core\ -> MiausoftSuite\ -->
     <MiausoftRootDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\..\'))</MiausoftRootDir>
     <MiausoftOutputDir Condition="'$(MiausoftOutputDir)'==''">$(MiausoftRootDir)</MiausoftOutputDir>
     <MiausoftSendToDir Condition="'$(MiausoftSendToDir)'==''">$(APPDATA)\Microsoft\Windows\SendTo\</MiausoftSendToDir>
@@ -36,18 +36,28 @@
     <RunPostBuildEvent>Always</RunPostBuildEvent>
   </PropertyGroup>
 
-  <ItemGroup Label="Miausoft Shared C Core">
-    <ClCompile Include="$(MiausoftRootDir)CORE\miausoft_core.c">
-      <Link>CORE\miausoft_core.c</Link>
+  <PropertyGroup Label="Miausoft Target Defaults">
+    <TargetName Condition="'$(MSBuildProjectName)'=='Organizador_Biblioteca'">Organizador</TargetName>
+    <TargetName Condition="'$(TargetName)'==''">$(MSBuildProjectName)</TargetName>
+    <OutDir>$(MiausoftRootDir)</OutDir>
+    <TargetFileName>$(TargetName)$(TargetExt)</TargetFileName>
+    <MiausoftFinalExe>$(MiausoftRootDir)$(TargetFileName)</MiausoftFinalExe>
+    <TargetPath>$(MiausoftFinalExe)</TargetPath>
+    <LocalDebuggerCommand>$(MiausoftFinalExe)</LocalDebuggerCommand>
+  </PropertyGroup>
+
+  <ItemGroup Label="Miausoft Shared Core">
+    <ClCompile Include="$(MiausoftRootDir)core\MiausoftVisual.c">
+      <Link>core\MiausoftVisual.c</Link>
     </ClCompile>
-    <ClCompile Include="$(MiausoftRootDir)CORE\tlalpowa_common_runtime.c">
-      <Link>CORE\tlalpowa_common_runtime.c</Link>
+    <ClCompile Include="$(MiausoftRootDir)core\MiausoftVisualWin32.c">
+      <Link>core\MiausoftVisualWin32.c</Link>
     </ClCompile>
-    <ClInclude Include="$(MiausoftRootDir)CORE\miausoft_core.h">
-      <Link>CORE\miausoft_core.h</Link>
+    <ClInclude Include="$(MiausoftRootDir)core\MiausoftVisual.h">
+      <Link>core\MiausoftVisual.h</Link>
     </ClInclude>
-    <ClInclude Include="$(MiausoftRootDir)CORE\tlalpowa_common_runtime.h">
-      <Link>CORE\tlalpowa_common_runtime.h</Link>
+    <ClInclude Include="$(MiausoftRootDir)core\MiausoftVisualWin32.h">
+      <Link>core\MiausoftVisualWin32.h</Link>
     </ClInclude>
   </ItemGroup>
 
@@ -61,20 +71,22 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalOptions>/utf-8 /MP %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>NOMINMAX;WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(MiausoftRootDir)CORE;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(MiausoftRootDir)core;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4005;4100;4189;4505;4312;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
 
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>user32.lib;gdi32.lib;gdiplus.lib;comdlg32.lib;shell32.lib;ole32.lib;oleaut32.lib;advapi32.lib;shlwapi.lib;comctl32.lib;bcrypt.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>user32.lib;gdi32.lib;gdiplus.lib;msimg32.lib;comdlg32.lib;shell32.lib;ole32.lib;oleaut32.lib;advapi32.lib;shlwapi.lib;comctl32.lib;bcrypt.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <LargeAddressAware>true</LargeAddressAware>
+      <OutputFile>$(MiausoftFinalExe)</OutputFile>
+      <ProgramDatabaseFile>$(MiausoftLinkRoot)$(MSBuildProjectName)\$(Platform)\$(Configuration)\$(TargetName).pdb</ProgramDatabaseFile>
       <AdditionalOptions>/LARGEADDRESSAWARE /STACK:268435456,8388608 /HEAP:536870912,16777216 %(AdditionalOptions)</AdditionalOptions>
     </Link>
 
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(MiausoftRootDir)CORE;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(MiausoftRootDir)core;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemDefinitionGroup>
 
@@ -91,6 +103,24 @@
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
+
+  <ItemDefinitionGroup Label="Miausoft Heavy Resources" Condition="'$(MSBuildProjectName)'=='Organizador_Biblioteca'">
+    <ClCompile>
+      <AdditionalOptions>/bigobj /MP %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <AdditionalOptions>/LARGEADDRESSAWARE /STACK:1073741824,16777216 /HEAP:2147483648,33554432 %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <Target Name="MiausoftAssertRootExe" BeforeTargets="PrepareForBuild">
+    <Error Condition="'$(TargetName)'==''" Text="Miausoft requiere TargetName explícito o derivado." />
+  </Target>
+
+  <Target Name="MiausoftAssertRootExeFinal" AfterTargets="Build">
+    <Error Condition="!Exists('$(MiausoftFinalExe)')" Text="La compilación terminó pero no apareció el EXE final directamente en la raíz de MiausoftSuite: $(MiausoftFinalExe)." />
+    <Touch Files="$(MiausoftFinalExe)" AlwaysCreate="true" Condition="Exists('$(MiausoftFinalExe)')" />
+  </Target>
 
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>

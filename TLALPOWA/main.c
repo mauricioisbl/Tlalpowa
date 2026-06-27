@@ -1,5 +1,5 @@
 #include "core.h"
-#include "miausoft_core.h"
+#include "MiausoftVisual.h"
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -88,7 +88,7 @@ static char* tlalpowa_utf8_from_wide(const wchar_t* src) {
 }
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE previous, PWSTR command_line, int show) {
-    if (!miausoft_core_validate()) {
+    if (!miausoft_visual_validate()) {
         return 70;
     }
     LPWSTR* wide_argv;

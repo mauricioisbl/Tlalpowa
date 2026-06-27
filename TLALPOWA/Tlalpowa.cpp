@@ -5,7 +5,9 @@
 
 
 #include "tlalpowa_core.h"
+#include "tlalpowa_openmap.h"
 #include "core.h"
+#include "MiausoftVisual.h"
 
 
 #include <atomic>
@@ -107,14 +109,6 @@
 
 extern "C" const unsigned char* obs_embedded_mi_icon_atlas_png_data();
 extern "C" std::size_t obs_embedded_mi_icon_atlas_png_size();
-extern "C" const unsigned char* obs_embedded_satellite_z5_lowres_png_data();
-extern "C" std::size_t obs_embedded_satellite_z5_lowres_png_size();
-extern "C" const unsigned char* obs_embedded_satellite_z10_lowres_png_data();
-extern "C" std::size_t obs_embedded_satellite_z10_lowres_png_size();
-extern "C" const unsigned char* obs_embedded_satellite_z15_lowres_png_data();
-extern "C" std::size_t obs_embedded_satellite_z15_lowres_png_size();
-extern "C" const unsigned char* obs_embedded_satellite_z19_lowres_png_data();
-extern "C" std::size_t obs_embedded_satellite_z19_lowres_png_size();
 
 
 extern "C" const unsigned char* obs_embedded_mi_icon_atlas_json_data();
@@ -191,43 +185,40 @@ static GLFWwindow* g_tlalpowa_main_window = nullptr;
 static bool g_tlalpowa_side_panel_input_suppressed = false;
 
 
-constexpr float kGoldenN0 = 1.000000000000000f;
-constexpr float kGoldenN1 = 0.618033988749895f;
-constexpr float kGoldenN2 = 0.381966011250105f;
-constexpr float kGoldenN3 = 0.236067977499790f;
-constexpr float kGoldenN4 = 0.145898033750315f;
-constexpr float kGoldenN5 = 0.090169943749474f;
-constexpr float kGoldenN6 = 0.055728090000841f;
-constexpr float kGoldenN7 = 0.034441853748633f;
-constexpr float kGoldenN8 = 0.021286236252208f;
-constexpr float kGoldenN9 = 0.013155617496425f;
-constexpr float kGoldenN10 = 0.008130618755783f;
-constexpr float kGoldenN11 = 0.005024998740641f;
-constexpr float kGoldenN12 = 0.003105620015142f;
-constexpr float kGoldenN13 = 0.001919378725500f;
-constexpr float kGoldenN14 = 0.001186241289642f;
-constexpr float kGoldenN15 = 0.000733137435857f;
-constexpr float kGoldenN16 = 0.000453103853785f;
-constexpr float kGoldenN17 = 0.000280033582073f;
-constexpr float kGoldenN18 = 0.000173070271712f;
-constexpr float kGoldenN19 = 0.000106963310360f;
-constexpr float kGoldenN20 = 0.000066106961352f;
+constexpr float kGoldenN0 = static_cast<float>(MIAUSOFT_PHI_N0);
+constexpr float kGoldenN1 = static_cast<float>(MIAUSOFT_PHI_N1);
+constexpr float kGoldenN2 = static_cast<float>(MIAUSOFT_PHI_N2);
+constexpr float kGoldenN3 = static_cast<float>(MIAUSOFT_PHI_N3);
+constexpr float kGoldenN4 = static_cast<float>(MIAUSOFT_PHI_N4);
+constexpr float kGoldenN5 = static_cast<float>(MIAUSOFT_PHI_N5);
+constexpr float kGoldenN6 = static_cast<float>(MIAUSOFT_PHI_N6);
+constexpr float kGoldenN7 = static_cast<float>(MIAUSOFT_PHI_N7);
+constexpr float kGoldenN8 = static_cast<float>(MIAUSOFT_PHI_N8);
+constexpr float kGoldenN9 = static_cast<float>(MIAUSOFT_PHI_N9);
+constexpr float kGoldenN10 = static_cast<float>(MIAUSOFT_PHI_N10);
+constexpr float kGoldenN11 = static_cast<float>(MIAUSOFT_PHI_N11);
+constexpr float kGoldenN12 = static_cast<float>(MIAUSOFT_PHI_N12);
+constexpr float kGoldenN13 = static_cast<float>(MIAUSOFT_PHI_N13);
+constexpr float kGoldenN14 = static_cast<float>(MIAUSOFT_PHI_N14);
+constexpr float kGoldenN15 = static_cast<float>(MIAUSOFT_PHI_N15);
+constexpr float kGoldenN16 = static_cast<float>(MIAUSOFT_PHI_N16);
+constexpr float kGoldenN17 = static_cast<float>(MIAUSOFT_PHI_N17);
+constexpr float kGoldenN18 = static_cast<float>(MIAUSOFT_PHI_N18);
+constexpr float kGoldenN19 = static_cast<float>(MIAUSOFT_PHI_N19);
+constexpr float kGoldenN20 = static_cast<float>(MIAUSOFT_PHI_N20);
 
 
 
 
-constexpr float kTlalpowaFontHeightRatio = kGoldenN9;
-constexpr float kTlalpowaControlHeightRatio = kGoldenN7;
-constexpr float kTopBarHeightRatio = kGoldenN7;
+constexpr float kTlalpowaFontHeightRatio = static_cast<float>(MIAUSOFT_TLALPOWA_FONT_RATIO);
+constexpr float kTlalpowaControlHeightRatio = static_cast<float>(MIAUSOFT_TLALPOWA_CONTROL_RATIO);
+constexpr float kTopBarHeightRatio = static_cast<float>(MIAUSOFT_TLALPOWA_TOP_BAR_RATIO);
+constexpr float kBottomBarHeightRatio = static_cast<float>(MIAUSOFT_TLALPOWA_BOTTOM_BAR_RATIO);
+constexpr float kTlalpowaProgressHeightRatio = static_cast<float>(MIAUSOFT_TLALPOWA_PROGRESS_RATIO);
 
-
-
-constexpr float kBottomBarHeightRatio = kGoldenN7;
-
-
-constexpr float kSidePanelDefaultRatio = kGoldenN4;
-constexpr float kSidePanelMinRatio = kGoldenN4;
-constexpr float kSidePanelMaxRatio = kGoldenN3;
+constexpr float kSidePanelDefaultRatio = static_cast<float>(MIAUSOFT_TLALPOWA_SIDE_DEFAULT_RATIO);
+constexpr float kSidePanelMinRatio = static_cast<float>(MIAUSOFT_TLALPOWA_SIDE_MIN_RATIO);
+constexpr float kSidePanelMaxRatio = static_cast<float>(MIAUSOFT_TLALPOWA_SIDE_MAX_RATIO);
 
 
 constexpr const char* kPanelTop = "pn.sup";
@@ -2137,11 +2128,6 @@ constexpr int kSatelliteSandboxMaxTileRequestsPerFrame = 6;
 constexpr int kSatelliteSandboxMaxTileTextureLoadsPerFrame = 5;
 constexpr std::size_t kSatelliteSandboxTileDrawCap = 128;
 
-constexpr int kSatelliteOfflineCoarseZoom = 5;
-constexpr int kSatelliteOfflineCoarseMaxZoom = 9;
-constexpr int kSatelliteOfflineMidZoom = 15;
-constexpr int kSatelliteOfflineMidMinZoom = 10;
-constexpr int kSatelliteOfflineMaxZoom = kMapOpenMapsMaxTileZoom;
 constexpr int kSatelliteDynamicMinZoom = kMapOpenMapsMinTileZoom;
 constexpr int kSatelliteDynamicMaxZoom = kMapOpenMapsMaxTileZoom;
 
@@ -2336,6 +2322,15 @@ struct MapPlace {
     std::string source_url;
     std::string glyph;
     bool zocalo_anchor = false;
+};
+
+struct MapWaterBody {
+    std::string id;
+    std::string name;
+    std::string kind;
+    std::string source_url;
+    double lon = 0.0;
+    double lat = 0.0;
 };
 
 
@@ -2614,6 +2609,8 @@ std::set<std::string> graph_clean_single_disease_filter(const std::set<std::stri
 std::set<std::string> graph_clean_ozone_disease_filter(const std::set<std::string>& in);
 const char* tlac_campo_txt(int domain, int field);
 
+struct EpiRenderDiskCache;
+
 
 
 struct UiState {
@@ -2622,10 +2619,16 @@ struct UiState {
 
     std::shared_ptr<const std::vector<MapFeature>> state_features_ptr;
 
+    std::shared_ptr<const std::vector<MapFeature>> fallback_features_ptr;
+
+    std::shared_ptr<const std::vector<MapFeature>> fallback_state_features_ptr;
+
     std::vector<MapFeature> buffer_features;
 
     std::vector<MapStation> stations;
     std::vector<MapPlace> places;
+    std::vector<MapWaterBody> water_bodies;
+    std::string openmap_snapshot_key;
 
     std::vector<AtmosphericCloudPoint> atmospheric_clouds;
 
@@ -2959,6 +2962,14 @@ struct UiState {
     bool observations_full_attempted = false;
     std::string observations_loaded_filter_signature;
     std::string observations_loaded_anchor_week;
+
+    std::shared_ptr<const EpiRenderDiskCache> startup_epi_pies_cache;
+    std::string startup_epi_pies_filter_signature;
+    std::string startup_epi_pies_anchor_week;
+    std::uint64_t startup_epi_pies_rows = 0;
+    std::uint64_t startup_epi_pies_weeks = 0;
+    bool startup_epi_pies_cache_ready = false;
+
     std::thread observations_full_thread;
 
     bool timeline_initialized = false;
@@ -3257,9 +3268,10 @@ struct UiState {
 
     std::string mobility_status = "Movilidad integrada pendiente";
 
-    bool territorial_layer_enabled = false;
+    bool territorial_layer_enabled = true;
     bool territorial_show_labels = true;
     bool territorial_show_external_notice = true;
+    float territorial_opacity = 0.18f;
     std::set<std::string> selected_territorial_states;
     std::set<std::string> selected_territorial_municipalities;
     std::set<std::string> selected_territorial_jurisdictions;
@@ -3484,6 +3496,10 @@ float bottom_bar_height() {
     return golden_h(kBottomBarHeightRatio);
 }
 
+float top_progress_height() {
+    return std::max(1.0f, golden_h(kTlalpowaProgressHeightRatio));
+}
+
 
 float golden_tab_chrome_height() {
     
@@ -3679,7 +3695,7 @@ void set_next_main_window_rect(const TlalpowaPhiRect& r) {
 float main_workspace_height() {
     const ImVec2 ds = main_viewport_size();
 
-    return std::max(1.0f, ds.y - top_bar_height() - bottom_bar_height());
+    return std::max(1.0f, ds.y - top_bar_height() - top_progress_height() - bottom_bar_height());
 }
 
 
@@ -4158,6 +4174,40 @@ ImU32 u32(const ImVec4& c, float alpha = 1.0f) {
     return ImGui::ColorConvertFloat4ToU32(ImVec4(c.x, c.y, c.z, c.w * alpha));
 }
 
+ImVec4 tlalpowa_vec4(MiausoftRgba c) {
+    return ImVec4(c.r / 255.0f, c.g / 255.0f, c.b / 255.0f, c.a / 255.0f);
+}
+
+ImVec4 tlalpowa_vec4(MiausoftColorF c) {
+    return ImVec4(c.r, c.g, c.b, c.a);
+}
+
+MiausoftRgba tlalpowa_rgba(const ImVec4& c) {
+    const auto channel = [](float v) -> uint8_t {
+        return static_cast<uint8_t>(std::clamp(static_cast<int>(std::lround(std::clamp(v, 0.0f, 1.0f) * 255.0f)), 0, 255));
+    };
+    return miausoft_rgba(channel(c.x), channel(c.y), channel(c.z), channel(c.w));
+}
+
+MiausoftColorF tlalpowa_color_f(const ImVec4& c) {
+    return miausoft_color_f(c.x, c.y, c.z, c.w);
+}
+
+MiausoftVisualTheme tlalpowa_visual_theme(bool light, const ImVec4& accent) {
+    return miausoft_visual_theme(light ? 1 : 0, tlalpowa_rgba(accent));
+}
+
+MiausoftTlalpowaStyleTokens tlalpowa_style_tokens(bool light, const ImVec4& accent) {
+    const ImVec2 viewport = main_viewport_size();
+    return miausoft_tlalpowa_style_tokens(
+        viewport.x,
+        viewport.y,
+        golden_tab_chrome_height(),
+        std::max(1.0f, ImGui::GetTextLineHeight()),
+        light ? 1 : 0,
+        tlalpowa_color_f(accent));
+}
+
 
 struct GoldenChromeResult {
     bool clicked = false;
@@ -4204,22 +4254,27 @@ float golden_chrome_auto_width(const char* label, float h, bool square = false) 
 }
 
 ImU32 golden_chrome_fill(bool light, const ImVec4& accent, bool selected, bool hovered, bool held, bool primary) {
-    if (primary) {
-        return held ? u32(accent, 1.0f) : (hovered ? u32(accent, 0.84f) : u32(accent, 0.94f));
-    }
-    if (selected) {
-        return light ? IM_COL32(255, 255, 255, 255) : IM_COL32(20, 28, 37, 255);
-    }
-    if (hovered || held) {
-        return light ? IM_COL32(236, 244, 251, 244) : IM_COL32(39, 51, 65, 242);
-    }
-    return light ? IM_COL32(226, 236, 246, 205) : IM_COL32(28, 38, 50, 218);
+    uint32_t state = 0;
+    if (selected) state |= MIAUSOFT_VISUAL_STATE_SELECTED;
+    if (hovered) state |= MIAUSOFT_VISUAL_STATE_HOT;
+    if (held) state |= MIAUSOFT_VISUAL_STATE_PRESSED;
+    if (primary) state |= MIAUSOFT_VISUAL_STATE_PRIMARY;
+    const MiausoftVisualTheme theme = tlalpowa_visual_theme(light, accent);
+    const MiausoftVisualComponentStyle style = miausoft_visual_component_style(
+        &theme, MIAUSOFT_TLALPOWA_BUTTON, state, theme.accent,
+        static_cast<int>(std::lround(golden_tab_chrome_height())));
+    return ImGui::ColorConvertFloat4ToU32(tlalpowa_vec4(style.fill));
 }
 
 ImU32 golden_chrome_text_color(bool light, bool selected, bool primary) {
-    if (primary) return IM_COL32(255, 255, 255, 255);
-    if (selected) return light ? IM_COL32(27, 36, 47, 255) : IM_COL32(238, 244, 250, 255);
-    return light ? IM_COL32(76, 91, 108, 242) : IM_COL32(191, 204, 217, 242);
+    uint32_t state = 0;
+    if (selected) state |= MIAUSOFT_VISUAL_STATE_SELECTED;
+    if (primary) state |= MIAUSOFT_VISUAL_STATE_PRIMARY;
+    const MiausoftVisualTheme theme = miausoft_visual_theme(light ? 1 : 0, miausoft_rgba(133, 13, 55, 255));
+    const MiausoftVisualComponentStyle style = miausoft_visual_component_style(
+        &theme, MIAUSOFT_TLALPOWA_BUTTON, state, theme.accent,
+        static_cast<int>(std::lround(golden_tab_chrome_height())));
+    return ImGui::ColorConvertFloat4ToU32(tlalpowa_vec4(style.text));
 }
 
 GoldenChromeResult draw_golden_control_hitbox(const char* id, const ImVec2& a, float w, float h, bool square, float& out_w, float& out_h) {
@@ -4395,26 +4450,25 @@ struct TlalpowaSurfaceTemplate {
 };
 
 TlalpowaSurfaceTemplate tlalpowa_surface_template(bool light) {
-    const float h = std::max(1.0f, golden_tab_chrome_height());
-    const float tight = std::max(1.0f, h * kGoldenN3);
-    const float pad = std::max(1.0f, h * kGoldenN2);
-    const float gap = std::max(1.0f, h * kGoldenN5);
+    const MiausoftTlalpowaStyleTokens tokens = tlalpowa_style_tokens(
+        light, ImVec4(133.0f / 255.0f, 13.0f / 255.0f, 55.0f / 255.0f, 1.0f));
+    const MiausoftVisualTheme& theme = tokens.theme;
 
     TlalpowaSurfaceTemplate t{};
-    t.root = light ? ImVec4(0.982f, 0.988f, 0.993f, 1.0f) : ImVec4(0.038f, 0.048f, 0.060f, 1.0f);
-    t.frame = light ? ImVec4(0.920f, 0.940f, 0.958f, 1.0f) : ImVec4(0.075f, 0.094f, 0.116f, 1.0f);
-    t.frame_hovered = light ? ImVec4(0.900f, 0.928f, 0.954f, 1.0f) : ImVec4(0.096f, 0.119f, 0.145f, 1.0f);
-    t.frame_active = light ? ImVec4(0.878f, 0.912f, 0.946f, 1.0f) : ImVec4(0.116f, 0.144f, 0.174f, 1.0f);
-    t.popup = light ? ImVec4(0.992f, 0.996f, 1.000f, 0.98f) : ImVec4(0.044f, 0.055f, 0.068f, 0.98f);
-    t.separator = light ? ImVec4(0.50f, 0.60f, 0.68f, 0.10f) : ImVec4(0.70f, 0.82f, 0.90f, 0.06f);
-    t.scrollbar_bg = ImVec4(t.root.x, t.root.y, t.root.z, 0.0f);
-    t.scrollbar_grab = light ? ImVec4(0.68f, 0.74f, 0.80f, 0.18f) : ImVec4(0.58f, 0.70f, 0.78f, 0.14f);
-    t.scrollbar_grab_hovered = light ? ImVec4(0.54f, 0.62f, 0.70f, 0.28f) : ImVec4(0.70f, 0.80f, 0.88f, 0.23f);
-    t.scrollbar_grab_active = light ? ImVec4(0.44f, 0.54f, 0.64f, 0.38f) : ImVec4(0.76f, 0.86f, 0.94f, 0.32f);
-    t.pad_tight = ImVec2(tight, tight);
-    t.pad = ImVec2(pad, pad);
-    t.gap = ImVec2(gap, gap);
-    t.rounding = golden_control_rounding();
+    t.root = tlalpowa_vec4(theme.root);
+    t.frame = tlalpowa_vec4(theme.frame);
+    t.frame_hovered = tlalpowa_vec4(theme.frame_hovered);
+    t.frame_active = tlalpowa_vec4(theme.frame_active);
+    t.popup = tlalpowa_vec4(theme.popup);
+    t.separator = tlalpowa_vec4(theme.transparent);
+    t.scrollbar_bg = tlalpowa_vec4(theme.scrollbar_bg);
+    t.scrollbar_grab = tlalpowa_vec4(theme.scrollbar_grab);
+    t.scrollbar_grab_hovered = tlalpowa_vec4(theme.scrollbar_grab_hovered);
+    t.scrollbar_grab_active = tlalpowa_vec4(theme.scrollbar_grab_active);
+    t.pad_tight = ImVec2(tokens.pad_tight, tokens.pad_tight);
+    t.pad = ImVec2(tokens.pad, tokens.pad);
+    t.gap = ImVec2(tokens.gap, tokens.gap);
+    t.rounding = tokens.rounding;
     return t;
 }
 
@@ -4445,6 +4499,7 @@ TlalpowaSurfaceStack tlalpowa_push_surface_stack(const TlalpowaSurfaceTemplate& 
      * contenedor oscuro -> contenedor menos oscuro -> campo.
      */
     TlalpowaSurfaceStack st{0, 0};
+    const MiausoftTlalpowaStyleTokens tokens = tlalpowa_style_tokens(light, accent);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, window_pad); ++st.vars;
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, s.gap); ++st.vars;
     ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0.0f); ++st.vars;
@@ -4457,9 +4512,9 @@ TlalpowaSurfaceStack tlalpowa_push_surface_stack(const TlalpowaSurfaceTemplate& 
     ImGui::PushStyleColor(ImGuiCol_FrameBg, s.frame); ++st.colors;
     ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, s.frame_hovered); ++st.colors;
     ImGui::PushStyleColor(ImGuiCol_FrameBgActive, s.frame_active); ++st.colors;
-    ImGui::PushStyleColor(ImGuiCol_CheckMark, u32(accent, light ? 0.88f : 0.96f)); ++st.colors;
-    ImGui::PushStyleColor(ImGuiCol_SliderGrab, u32(accent, light ? 0.78f : 0.86f)); ++st.colors;
-    ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, u32(accent, light ? 0.92f : 1.0f)); ++st.colors;
+    ImGui::PushStyleColor(ImGuiCol_CheckMark, tlalpowa_vec4(tokens.surface_check_mark)); ++st.colors;
+    ImGui::PushStyleColor(ImGuiCol_SliderGrab, tlalpowa_vec4(tokens.surface_slider_grab)); ++st.colors;
+    ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, tlalpowa_vec4(tokens.surface_slider_grab_active)); ++st.colors;
     ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, s.scrollbar_bg); ++st.colors;
     ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, s.scrollbar_grab); ++st.colors;
     ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, s.scrollbar_grab_hovered); ++st.colors;
@@ -5619,10 +5674,12 @@ std::vector<unsigned char> tlalpowa_base64_decode_bytes(const std::string& text)
 
 fs::path tlalpowa_consolidated_bundle_path() {
 
-    const std::array<fs::path, 6> candidates = {
+    const auto candidates = std::array{
+        project_root() / "tlalpowa" / "tlalpowa_datos.json",
         project_root() / "TLALPOWA" / "tlalpowa_datos.json",
         project_root() / "Fuente" / "Tlalpowa" / "tlalpowa_datos.json",
         project_root() / "config" / "tlalpowa_datos.json",
+        executable_dir() / "tlalpowa" / "tlalpowa_datos.json",
         executable_dir() / "TLALPOWA" / "tlalpowa_datos.json",
         executable_dir() / "Fuente" / "Tlalpowa" / "tlalpowa_datos.json",
         executable_dir() / "config" / "tlalpowa_datos.json"
@@ -6550,7 +6607,9 @@ bool tlalpowa_find_repo_root_after_extract(const fs::path& staging, fs::path& ou
     if (!fs::exists(staging, ec) || ec) return false;
     auto looks_repo = [](const fs::path& d) {
         std::error_code ec2;
-        return (fs::exists(d / "TLALPOWA" / "CMakeLists.txt", ec2) &&
+        return (fs::exists(d / "tlalpowa" / "CMakeLists.txt", ec2) &&
+                fs::exists(d / "core" / "CMakeLists.txt", ec2)) ||
+               (fs::exists(d / "TLALPOWA" / "CMakeLists.txt", ec2) &&
                 fs::exists(d / "CORE" / "CMakeLists.txt", ec2)) ||
                (fs::exists(d / "Fuente" / "Tlalpowa" / "CMakeLists.txt", ec2) &&
                 (fs::exists(d / "Fuente" / "Tlalpowa" / "tlalpowa_datos.json", ec2) ||
@@ -7350,67 +7409,6 @@ PreviewTexture load_texture_from_file(const fs::path& path) {
 
 
     return {id, w, h};
-}
-
-PreviewTexture load_texture_from_png_memory(const unsigned char* bytes, std::size_t bytes_size, bool repeat_wrap) {
-    if (!bytes || bytes_size == 0 || bytes_size > static_cast<std::size_t>(std::numeric_limits<int>::max())) return {};
-    int w = 0, h = 0, channels = 0;
-    unsigned char* pixels = stbi_load_from_memory(bytes, static_cast<int>(bytes_size), &w, &h, &channels, 4);
-    if (!pixels || w <= 0 || h <= 0) {
-        if (pixels) stbi_image_free(pixels);
-        return {};
-    }
-    unsigned int id = 0;
-    glGenTextures(1, &id);
-    glBindTexture(GL_TEXTURE_2D, id);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, repeat_wrap ? GL_REPEAT : GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, repeat_wrap ? GL_REPEAT : GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-    stbi_image_free(pixels);
-    return {id, w, h};
-}
-
-PreviewTexture embedded_satellite_z5_lowres_texture() {
-    static PreviewTexture texture{};
-    if (texture.id != 0) return texture;
-    texture = load_texture_from_png_memory(obs_embedded_satellite_z5_lowres_png_data(),
-                                           obs_embedded_satellite_z5_lowres_png_size(), true);
-    return texture;
-}
-
-PreviewTexture embedded_satellite_z10_lowres_texture() {
-    static PreviewTexture texture{};
-    if (texture.id != 0) return texture;
-    texture = load_texture_from_png_memory(obs_embedded_satellite_z10_lowres_png_data(),
-                                           obs_embedded_satellite_z10_lowres_png_size(), true);
-    return texture;
-}
-
-PreviewTexture embedded_satellite_z15_lowres_texture() {
-    static PreviewTexture texture{};
-    if (texture.id != 0) return texture;
-    texture = load_texture_from_png_memory(obs_embedded_satellite_z15_lowres_png_data(),
-                                           obs_embedded_satellite_z15_lowres_png_size(), true);
-    return texture;
-}
-
-PreviewTexture embedded_satellite_z19_lowres_texture() {
-    static PreviewTexture texture{};
-    if (texture.id != 0) return texture;
-    texture = load_texture_from_png_memory(obs_embedded_satellite_z19_lowres_png_data(),
-                                           obs_embedded_satellite_z19_lowres_png_size(), true);
-    return texture;
-}
-
-PreviewTexture offline_satellite_texture_for_zoom(int z) {
-    if (z <= kSatelliteOfflineCoarseMaxZoom) return embedded_satellite_z5_lowres_texture();
-    return embedded_satellite_z15_lowres_texture();
-}
-
-int offline_satellite_source_zoom_for_view(int z) {
-    return (z <= kSatelliteOfflineCoarseMaxZoom) ? kSatelliteOfflineCoarseZoom : kSatelliteOfflineMidZoom;
 }
 
 long long monotonic_milliseconds_now() {
@@ -8340,6 +8338,17 @@ float meters_to_screen_pixels(const MapViewport& view, double meters, float min_
     return tlal_m_to_px(meters, meters_per_screen_pixel(view), min_px, max_px);
 }
 
+double epidemiology_pie_metric_radius_meters(int64_t total, int64_t max_total) {
+    const double denom = static_cast<double>(std::max<int64_t>(1, max_total));
+    const double ratio = std::clamp(static_cast<double>(std::max<int64_t>(0, total)) / denom, 0.0, 1.0);
+    return 900.0 + std::sqrt(ratio) * 2600.0;
+}
+
+float epidemiology_pie_metric_radius_pixels(const MapViewport& view, int64_t total, int64_t max_total, float max_px) {
+    const float cap = std::max(4.25f, max_px);
+    return meters_to_screen_pixels(view, epidemiology_pie_metric_radius_meters(total, max_total), 4.25f, cap);
+}
+
 float boundary_metric_thickness_px(const MapViewport& view, const std::vector<ImVec2>&, bool has_data, bool out_of_focus) {
     return tlal_boundary_px(meters_per_screen_pixel(view), has_data ? 1 : 0, out_of_focus ? 1 : 0);
 }
@@ -8574,33 +8583,37 @@ float loaded_terrain_height_for_world_px(double wx, double wy, const MapViewport
     return static_cast<float>(rel_m * z_weight * (0.35 + 0.65 * pitch_weight));
 }
 
-
-void draw_embedded_satellite_source_underlay(ImDrawList* dl, const MapViewport& view, const PreviewTexture& texture, int source_z, int alpha) {
-    if (!dl || texture.id == 0 || alpha <= 0 || view.size.x <= 1.0f || view.size.y <= 1.0f) return;
-
-    const double source_factor = std::ldexp(1.0, source_z - view.z);
-    const double source_world = 256.0 * static_cast<double>(1 << source_z);
-    const double left = view.center_x - (view.size.x * 0.5 + view.pan.x) / std::max(1.0e-9, static_cast<double>(view.scale));
-    const double right = view.center_x + (view.size.x * 0.5 - view.pan.x) / std::max(1.0e-9, static_cast<double>(view.scale));
-    const double top = view.center_y - (view.size.y * 0.5 + view.pan.y) / std::max(1.0e-9, static_cast<double>(view.scale));
-    const double bottom = view.center_y + (view.size.y * 0.5 - view.pan.y) / std::max(1.0e-9, static_cast<double>(view.scale));
-
-    const float u0 = static_cast<float>((std::min(left, right) * source_factor) / source_world);
-    const float v0 = static_cast<float>((std::min(top, bottom) * source_factor) / source_world);
-    const float u1 = static_cast<float>((std::max(left, right) * source_factor) / source_world);
-    const float v1 = static_cast<float>((std::max(top, bottom) * source_factor) / source_world);
-
-    const ImVec2 p0(view.origin.x, view.origin.y);
-    const ImVec2 p1(view.origin.x + view.size.x, view.origin.y + view.size.y);
-    dl->AddImage((ImTextureID)(intptr_t)texture.id, p0, p1, ImVec2(u0, v0), ImVec2(u1, v1), IM_COL32(255, 255, 255, std::clamp(alpha, 0, 255)));
+int loaded_terrain_elevation_for_lonlat(double lon, double lat, int view_z) {
+    const int terrain_z = std::clamp(view_z, kTerrainStartupDemZoom, kTerrainMunicipalDemZoom);
+    const double twx = lon_to_world_px(lon, terrain_z);
+    const double twy = lat_to_world_px(lat, terrain_z);
+    const int ntiles = 1 << terrain_z;
+    int tx = static_cast<int>(std::floor(twx / 256.0));
+    const int ty = static_cast<int>(std::floor(twy / 256.0));
+    tx = ((tx % ntiles) + ntiles) % ntiles;
+    if (ty < 0 || ty >= ntiles) return 0;
+    TerrainTileData& tile = terrain_tile_data(terrain_z, tx, ty);
+    if (!tile.loaded || tile.elevation_m.empty() || tile.sample_n <= 1) return 0;
+    const int n = tile.sample_n;
+    const double local_x = std::clamp(twx - static_cast<double>(tx) * 256.0, 0.0, 255.999);
+    const double local_y = std::clamp(twy - static_cast<double>(ty) * 256.0, 0.0, 255.999);
+    const double sx = local_x * static_cast<double>(n - 1) / 255.999;
+    const double sy = local_y * static_cast<double>(n - 1) / 255.999;
+    const int x0 = std::clamp(static_cast<int>(std::floor(sx)), 0, n - 1);
+    const int y0 = std::clamp(static_cast<int>(std::floor(sy)), 0, n - 1);
+    const int x1 = std::min(n - 1, x0 + 1);
+    const int y1 = std::min(n - 1, y0 + 1);
+    const double fx = sx - static_cast<double>(x0);
+    const double fy = sy - static_cast<double>(y0);
+    const auto at = [&](int x, int y) {
+        return static_cast<double>(tile.elevation_m[static_cast<std::size_t>(y * n + x)]);
+    };
+    const double a = at(x0, y0) * (1.0 - fx) + at(x1, y0) * fx;
+    const double b = at(x0, y1) * (1.0 - fx) + at(x1, y1) * fx;
+    const double elevation = a * (1.0 - fy) + b * fy;
+    return std::isfinite(elevation) ? static_cast<int>(std::lround(elevation)) : 0;
 }
 
-void draw_offline_satellite_underlay(ImDrawList* dl, const MapViewport& view, int alpha) {
-    if (!dl || alpha <= 0 || view.size.x <= 1.0f || view.size.y <= 1.0f) return;
-    const PreviewTexture fallback = offline_satellite_texture_for_zoom(view.z);
-    const int source_z = offline_satellite_source_zoom_for_view(view.z);
-    draw_embedded_satellite_source_underlay(dl, view, fallback, source_z, std::min(alpha, 238));
-}
 
 void draw_tile_layer(ImDrawList* dl, const MapViewport& view, TileLayer layer, int alpha) {
 
@@ -8671,10 +8684,6 @@ void draw_tile_layer(ImDrawList* dl, const MapViewport& view, TileLayer layer, i
 
     dl->PushClipRect(draw_view.origin, ImVec2(draw_view.origin.x + draw_view.size.x, draw_view.origin.y + draw_view.size.y), true);
 
-    const bool satellite_layer = (layer == TileLayer::Satellite);
-    const bool satellite_offline = satellite_layer && satellite_network_offline_now();
-    if (satellite_layer) draw_offline_satellite_underlay(dl, draw_view, std::min(alpha, satellite_offline ? 238 : 222));
-
     for (const auto& item : tile_order) {
 
         MapTileTexture& tile = map_tile_texture(layer, draw_view.z, item.tx, item.ty, true);
@@ -8685,8 +8694,8 @@ void draw_tile_layer(ImDrawList* dl, const MapViewport& view, TileLayer layer, i
         float draw_u1 = 1.0f;
         float draw_v1 = 1.0f;
 
-        if (draw_tile_id == 0 && layer == TileLayer::Satellite && draw_view.z > kMapOpenMapsMinTileZoom) {
-            const int max_backfill = std::min(kMapSatelliteBackfillDepth, draw_view.z - kMapOpenMapsMinTileZoom);
+        if (draw_tile_id == 0 && layer != TileLayer::TerrainDem && draw_view.z > kMapOpenMapsMinTileZoom) {
+            const int max_backfill = std::min(kMapParentBackfillDepth, draw_view.z - kMapOpenMapsMinTileZoom);
             for (int depth = 1; depth <= max_backfill && draw_tile_id == 0; ++depth) {
                 const int parent_z = draw_view.z - depth;
                 const int divisor = 1 << depth;
@@ -8704,20 +8713,6 @@ void draw_tile_layer(ImDrawList* dl, const MapViewport& view, TileLayer layer, i
                     draw_u1 = draw_u0 + parent_span;
                     draw_v1 = draw_v0 + parent_span;
                 }
-            }
-        }
-
-        if (draw_tile_id == 0 && layer == TileLayer::Satellite) {
-            const PreviewTexture fallback = offline_satellite_texture_for_zoom(draw_view.z);
-            if (fallback.id != 0) {
-                const int source_z = offline_satellite_source_zoom_for_view(draw_view.z);
-                const double source_factor = std::ldexp(1.0, source_z - draw_view.z);
-                const double source_world = 256.0 * static_cast<double>(1 << source_z);
-                draw_tile_id = fallback.id;
-                draw_u0 = static_cast<float>((static_cast<double>(item.tx) * 256.0 * source_factor) / source_world);
-                draw_v0 = static_cast<float>((static_cast<double>(item.ty) * 256.0 * source_factor) / source_world);
-                draw_u1 = static_cast<float>(((static_cast<double>(item.tx) + 1.0) * 256.0 * source_factor) / source_world);
-                draw_v1 = static_cast<float>(((static_cast<double>(item.ty) + 1.0) * 256.0 * source_factor) / source_world);
             }
         }
 
@@ -8851,7 +8846,6 @@ float visible_tile_coverage_ratio(const MapViewport& view, TileLayer layer) {
     const auto tiles = visible_tile_list_for_view(coverage_view);
 
     if (tiles.empty()) return 1.0f;
-    if (layer == TileLayer::Satellite && satellite_network_offline_now() && offline_satellite_texture_for_zoom(coverage_view.z).id != 0) return 1.0f;
 
     int ready = 0;
 
@@ -9105,14 +9099,32 @@ void draw_openmaps_z19_limit_overlay(ImDrawList*, const MapViewport&, const ImVe
 
 
 void draw_scale_and_attribution(ImDrawList* dl, const MapViewport& view, const ImVec2& origin, const ImVec2& size, bool light_theme, int base_layer, ImVec2& attr_min, ImVec2& attr_max) {
-    (void)dl;
     (void)view;
-    (void)origin;
-    (void)size;
-    (void)light_theme;
-    (void)base_layer;
-    attr_min = ImVec2(-1.0f, -1.0f);
-    attr_max = ImVec2(-1.0f, -1.0f);
+    if (!dl || size.x <= 80.0f || size.y <= 40.0f) {
+        attr_min = ImVec2(-1.0f, -1.0f);
+        attr_max = ImVec2(-1.0f, -1.0f);
+        return;
+    }
+    const char* line1 = base_layer == 1
+        ? "© OpenStreetMap contributors · ODbL"
+        : "Esri World Imagery";
+    const char* line2 = base_layer == 1
+        ? "Altitud Terrarium"
+        : "© OpenStreetMap contributors · ODbL · DEM Terrarium";
+    const ImVec2 a = ImGui::CalcTextSize(line1);
+    const ImVec2 b = ImGui::CalcTextSize(line2);
+    const float pad_x = 7.0f;
+    const float pad_y = 5.0f;
+    const float gap = 2.0f;
+    const float width = std::max(a.x, b.x) + pad_x * 2.0f;
+    const float height = a.y + b.y + gap + pad_y * 2.0f;
+    attr_max = ImVec2(origin.x + size.x - 7.0f, origin.y + size.y - 7.0f);
+    attr_min = ImVec2(attr_max.x - width, attr_max.y - height);
+    const ImU32 bg = light_theme ? IM_COL32(250, 252, 253, 220) : IM_COL32(4, 8, 12, 214);
+    const ImU32 fg = light_theme ? IM_COL32(42, 58, 68, 230) : IM_COL32(220, 232, 238, 232);
+    dl->AddRectFilled(attr_min, attr_max, bg, 4.0f);
+    dl->AddText(ImVec2(attr_min.x + pad_x, attr_min.y + pad_y), fg, line1);
+    dl->AddText(ImVec2(attr_min.x + pad_x, attr_min.y + pad_y + a.y + gap), fg, line2);
 }
 
 
@@ -9125,30 +9137,31 @@ void apply_minimal_theme(bool light, const ImVec4& accent) {
     else ImGui::StyleColorsDark();
 
     ImGuiStyle& style = ImGui::GetStyle();
+    const MiausoftTlalpowaStyleTokens tokens = tlalpowa_style_tokens(light, accent);
 
-
-    style.WindowBorderSize = 0.0f;
-    style.ChildBorderSize = 0.0f;
-    style.PopupBorderSize = 0.0f;
-    style.FrameBorderSize = 0.0f;
-    style.TabBorderSize = 0.0f;
+    style.WindowBorderSize = tokens.window_border_size;
+    style.ChildBorderSize = tokens.child_border_size;
+    style.PopupBorderSize = tokens.popup_border_size;
+    style.FrameBorderSize = tokens.frame_border_size;
+    style.TabBorderSize = tokens.tab_border_size;
     const TlalpowaSurfaceTemplate surface = tlalpowa_surface_template(light);
+    const MiausoftVisualTheme& visual_theme = tokens.theme;
 
     style.WindowRounding = 0.0f;
     style.ChildRounding = 0.0f;
-    style.FrameRounding = golden_checkbox_rounding();
-    style.GrabRounding = golden_checkbox_rounding();
-    style.ScrollbarRounding = golden_tab_rounding();
-    style.PopupRounding = surface.rounding;
-    style.TabRounding = golden_tab_rounding();
+    style.FrameRounding = tokens.rounding;
+    style.GrabRounding = tokens.rounding;
+    style.ScrollbarRounding = tokens.rounding;
+    style.PopupRounding = tokens.rounding;
+    style.TabRounding = tokens.rounding;
 
-    style.ScrollbarSize = std::max(1.0f, golden_h(kGoldenN10));
+    style.ScrollbarSize = tokens.scrollbar_size;
     style.WindowPadding = surface.pad_tight;
-    style.FramePadding = ImVec2(golden_tab_frame_pad_x(), golden_tab_frame_pad_y());
+    style.FramePadding = ImVec2(tokens.frame_pad_x, tokens.frame_pad_y);
 
     style.ItemSpacing = surface.gap;
 
-    style.ItemInnerSpacing = ImVec2(std::max(1.0f, golden_w(kGoldenN13)), std::max(1.0f, golden_h(kGoldenN13)));
+    style.ItemInnerSpacing = ImVec2(tokens.item_inner_x, tokens.item_inner_y);
 
     if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
         style.Colors[ImGuiCol_WindowBg].w = 1.0f;
@@ -9159,37 +9172,37 @@ void apply_minimal_theme(bool light, const ImVec4& accent) {
     colors[ImGuiCol_WindowBg] = surface.root;
     colors[ImGuiCol_ChildBg] = surface.root;
     colors[ImGuiCol_PopupBg] = surface.popup;
-    colors[ImGuiCol_Text] = light ? ImVec4(0.075f, 0.088f, 0.105f, 1.0f) : ImVec4(0.925f, 0.945f, 0.965f, 1.0f);
-    colors[ImGuiCol_TextDisabled] = light ? ImVec4(0.455f, 0.495f, 0.545f, 1.0f) : ImVec4(0.585f, 0.650f, 0.715f, 1.0f);
+    colors[ImGuiCol_Text] = tlalpowa_vec4(visual_theme.text);
+    colors[ImGuiCol_TextDisabled] = tlalpowa_vec4(visual_theme.muted);
     colors[ImGuiCol_FrameBg] = surface.frame;
 
     colors[ImGuiCol_FrameBgHovered] = surface.frame_hovered;
     colors[ImGuiCol_FrameBgActive] = surface.frame_active;
-    colors[ImGuiCol_Button] = surface.frame;
-    colors[ImGuiCol_ButtonHovered] = ImVec4(accent.x, accent.y, accent.z, light ? 0.12f : 0.20f);
-    colors[ImGuiCol_ButtonActive] = ImVec4(accent.x, accent.y, accent.z, light ? 0.20f : 0.32f);
+    colors[ImGuiCol_Button] = tlalpowa_vec4(tokens.button);
+    colors[ImGuiCol_ButtonHovered] = tlalpowa_vec4(tokens.button_hovered);
+    colors[ImGuiCol_ButtonActive] = tlalpowa_vec4(tokens.button_active);
     colors[ImGuiCol_Border] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
     colors[ImGuiCol_BorderShadow] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
     colors[ImGuiCol_Separator] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
     colors[ImGuiCol_SeparatorHovered] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
     colors[ImGuiCol_SeparatorActive] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
     
-    colors[ImGuiCol_CheckMark] = accent;
-    colors[ImGuiCol_SliderGrab] = ImVec4(accent.x, accent.y, accent.z, 0.86f);
-    colors[ImGuiCol_SliderGrabActive] = accent;
-    colors[ImGuiCol_Header] = ImVec4(accent.x, accent.y, accent.z, light ? 0.10f : 0.16f);
-    colors[ImGuiCol_HeaderHovered] = ImVec4(accent.x, accent.y, accent.z, light ? 0.16f : 0.24f);
-    colors[ImGuiCol_HeaderActive] = ImVec4(accent.x, accent.y, accent.z, light ? 0.22f : 0.34f);
-    colors[ImGuiCol_Tab] = surface.frame;
-    colors[ImGuiCol_TabHovered] = ImVec4(accent.x, accent.y, accent.z, light ? 0.16f : 0.24f);
-    colors[ImGuiCol_TabActive] = ImVec4(accent.x, accent.y, accent.z, light ? 0.18f : 0.28f);
+    colors[ImGuiCol_CheckMark] = tlalpowa_vec4(tokens.check_mark);
+    colors[ImGuiCol_SliderGrab] = tlalpowa_vec4(tokens.slider_grab);
+    colors[ImGuiCol_SliderGrabActive] = tlalpowa_vec4(tokens.slider_grab_active);
+    colors[ImGuiCol_Header] = tlalpowa_vec4(tokens.header);
+    colors[ImGuiCol_HeaderHovered] = tlalpowa_vec4(tokens.header_hovered);
+    colors[ImGuiCol_HeaderActive] = tlalpowa_vec4(tokens.header_active);
+    colors[ImGuiCol_Tab] = tlalpowa_vec4(tokens.tab);
+    colors[ImGuiCol_TabHovered] = tlalpowa_vec4(tokens.tab_hovered);
+    colors[ImGuiCol_TabActive] = tlalpowa_vec4(tokens.tab_active);
     colors[ImGuiCol_ScrollbarBg] = surface.scrollbar_bg;
 
     colors[ImGuiCol_ScrollbarGrab] = surface.scrollbar_grab;
 
     colors[ImGuiCol_ScrollbarGrabHovered] = surface.scrollbar_grab_hovered;
     colors[ImGuiCol_ScrollbarGrabActive] = surface.scrollbar_grab_active;
-    colors[ImGuiCol_NavHighlight] = ImVec4(accent.x, accent.y, accent.z, 0.46f);
+    colors[ImGuiCol_NavHighlight] = tlalpowa_vec4(tokens.nav_highlight);
 }
 
 
@@ -9238,10 +9251,12 @@ fs::path ui_config_root() {
 
     if (tlalpowa_materialize_consolidated_config()) return tlalpowa_consolidated_runtime_config_root();
 
-    const std::array<fs::path, 6> candidates = {
+    const auto candidates = std::array{
+        workspace_root() / "tlalpowa",
         workspace_root() / "TLALPOWA",
         workspace_root() / "Fuente" / "Tlalpowa",
         workspace_root() / "config",
+        executable_dir() / "tlalpowa",
         executable_dir() / "TLALPOWA",
         executable_dir() / "Fuente" / "Tlalpowa",
         executable_dir() / "config"
@@ -9252,7 +9267,7 @@ fs::path ui_config_root() {
         if (!usable.empty()) return usable;
     }
 
-    return workspace_root() / "TLALPOWA";
+    return workspace_root() / "tlalpowa";
 }
 
 
@@ -9893,7 +9908,7 @@ std::vector<fs::path> dependency_roots_for_app() {
     };
 
 
-    add_root(executable_dir() / "CORE" / "Dependencias");
+    add_root(executable_dir() / "core" / "Dependencias");
     add_root(executable_dir() / "Dependencias");
     const std::string deps_root = getenv_utf8_or_empty("TLALPOWA_DEPS_ROOT");
 
@@ -10080,10 +10095,12 @@ float side_panel_width(const UiState& ui) {
 struct TlalpowaPhiLayout {
     ImVec2 size = ImVec2(1.0f, 1.0f);
     float top_h = 1.0f;
+    float progress_h = 1.0f;
     float bottom_h = 1.0f;
     float side_w = 1.0f;
     float workspace_h = 1.0f;
     TlalpowaPhiRect top;
+    TlalpowaPhiRect progress;
     TlalpowaPhiRect map;
     TlalpowaPhiRect side;
     TlalpowaPhiRect bottom;
@@ -10094,15 +10111,18 @@ TlalpowaPhiLayout tlalpowa_phi_layout(const UiState& ui) {
     const ImVec2 ds = main_viewport_size();
     g.size = ImVec2(phi_px(ds.x), phi_px(ds.y));
     g.top_h = std::min(std::max(1.0f, g.size.y - 2.0f), top_bar_height());
-    g.bottom_h = std::min(std::max(1.0f, g.size.y - g.top_h - 1.0f), bottom_bar_height());
+    g.progress_h = std::min(std::max(1.0f, g.size.y - g.top_h - 2.0f), top_progress_height());
+    g.bottom_h = std::min(std::max(1.0f, g.size.y - g.top_h - g.progress_h - 1.0f), bottom_bar_height());
     g.bottom_h = std::max(1.0f, g.bottom_h);
-    const float bottom_y = phi_origin(std::max(g.top_h + 1.0f, g.size.y - g.bottom_h));
-    g.workspace_h = std::max(1.0f, bottom_y - g.top_h);
+    const float content_y = g.top_h + g.progress_h;
+    const float bottom_y = phi_origin(std::max(content_y + 1.0f, g.size.y - g.bottom_h));
+    g.workspace_h = std::max(1.0f, bottom_y - content_y);
     g.side_w = std::min(std::max(1.0f, g.size.x - 1.0f), side_panel_width(ui));
     const float map_w = std::max(1.0f, g.size.x - g.side_w);
     g.top = {0.0f, 0.0f, g.size.x, g.top_h};
-    g.map = {0.0f, g.top_h, map_w, g.workspace_h};
-    g.side = {map_w, g.top_h, g.side_w, g.workspace_h};
+    g.progress = {0.0f, g.top_h, g.size.x, g.progress_h};
+    g.map = {0.0f, content_y, map_w, g.workspace_h};
+    g.side = {map_w, content_y, g.side_w, g.workspace_h};
     g.bottom = {0.0f, bottom_y, g.size.x, std::max(1.0f, g.size.y - bottom_y)};
     return g;
 }
@@ -10516,7 +10536,16 @@ std::string territorial_state_id_from_inegi(const std::string& inegi) {
     if (inegi == "15") return "edomex";
     if (inegi == "17") return "morelos";
     if (inegi == "21") return "puebla";
-    return {};
+    const std::string normalized = normalize_key(inegi);
+    if (normalized == "mx_cmx" || normalized == "mx_dif") return "cdmx";
+    if (normalized == "mx_mex") return "edomex";
+    if (normalized == "mx_gro") return "guerrero";
+    if (normalized == "mx_pue") return "puebla";
+    if (normalized == "mx_mor") return "morelos";
+    if (normalized == "mx_hid") return "hidalgo";
+    if (normalized == "mx_oax") return "oaxaca";
+    if (normalized == "mx_ver") return "veracruz";
+    return territorial_state_id_from_name(inegi);
 }
 
 std::string territorial_municipality_id(const std::string& state_id, const std::string& name) {
@@ -10700,18 +10729,28 @@ const std::vector<TerritorialStateSpec>& territorial_catalog_cached() {
     return cache;
 }
 
+bool territorial_selection_is_base_all(const UiState& ui) {
+    return ui.territorial_layer_enabled &&
+           ui.selected_territorial_states.empty() &&
+           ui.selected_territorial_municipalities.empty() &&
+           ui.selected_territorial_jurisdictions.empty();
+}
+
 bool territorial_state_selected(const UiState& ui, const std::string& sid) {
-    return ui.territorial_layer_enabled && ui.selected_territorial_states.count(sid) > 0;
+    return ui.territorial_layer_enabled &&
+           (territorial_selection_is_base_all(ui) || ui.selected_territorial_states.count(sid) > 0);
 }
 
 bool territorial_municipality_selected(const UiState& ui, const std::string& sid, const std::string& name) {
     if (!ui.territorial_layer_enabled) return false;
+    if (territorial_selection_is_base_all(ui)) return true;
     if (ui.selected_territorial_states.count(sid) > 0) return true;
     return ui.selected_territorial_municipalities.count(territorial_municipality_id(sid, name)) > 0;
 }
 
 bool territorial_zmvm_feature_selected(const UiState& ui, const MapFeature& f) {
     if (!ui.territorial_layer_enabled) return false;
+    if (territorial_selection_is_base_all(ui)) return true;
     const std::string sid = territorial_state_id_from_inegi(f.admin1_id);
     if (sid.empty()) return false;
     return territorial_municipality_selected(ui, sid, f.name);
@@ -10719,6 +10758,7 @@ bool territorial_zmvm_feature_selected(const UiState& ui, const MapFeature& f) {
 
 bool territorial_state_has_visible_selection(const UiState& ui, const std::string& inegi) {
     if (!ui.territorial_layer_enabled) return false;
+    if (territorial_selection_is_base_all(ui)) return true;
     const std::string sid = territorial_state_id_from_inegi(inegi);
     if (sid.empty()) return false;
     if (ui.selected_territorial_states.count(sid) > 0) return true;
@@ -10728,34 +10768,42 @@ bool territorial_state_has_visible_selection(const UiState& ui, const std::strin
                        [&](const std::string& id) { return id.rfind(prefix, 0) == 0; });
 }
 
-std::vector<std::string> split_place_catalog_line(const std::string& line) {
-    std::vector<std::string> cols;
-    char delimiter = '\t';
-    if (line.find('\t') == std::string::npos) {
-        delimiter = (line.find(';') != std::string::npos && line.find(',') == std::string::npos) ? ';' : ',';
+void normalize_place_anchor(MapPlace& place) {
+    const std::string norm = normalize_key(place.name);
+    const std::string id_norm = normalize_key(place.id);
+    if (norm == "ciudad de mexico" || norm == "mexico city" || norm == "cdmx" ||
+        id_norm.find("zocalo") != std::string::npos || id_norm.find("cdmx_zocalo") != std::string::npos) {
+        place.lon = -99.133208;
+        place.lat = 19.432608;
+        place.zocalo_anchor = true;
+        place.rank = 1;
+        if (place.kind.empty()) place.kind = "capital / anclaje Zocalo";
     }
-    std::string cur;
-    bool quoted = false;
-    for (size_t i = 0; i < line.size(); ++i) {
-        const char ch = line[i];
-        if (ch == '"') {
-            if (quoted && i + 1 < line.size() && line[i + 1] == '"') {
-                cur.push_back('"');
-                ++i;
-            } else {
-                quoted = !quoted;
-            }
-            continue;
-        }
-        if (!quoted && ch == delimiter) {
-            cols.push_back(trim(cur));
-            cur.clear();
-        } else {
-            cur.push_back(ch);
-        }
+}
+
+std::vector<MapPlace> deduplicate_map_places(std::vector<MapPlace> raw) {
+    std::vector<MapPlace> out;
+    out.reserve(raw.size());
+    std::unordered_set<std::string> ids;
+    std::unordered_set<std::string> points;
+    for (MapPlace& place : raw) {
+        normalize_place_anchor(place);
+        place.name = trim(std::move(place.name));
+        place.rank = std::clamp(place.rank, 1, 4);
+        if (place.name.empty() || !std::isfinite(place.lon) || !std::isfinite(place.lat)) continue;
+        const std::string id = normalize_key(place.id);
+        const std::string point = normalize_key(place.name) + ":" +
+            std::to_string(static_cast<long long>(std::llround(place.lon * 100000.0))) + ":" +
+            std::to_string(static_cast<long long>(std::llround(place.lat * 100000.0)));
+        if ((!id.empty() && !ids.insert(id).second) || !points.insert(point).second) continue;
+        out.push_back(std::move(place));
     }
-    cols.push_back(trim(cur));
-    return cols;
+    std::stable_sort(out.begin(), out.end(), [](const MapPlace& a, const MapPlace& b) {
+        if (a.rank != b.rank) return a.rank < b.rank;
+        if (a.population != b.population) return a.population > b.population;
+        return normalize_key(a.name) < normalize_key(b.name);
+    });
+    return out;
 }
 
 std::string place_strip_bom(std::string text) {
@@ -10766,470 +10814,6 @@ std::string place_strip_bom(std::string text) {
     return text;
 }
 
-std::optional<double> parse_place_double(std::string text) {
-    text = trim(place_strip_bom(std::move(text)));
-    if (text.empty()) return std::nullopt;
-    bool has_dot = text.find('.') != std::string::npos;
-    bool has_comma = text.find(',') != std::string::npos;
-    if (has_comma && !has_dot) std::replace(text.begin(), text.end(), ',', '.');
-    try {
-        size_t pos = 0;
-        const double v = std::stod(text, &pos);
-        if (!std::isfinite(v)) return std::nullopt;
-        return v;
-    } catch (...) {
-        return std::nullopt;
-    }
-}
-
-std::optional<double> parse_place_coordinate(std::string text) {
-    text = trim(place_strip_bom(std::move(text)));
-    if (text.empty()) return std::nullopt;
-    if (auto dec = parse_place_double(text)) return dec;
-
-    
-    std::string normalized = text;
-    const bool negative_cardinal = normalized.find('W') != std::string::npos || normalized.find('w') != std::string::npos ||
-                                   normalized.find('O') != std::string::npos || normalized.find('o') != std::string::npos ||
-                                   normalized.find('S') != std::string::npos || normalized.find('s') != std::string::npos;
-    for (char& ch : normalized) {
-        if ((ch >= '0' && ch <= '9') || ch == '.' || ch == ',' || ch == '-' || ch == '+') continue;
-        ch = ' ';
-    }
-    std::replace(normalized.begin(), normalized.end(), ',', '.');
-    std::istringstream iss(normalized);
-    std::vector<double> parts;
-    double v = 0.0;
-    while (iss >> v) parts.push_back(v);
-    if (parts.empty()) return std::nullopt;
-    double sign = 1.0;
-    if (parts[0] < 0.0) { sign = -1.0; parts[0] = std::fabs(parts[0]); }
-    if (negative_cardinal) sign = -1.0;
-    double out = parts[0];
-    if (parts.size() > 1) out += parts[1] / 60.0;
-    if (parts.size() > 2) out += parts[2] / 3600.0;
-    out *= sign;
-    if (!std::isfinite(out)) return std::nullopt;
-    return out;
-}
-
-int parse_place_int(std::string text, int fallback) {
-    text = trim(place_strip_bom(std::move(text)));
-    if (text.empty()) return fallback;
-    std::string filtered;
-    filtered.reserve(text.size());
-    for (char ch : text) {
-        if ((ch >= '0' && ch <= '9') || ch == '-' || ch == '+') filtered.push_back(ch);
-    }
-    if (filtered.empty() || filtered == "+" || filtered == "-") return fallback;
-    try {
-        size_t pos = 0;
-        const long long v = std::stoll(filtered, &pos);
-        if (v < std::numeric_limits<int>::min()) return std::numeric_limits<int>::min();
-        if (v > std::numeric_limits<int>::max()) return std::numeric_limits<int>::max();
-        return static_cast<int>(v);
-    } catch (...) {
-        return fallback;
-    }
-}
-
-std::unordered_map<std::string, int> place_catalog_header_index(const std::vector<std::string>& header) {
-    std::unordered_map<std::string, int> idx;
-    for (int i = 0; i < static_cast<int>(header.size()); ++i) {
-        std::string key = normalize_key(place_strip_bom(header[static_cast<size_t>(i)]));
-        if (!key.empty()) idx[key] = i;
-    }
-    return idx;
-}
-
-std::string place_catalog_value(const std::vector<std::string>& cols, const std::unordered_map<std::string, int>& idx, std::initializer_list<const char*> keys, int fallback_pos = -1) {
-    for (const char* k : keys) {
-        const auto it = idx.find(normalize_key(k));
-        if (it != idx.end() && it->second >= 0 && it->second < static_cast<int>(cols.size())) return place_strip_bom(cols[static_cast<size_t>(it->second)]);
-    }
-    if (fallback_pos >= 0 && fallback_pos < static_cast<int>(cols.size())) return place_strip_bom(cols[static_cast<size_t>(fallback_pos)]);
-    return {};
-}
-
-struct MapPlaceBounds {
-    double min_lon = 180.0;
-    double min_lat = 90.0;
-    double max_lon = -180.0;
-    double max_lat = -90.0;
-    bool valid = false;
-};
-
-void place_bounds_include(MapPlaceBounds& b, double lon, double lat) {
-    if (!std::isfinite(lon) || !std::isfinite(lat)) return;
-    b.min_lon = std::min(b.min_lon, lon);
-    b.max_lon = std::max(b.max_lon, lon);
-    b.min_lat = std::min(b.min_lat, lat);
-    b.max_lat = std::max(b.max_lat, lat);
-    b.valid = true;
-}
-
-MapPlaceBounds place_bounds_from_features(const std::vector<MapFeature>& features) {
-    MapPlaceBounds b;
-    for (const auto& f : features) {
-        for (const auto& ring : f.rings) {
-            for (const auto& p : ring) place_bounds_include(b, p.x, p.y);
-        }
-    }
-    return b;
-}
-
-MapPlaceBounds place_operational_bounds(const std::vector<MapFeature>& features, const std::vector<MapFeature>& buffer_features) {
-    (void)features;
-    (void)buffer_features;
-    MapPlaceBounds b;
-    
-    b.min_lon = -118.80;
-    b.max_lon = -86.40;
-    b.min_lat = 14.00;
-    b.max_lat = 33.40;
-    b.valid = true;
-    return b;
-}
-
-bool place_in_bounds(const MapPlaceBounds& b, double lon, double lat) {
-    if (!b.valid) return true;
-    return lon >= b.min_lon && lon <= b.max_lon && lat >= b.min_lat && lat <= b.max_lat;
-}
-
-int place_rank_from_kind(const std::string& kind, int population, int fallback) {
-    const std::string k = normalize_key(kind);
-    int rank = fallback;
-    if (k.find("pplc") != std::string::npos || k.find("capital") != std::string::npos || k.find("pcla") != std::string::npos) rank = std::min(rank, 1);
-    else if (k.find("ppla") != std::string::npos || k.find("cabecera") != std::string::npos || k.find("ciudad") != std::string::npos || k.find("city") != std::string::npos) rank = std::min(rank, 2);
-    else if (k.find("villa") != std::string::npos || k.find("pueblo") != std::string::npos || k.find("poblado") != std::string::npos || k.find("localidad") != std::string::npos || k.find("town") != std::string::npos || k.find("village") != std::string::npos || k.find("ppl") != std::string::npos) rank = std::min(rank, 3);
-    if (population >= 1000000) rank = std::min(rank, 1);
-    else if (population >= 80000) rank = std::min(rank, 2);
-    else if (population >= 12000) rank = std::min(rank, 3);
-    else if (population > 0 && population < 2500) rank = std::max(rank, 4);
-    return std::clamp(rank, 1, 4);
-}
-
-void normalize_place_anchor(MapPlace& place);
-
-int place_quality_score(const MapPlace& place) {
-    int score = 0;
-    if (place.zocalo_anchor) score += 1000000;
-    const std::string src = normalize_key(place.source);
-    if (src.find("curado") != std::string::npos || src.find("tlalpowa") != std::string::npos) score += 50000;
-    if (src.find("inegi") != std::string::npos) score += 35000;
-    if (src.find("geonames") != std::string::npos) score += 25000;
-    score += (5 - std::clamp(place.rank, 1, 4)) * 1000;
-    score += std::min(place.population, 20000000) / 1000;
-    return score;
-}
-
-
-std::string place_identity_key(const MapPlace& place) {
-    const std::string id = normalize_key(place.id);
-    if (!id.empty()) return id;
-    return {};
-}
-
-std::string place_exact_key(const MapPlace& place) {
-    const std::string norm_name = normalize_key(place.name);
-    const long long qlon = static_cast<long long>(std::llround(place.lon * 100000.0));
-    const long long qlat = static_cast<long long>(std::llround(place.lat * 100000.0));
-    return norm_name + ":" + std::to_string(qlon) + ":" + std::to_string(qlat);
-}
-
-bool place_same_named_point(const MapPlace& a, const MapPlace& b) {
-    if (normalize_key(a.name) != normalize_key(b.name)) return false;
-    
-    return std::hypot(a.lon - b.lon, a.lat - b.lat) <= 0.010;
-}
-
-std::vector<MapPlace> deduplicate_map_places(std::vector<MapPlace> raw) {
-    std::vector<MapPlace> cleaned;
-    cleaned.reserve(raw.size());
-    for (auto& place : raw) {
-        normalize_place_anchor(place);
-        if (!std::isfinite(place.lon) || !std::isfinite(place.lat) || trim(place.name).empty()) continue;
-        place.name = trim(std::move(place.name));
-        place.rank = std::clamp(place.rank, 1, 4);
-        cleaned.push_back(std::move(place));
-    }
-    std::stable_sort(cleaned.begin(), cleaned.end(), [](const MapPlace& a, const MapPlace& b) {
-        const int aq = place_quality_score(a);
-        const int bq = place_quality_score(b);
-        if (aq != bq) return aq > bq;
-        if (a.population != b.population) return a.population > b.population;
-        return normalize_key(a.name) < normalize_key(b.name);
-    });
-
-    std::vector<MapPlace> out;
-    out.reserve(cleaned.size());
-    std::unordered_map<std::string, size_t> by_id;
-    std::unordered_map<std::string, size_t> by_exact;
-    std::unordered_map<std::string, std::vector<size_t>> by_name;
-    for (auto& place : cleaned) {
-        bool duplicate = false;
-        const std::string id_key = place_identity_key(place);
-        const std::string exact_key = place_exact_key(place);
-        if (!id_key.empty() && by_id.find(id_key) != by_id.end()) duplicate = true;
-        if (!duplicate && by_exact.find(exact_key) != by_exact.end()) duplicate = true;
-        if (!duplicate) {
-            const std::string name_key = normalize_key(place.name);
-            auto nit = by_name.find(name_key);
-            if (nit != by_name.end()) {
-                for (const size_t idx : nit->second) {
-                    if (idx < out.size() && place_same_named_point(out[idx], place)) { duplicate = true; break; }
-                }
-            }
-        }
-        if (duplicate) continue;
-        const size_t idx = out.size();
-        out.push_back(std::move(place));
-        if (!id_key.empty()) by_id.emplace(id_key, idx);
-        by_exact.emplace(place_exact_key(out.back()), idx);
-        by_name[normalize_key(out.back().name)].push_back(idx);
-    }
-    return out;
-}
-
-bool place_geonames_row_candidate(const std::vector<std::string>& cols) {
-    if (cols.size() < 19) return false;
-    const std::string feature_class = trim(cols[6]);
-    if (feature_class != "P" && feature_class != "p") return false;
-    return parse_place_coordinate(cols[4]).has_value() && parse_place_coordinate(cols[5]).has_value();
-}
-
-std::optional<MapPlace> place_from_geonames_row(const std::vector<std::string>& cols, const fs::path& source_path) {
-    if (!place_geonames_row_candidate(cols)) return std::nullopt;
-    const std::string country = cols.size() > 8 ? trim(cols[8]) : std::string();
-    if (!country.empty() && country != "MX" && country != "mx") return std::nullopt;
-    auto lat = parse_place_coordinate(cols[4]);
-    auto lon = parse_place_coordinate(cols[5]);
-    if (!lat || !lon) return std::nullopt;
-    MapPlace place;
-    place.id = "geonames:" + trim(cols[0]);
-    place.name = trim(cols[1].empty() ? cols[2] : cols[1]);
-    place.lat = *lat;
-    place.lon = *lon;
-    place.kind = trim(cols[7].empty() ? cols[6] : cols[7]);
-    place.country = country;
-    place.admin1 = cols.size() > 10 ? trim(cols[10]) : std::string();
-    place.admin2 = cols.size() > 11 ? trim(cols[11]) : std::string();
-    place.population = cols.size() > 14 ? std::max(0, parse_place_int(cols[14], 0)) : 0;
-    place.population_year = 0;
-    place.elevation_m = cols.size() > 16 ? std::max(0, parse_place_int(cols[16], 0)) : 0;
-    place.rank = place_rank_from_kind(place.kind, place.population, 4);
-    place.source = "GeoNames:" + path_utf8(source_path.filename());
-    place.notes = "Lugar poblado importado desde GeoNames; el año censal depende del catálogo externo.";
-    if (place.name.empty()) return std::nullopt;
-    return place;
-}
-
-std::optional<MapPlace> place_from_standard_row(const std::vector<std::string>& cols,
-                                                 const std::unordered_map<std::string, int>& idx,
-                                                 bool headerless,
-                                                 const fs::path& source_path) {
-    const std::string id = headerless ? place_catalog_value(cols, idx, {}, 0) : place_catalog_value(cols, idx, {"id", "geonameid", "cvegeo", "cve_geo", "clave", "clave_localidad", "cve_loc"}, 0);
-    std::string name = headerless ? place_catalog_value(cols, idx, {}, 1) : place_catalog_value(cols, idx, {"name", "nombre", "asciiname", "localidad", "nom_loc", "nombre_localidad", "nomgeo", "nom_geo"}, 1);
-    const std::string lon_text = headerless ? place_catalog_value(cols, idx, {}, 2) : place_catalog_value(cols, idx, {"lon", "lng", "longitude", "longitud", "long_decimal", "longitud_decimal", "longitud_dec", "long", "x"}, 2);
-    const std::string lat_text = headerless ? place_catalog_value(cols, idx, {}, 3) : place_catalog_value(cols, idx, {"lat", "latitude", "latitud", "lat_decimal", "latitud_decimal", "latitud_dec", "y"}, 3);
-    if (name.empty()) return std::nullopt;
-    auto lon = parse_place_coordinate(lon_text);
-    auto lat = parse_place_coordinate(lat_text);
-    if (!lon || !lat) return std::nullopt;
-    MapPlace place;
-    place.id = id.empty() ? normalize_key(name) : id;
-    place.name = trim(std::move(name));
-    place.lon = *lon;
-    place.lat = *lat;
-    place.kind = headerless ? place_catalog_value(cols, idx, {}, 4) : place_catalog_value(cols, idx, {"kind", "tipo", "feature", "feature_code", "featurecode", "clase", "ambito", "estatus", "categoria"}, 4);
-    place.population = std::max(0, parse_place_int(headerless ? place_catalog_value(cols, idx, {}, 6) : place_catalog_value(cols, idx, {"population", "poblacion", "poblacion_total", "pob_total", "pop", "pob", "habitantes"}, 6), 0));
-    place.population_year = std::max(0, parse_place_int(headerless ? std::string() : place_catalog_value(cols, idx, {"population_year", "census_year", "anio_censo", "ano_censo", "año_censo", "year", "anio", "ano"}, -1), 0));
-    place.elevation_m = std::max(0, parse_place_int(headerless ? std::string() : place_catalog_value(cols, idx, {"elevation_m", "altitud_m", "altitud", "elevacion", "elevacion_m", "msnm", "dem"}, -1), 0));
-    place.rank = place_rank_from_kind(place.kind, place.population,
-        std::clamp(parse_place_int(headerless ? place_catalog_value(cols, idx, {}, 5) : place_catalog_value(cols, idx, {"rank", "rango", "priority", "prioridad", "jerarquia"}, 5), 3), 1, 4));
-    place.country = headerless ? std::string() : place_catalog_value(cols, idx, {"country", "pais", "iso2", "country_code"}, -1);
-    place.admin1 = headerless ? std::string() : place_catalog_value(cols, idx, {"admin1", "estado", "entidad", "entidad_federativa", "nom_ent"}, -1);
-    place.admin2 = headerless ? std::string() : place_catalog_value(cols, idx, {"admin2", "municipio", "nom_mun", "alcaldia", "alcaldía"}, -1);
-    place.notes = headerless ? std::string() : place_catalog_value(cols, idx, {"notes", "nota", "notas", "descripcion", "descripción", "contexto", "detalle"}, -1);
-    place.source_url = headerless ? std::string() : place_catalog_value(cols, idx, {"source_url", "url", "liga", "enlace"}, -1);
-    place.glyph = headerless ? std::string() : place_catalog_value(cols, idx, {"glyph", "glifo", "icon", "icono", "icon_file", "archivo_icono", "simbolo", "símbolo"}, -1);
-    if (!place.country.empty() && normalize_key(place.country) != "mx" && normalize_key(place.country) != "mexico") return std::nullopt;
-    place.source = headerless ? place_catalog_value(cols, idx, {}, 7) : place_catalog_value(cols, idx, {"source", "fuente", "origen"}, 7);
-    if (place.source.empty()) place.source = "catálogo:" + path_utf8(source_path.filename());
-    if (place.population > 0 && place.population_year <= 0) {
-        const std::string src_norm = normalize_key(place.source + " " + path_utf8(source_path.filename()));
-        if (src_norm.find("curado") != std::string::npos || src_norm.find("inegi") != std::string::npos || src_norm.find("censo") != std::string::npos || src_norm.find("tlalpowa") != std::string::npos) {
-            place.population_year = 2020;
-        }
-    }
-    return place;
-}
-
-void normalize_place_anchor(MapPlace& place) {
-    const std::string norm = normalize_key(place.name);
-    const std::string id_norm = normalize_key(place.id);
-    if (norm == "ciudad de mexico" || norm == "mexico city" || norm == "cdmx" || id_norm.find("zocalo") != std::string::npos || id_norm.find("cdmx_zocalo") != std::string::npos) {
-        place.lon = -99.133208;
-        place.lat = 19.432608;
-        place.zocalo_anchor = true;
-        place.rank = 1;
-        if (place.kind.empty()) place.kind = "capital / anclaje Zocalo";
-        if (place.population_year <= 0) place.population_year = 2020;
-        if (place.source.empty()) place.source = "Tlalpowa:zocalo";
-    }
-}
-
-
-
-std::vector<MapPlace> load_map_places_from_file(const fs::path& path, const MapPlaceBounds& bounds) {
-    std::vector<MapPlace> out;
-    try {
-        if (path.empty() || !fs::exists(path) || !fs::is_regular_file(path)) return out;
-        std::ifstream in(path, std::ios::binary);
-        if (!in) return out;
-        std::unordered_map<std::string, int> idx;
-        bool header_ready = false;
-        bool headerless = false;
-        std::string line;
-        while (std::getline(in, line)) {
-            if (!line.empty() && line.back() == '\r') line.pop_back();
-            std::string stripped = trim(place_strip_bom(line));
-            if (stripped.empty() || stripped[0] == '#') continue;
-            auto cols = split_place_catalog_line(line);
-            if (cols.empty()) continue;
-            if (place_geonames_row_candidate(cols)) {
-                if (auto place = place_from_geonames_row(cols, path)) {
-                    normalize_place_anchor(*place);
-                    if (place_in_bounds(bounds, place->lon, place->lat)) out.push_back(std::move(*place));
-                }
-                continue;
-            }
-            if (!header_ready) {
-                auto probe = place_catalog_header_index(cols);
-                const bool looks_like_header = (probe.count("name") || probe.count("nombre") || probe.count("asciiname") || probe.count("localidad") || probe.count("nom_loc")) &&
-                                               (probe.count("lon") || probe.count("lng") || probe.count("longitude") || probe.count("longitud") || probe.count("long_decimal") || probe.count("longitud_decimal") || probe.count("longitud_dec") || probe.count("long") || probe.count("x")) &&
-                                               (probe.count("lat") || probe.count("latitude") || probe.count("latitud") || probe.count("lat_decimal") || probe.count("latitud_decimal") || probe.count("latitud_dec") || probe.count("y"));
-                if (looks_like_header) {
-                    idx = std::move(probe);
-                    header_ready = true;
-                    continue;
-                }
-                header_ready = true;
-                headerless = true;
-            }
-            if (auto place = place_from_standard_row(cols, idx, headerless, path)) {
-                normalize_place_anchor(*place);
-                if (place_in_bounds(bounds, place->lon, place->lat)) out.push_back(std::move(*place));
-            }
-        }
-    } catch (...) {
-        out.clear();
-    }
-    return deduplicate_map_places(std::move(out));
-}
-
-bool place_catalog_filename_looks_relevant(const fs::path& p) {
-    const std::string raw_fn = lower_ascii(path_utf8(p.filename()));
-    const std::string fn = normalize_key(raw_fn);
-    std::string ext = lower_ascii(path_utf8(p.extension()));
-    if (!ext.empty() && ext.front() == '.') ext.erase(ext.begin());
-    if (ext != "tsv" && ext != "csv" && ext != "txt") return false;
-    if (raw_fn == "mx.txt" || raw_fn == "cities500.txt" || raw_fn == "cities1000.txt" || raw_fn == "cities500_mx.txt" || raw_fn == "cities1000_mx.txt") return true;
-    return fn.find("poblado") != std::string::npos || fn.find("pueblo") != std::string::npos ||
-           fn.find("localidad") != std::string::npos || fn.find("localidades") != std::string::npos ||
-           fn.find("geonames") != std::string::npos || fn.find("gazetteer") != std::string::npos ||
-           fn.find("inegi") != std::string::npos || fn.find("ageeml") != std::string::npos;
-}
-
-void append_existing_place_catalog_path(std::vector<fs::path>& paths, std::unordered_set<std::string>& seen, const fs::path& p) {
-    std::error_code ec;
-    if (p.empty() || !fs::exists(p, ec) || !fs::is_regular_file(p, ec)) return;
-    const std::string key = normalize_key(path_utf8(p.lexically_normal()));
-    if (seen.insert(key).second) paths.push_back(p);
-}
-
-void scan_place_catalog_directory(std::vector<fs::path>& paths, std::unordered_set<std::string>& seen, const fs::path& root, int max_depth = 3, int max_files = 240) {
-    std::error_code ec;
-    if (root.empty() || !fs::exists(root, ec) || !fs::is_directory(root, ec)) return;
-    const fs::path base = root.lexically_normal();
-    int accepted = 0;
-    for (fs::recursive_directory_iterator it(base, fs::directory_options::skip_permission_denied, ec), end; it != end && !ec; it.increment(ec)) {
-        if (it.depth() > max_depth) { it.disable_recursion_pending(); continue; }
-        if (!it->is_regular_file(ec)) { ec.clear(); continue; }
-        const fs::path p = it->path();
-        if (!place_catalog_filename_looks_relevant(p)) continue;
-        append_existing_place_catalog_path(paths, seen, p);
-        if (++accepted >= max_files) break;
-    }
-}
-
-std::vector<fs::path> existing_place_catalog_paths(const fs::path& geo_root) {
-    std::vector<fs::path> paths;
-    std::unordered_set<std::string> seen;
-    const std::array<fs::path, 18> candidates = {
-        geo_root / "poblados_mapa.tsv",
-        geo_root / "poblados_regionales.tsv",
-        geo_root / "poblados_centro_mexico.tsv",
-        geo_root / "poblados_zmvm.tsv",
-        geo_root / "localidades_inegi.tsv",
-        geo_root / "localidades_inegi.csv",
-        geo_root / "inegi_localidades.tsv",
-        geo_root / "inegi_localidades.csv",
-        geo_root / "geonames_mx.tsv",
-        geo_root / "geonames_mx.txt",
-        geo_root / "cities500_mx.txt",
-        geo_root / "cities1000_mx.txt",
-        geo_root / "cities500.txt",
-        geo_root / "cities1000.txt",
-        geo_root / "MX.txt",
-        datos_externos_root() / "Territorio" / "Localidades" / "MX.txt",
-        datos_externos_root() / "Territorio" / "Localidades" / "cities1000.txt",
-        datos_externos_root() / "Territorio" / "Localidades" / "localidades_inegi.tsv"
-    };
-    for (const auto& p : candidates) append_existing_place_catalog_path(paths, seen, p);
-    scan_place_catalog_directory(paths, seen, geo_root, 2, 240);
-    scan_place_catalog_directory(paths, seen, datos_externos_root() / "Territorio", 3, 240);
-    scan_place_catalog_directory(paths, seen, datos_externos_root() / "Datos Demográficos", 3, 120);
-    return paths;
-}
-
-std::vector<MapPlace> load_map_places(const std::vector<fs::path>& paths, const std::vector<MapFeature>& features, const std::vector<MapFeature>& buffer_features) {
-    std::vector<MapPlace> raw;
-    const MapPlaceBounds bounds = place_operational_bounds(features, buffer_features);
-    for (const auto& path : paths) {
-        auto loaded = load_map_places_from_file(path, bounds);
-        raw.insert(raw.end(), std::make_move_iterator(loaded.begin()), std::make_move_iterator(loaded.end()));
-    }
-    MapPlace zocalo;
-    zocalo.id = "tlalpowa:cdmx_zocalo";
-    zocalo.name = "Ciudad de México";
-    zocalo.kind = "capital / anclaje Zocalo";
-    zocalo.source = "Tlalpowa:fallback_zocalo";
-    zocalo.lon = -99.133208;
-    zocalo.lat = 19.432608;
-    zocalo.population = 9209944;
-    zocalo.population_year = 2020;
-    zocalo.notes = "Anclaje cartográfico fijado en el Zócalo para evitar centroides administrativos de la Ciudad de México.";
-    zocalo.rank = 1;
-    zocalo.zocalo_anchor = true;
-    raw.push_back(std::move(zocalo));
-
-    std::vector<MapPlace> out = deduplicate_map_places(std::move(raw));
-    std::stable_sort(out.begin(), out.end(), [](const MapPlace& a, const MapPlace& b) {
-        if (a.rank != b.rank) return a.rank < b.rank;
-        if (a.population != b.population) return a.population > b.population;
-        const std::string an = normalize_key(a.name);
-        const std::string bn = normalize_key(b.name);
-        if (an != bn) return an < bn;
-        if (a.lat != b.lat) return a.lat < b.lat;
-        return a.lon < b.lon;
-    });
-    return out;
-}
-
-std::vector<MapPlace> load_map_places(const fs::path& path, const std::vector<MapFeature>& features, const std::vector<MapFeature>& buffer_features) {
-    return load_map_places(std::vector<fs::path>{path}, features, buffer_features);
-}
 
 
 
@@ -18889,6 +18473,139 @@ GeoBounds viewport_lonlat_bounds(const MapViewport& view) {
     return g;
 }
 
+std::vector<MapFeature> openmap_boundary_features(const tlalpowa::openmap::Snapshot& snapshot, bool states) {
+    std::vector<MapFeature> out;
+    out.reserve(snapshot.boundaries.size());
+    for (const auto& boundary : snapshot.boundaries) {
+        const bool is_state = boundary.admin_level > 0 && boundary.admin_level <= 4;
+        if (is_state != states || boundary.name.empty() || boundary.rings.empty()) continue;
+        MapFeature feature;
+        feature.id = jurisdiction_id_from_name(boundary.name);
+        feature.name = boundary.name;
+        feature.admin1_id = boundary.admin1_id;
+        feature.admin2_id = boundary.admin2_id;
+        for (const auto& source_ring : boundary.rings) {
+            std::vector<Point2> ring;
+            ring.reserve(source_ring.size());
+            for (const auto& point : source_ring) {
+                if (std::isfinite(point.first) && std::isfinite(point.second)) {
+                    ring.push_back({point.first, point.second});
+                }
+            }
+            if (ring.size() >= 3u) feature.rings.push_back(std::move(ring));
+        }
+        if (!feature.id.empty() && !feature.rings.empty()) {
+            recompute_map_feature_bounds(feature);
+            out.push_back(std::move(feature));
+        }
+    }
+    std::stable_sort(out.begin(), out.end(), [](const MapFeature& a, const MapFeature& b) {
+        return a.id < b.id;
+    });
+    out.erase(std::unique(out.begin(), out.end(), [](const MapFeature& a, const MapFeature& b) {
+        return a.id == b.id;
+    }), out.end());
+    return out;
+}
+
+std::vector<MapPlace> openmap_places(const tlalpowa::openmap::Snapshot& snapshot) {
+    std::vector<MapPlace> out;
+    out.reserve(snapshot.places.size() + 1u);
+    for (const auto& source : snapshot.places) {
+        MapPlace place;
+        place.id = source.id;
+        place.name = source.name;
+        place.kind = source.kind;
+        place.source = "OpenStreetMap";
+        place.lon = source.lon;
+        place.lat = source.lat;
+        place.population = source.population;
+        place.elevation_m = source.elevation_m;
+        place.rank = std::clamp(source.rank, 1, 4);
+        place.admin1 = source.admin1;
+        place.admin2 = source.admin2;
+        place.source_url = source.source_url;
+        place.notes = "Lugar obtenido directamente de OpenStreetMap.";
+        if (!place.name.empty() && std::isfinite(place.lon) && std::isfinite(place.lat)) {
+            normalize_place_anchor(place);
+            out.push_back(std::move(place));
+        }
+    }
+    MapPlace zocalo;
+    zocalo.id = "tlalpowa:cdmx_zocalo";
+    zocalo.name = "Ciudad de México";
+    zocalo.kind = "capital / anclaje Zocalo";
+    zocalo.source = "Tlalpowa:respaldo_minimo";
+    zocalo.lon = -99.133208;
+    zocalo.lat = 19.432608;
+    zocalo.rank = 1;
+    zocalo.zocalo_anchor = true;
+    out.push_back(std::move(zocalo));
+    return deduplicate_map_places(std::move(out));
+}
+
+std::vector<MapWaterBody> openmap_water_bodies(const tlalpowa::openmap::Snapshot& snapshot) {
+    std::vector<MapWaterBody> out;
+    out.reserve(snapshot.waters.size());
+    for (const auto& source : snapshot.waters) {
+        if (source.name.empty() || !std::isfinite(source.lon) || !std::isfinite(source.lat)) continue;
+        out.push_back({source.id, source.name, source.kind, source.source_url, source.lon, source.lat});
+    }
+    return out;
+}
+
+void synchronize_openmap_snapshot(UiState& ui, const MapViewport& view) {
+    const GeoBounds bounds = viewport_lonlat_bounds(view);
+    if (!bounds.valid) return;
+    tlalpowa::openmap::request({
+        bounds.lon_min, bounds.lat_min, bounds.lon_max, bounds.lat_max, view.z,
+        map_tile_cache_root() / "openmap_features"
+    });
+    const auto snapshot = tlalpowa::openmap::current_snapshot();
+    if (!snapshot || snapshot->key.empty()) return;
+
+    {
+        std::lock_guard<std::mutex> lock(ui.mu);
+        if (ui.openmap_snapshot_key == snapshot->key) return;
+    }
+
+    std::vector<MapFeature> municipality_features = openmap_boundary_features(*snapshot, false);
+    std::vector<MapFeature> state_features = openmap_boundary_features(*snapshot, true);
+    std::vector<MapPlace> places = openmap_places(*snapshot);
+    std::vector<MapWaterBody> waters = openmap_water_bodies(*snapshot);
+    const bool osm_has_analytic_boundaries = !municipality_features.empty();
+
+    std::lock_guard<std::mutex> lock(ui.mu);
+    if (ui.openmap_snapshot_key == snapshot->key) return;
+    ui.openmap_snapshot_key = snapshot->key;
+    if (osm_has_analytic_boundaries) {
+        if (ui.fallback_features_ptr) {
+            std::unordered_set<std::string> osm_ids;
+            osm_ids.reserve(municipality_features.size() * 2u + 1u);
+            for (const MapFeature& feature : municipality_features) osm_ids.insert(feature.id);
+            for (const MapFeature& fallback : *ui.fallback_features_ptr) {
+                if (osm_ids.insert(fallback.id).second) municipality_features.push_back(fallback);
+            }
+        }
+        ui.features_ptr = std::make_shared<const std::vector<MapFeature>>(std::move(municipality_features));
+        if (!state_features.empty()) {
+            if (ui.fallback_state_features_ptr) {
+                std::unordered_set<std::string> osm_ids;
+                osm_ids.reserve(state_features.size() * 2u + 1u);
+                for (const MapFeature& feature : state_features) osm_ids.insert(feature.id);
+                for (const MapFeature& fallback : *ui.fallback_state_features_ptr) {
+                    if (osm_ids.insert(fallback.id).second) state_features.push_back(fallback);
+                }
+            }
+            ui.state_features_ptr = std::make_shared<const std::vector<MapFeature>>(std::move(state_features));
+        }
+        ui.territorial_status = "Límites analíticos OpenStreetMap activos";
+    }
+    ui.places = std::move(places);
+    ui.water_bodies = std::move(waters);
+    ui.map_revision.fetch_add(1, std::memory_order_relaxed);
+}
+
 
 
 std::string mobility_system_group(const std::string& system) {
@@ -21232,137 +20949,6 @@ fs::path choose_observation_source_fast(bool allow_partial_weeks) {
     (void)allow_partial_weeks;
 
     return {};
-#if 0
-
-
-    const fs::path live = epidemiology_output_root();
-
-
-    const fs::path last = epidemiology_last_good_dir();
-
-    auto live_fast_file = [&]() {
-
-        return first_existing_observation_file({
-
-            live / "web_observaciones_ligero_core.tsv",
-
-
-            live / "web_observaciones_ligero.jsonl",
-
-
-            live / "observaciones_en_vivo_ligero.jsonl",
-
-
-            live / "web_observaciones.jsonl",
-
-
-            live / "observaciones_en_vivo.jsonl"
-        });
-    };
-
-    auto live_full_file = [&]() {
-
-        return first_existing_observation_file({
-
-
-            live / "observaciones.jsonl",
-
-
-            live / "observations.jsonl"
-        });
-    };
-
-    auto last_good_fast_file = [&]() {
-
-        return first_existing_observation_file({
-
-            last / "web_observaciones_ligero_core.tsv",
-
-
-            last / "web_observaciones_ligero.jsonl",
-
-
-            last / "observaciones_en_vivo_ligero.jsonl",
-
-
-            last / "web_observaciones.jsonl",
-
-
-            last / "observaciones_en_vivo.jsonl"
-        });
-    };
-
-    auto last_good_full_file = [&]() {
-
-        return first_existing_observation_file({
-
-
-            last / "observaciones.jsonl",
-
-
-            last / "observations.jsonl"
-        });
-    };
-
-    if (allow_partial_weeks) {
-
-        fs::path p = live_fast_file();
-
-        if (!p.empty()) return p;
-
-        p = last_good_fast_file();
-
-        if (!p.empty()) return p;
-
-
-        p = last_good_full_file();
-
-        if (!p.empty()) return p;
-
-        return live_full_file();
-    } else {
-
-        if (run_state_is_complete(live)) {
-
-            fs::path p = live_fast_file();
-
-            if (!p.empty()) return p;
-        }
-
-        fs::path p = last_good_fast_file();
-
-        if (!p.empty()) return p;
-
-        p = last_good_full_file();
-
-        if (!p.empty()) return p;
-
-        p = live_fast_file();
-
-        if (!p.empty()) return p;
-
-        p = live_full_file();
-
-        if (!p.empty()) return p;
-    }
-
-    return first_existing_observation_file({
-
-        executable_dir() / "Datos" / "web_observaciones_ligero_core.tsv",
-
-
-        executable_dir() / "Datos" / "web_observaciones_ligero.jsonl",
-
-
-        executable_dir() / "Datos" / "web_observaciones.jsonl",
-
-
-        executable_dir() / "Datos" / "observaciones.jsonl",
-
-
-        executable_dir() / "Datos" / "observations.jsonl"
-    });
-#endif
 }
 
 
@@ -21957,6 +21543,13 @@ bool tlalpowa_timeline_from_startup_gate_week_bucket(std::uint64_t week_bucket, 
     return true;
 }
 
+bool tlalpowa_preload_startup_exact_epidemiology_for_pies(UiState& ui,
+                                                          const std::string& anchor_week);
+bool tlalpowa_try_publish_preloaded_epidemiology_pies(UiState& ui,
+                                                     const std::set<std::string>& requested_diseases,
+                                                     const std::string& requested_filter_signature,
+                                                     const std::string& requested_anchor_week);
+
 std::uint64_t tlalpowa_epi_week_bucket_for_timeline_hour(int64_t timeline_hour) {
     const std::uint64_t epi_key =
         tlalpowa_epi_temporal_key_from_week_label(format_timeline_week_label(timeline_hour));
@@ -22012,7 +21605,7 @@ void tlalpowa_hint_hotdata_temporal_window(UiState& ui) {
         std::lock_guard<std::mutex> lock(ui.mu);
         ready = ui.startup_hotdata_ready;
         first_visible_ready = ui.startup_first_visible_hotdata_ready;
-        epidemiology_active = !ui.selected_diseases.empty();
+        epidemiology_active = true;
         hour = ui.timeline_initialized ? ui.timeline_hour : current_local_timeline_hour();
         minute = ui.timeline_initialized ? ui.timeline_minute : current_local_timeline_minute();
     }
@@ -22020,16 +21613,15 @@ void tlalpowa_hint_hotdata_temporal_window(UiState& ui) {
     hour = clamp_timeline_navigation_hour(hour);
     minute = std::clamp(minute, 0, 59);
     const std::uint64_t atmosphere_key = tlalpowa_atmospheric_temporal_key_from_timeline(hour, minute);
-    const std::uint64_t epi_key = epidemiology_active
-        ? tlalpowa_epi_temporal_key_from_week_label(format_timeline_week_label(hour))
-        : 0ull;
+    const std::string active_epi_week_label = format_timeline_week_label(hour);
+    const std::uint64_t epi_key = tlalpowa_epi_temporal_key_from_week_label(active_epi_week_label);
     const bool same_active = last_active_atmosphere_key.load(std::memory_order_relaxed) == atmosphere_key &&
                              last_active_epi_key.load(std::memory_order_relaxed) == epi_key;
     if (same_active && first_visible_ready) return;
 
     const std::uint64_t generation = background_generation.fetch_add(1ull, std::memory_order_acq_rel) + 1ull;
     if (background_busy.exchange(true, std::memory_order_acq_rel)) return;
-    std::thread([&ui, atmosphere_key, epi_key, epidemiology_active, generation]() {
+    std::thread([&ui, atmosphere_key, epi_key, active_epi_week_label, epidemiology_active, generation]() {
         struct BusyReset {
             std::atomic_bool& busy;
             ~BusyReset() { busy.store(false, std::memory_order_release); }
@@ -22067,9 +21659,11 @@ void tlalpowa_hint_hotdata_temporal_window(UiState& ui) {
                                                                     &stats_active_meteorology);
             }
             if (epidemiology_active && epi_key != 0ull && background_generation.load(std::memory_order_acquire) == generation) {
-                (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY,
+                (void)tlalpowa_hotdata_prepare_core_for_anchor_file(TLALPOWA_HOTDATA_CORE_CONTAMINANT,
+                                                                    atmosphere_key,
+                                                                    TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY,
                                                                     epi_key,
-                                                                    8u,
+                                                                    12u,
                                                                     192u * 1024u,
                                                                     0u,
                                                                     0u,
@@ -22080,7 +21674,12 @@ void tlalpowa_hint_hotdata_temporal_window(UiState& ui) {
             const bool active_atmosphere_ready = (stats_active_contaminant.prepared_hits +
                                                   stats_active_meteorology.prepared_hits) > 0ull;
             const bool active_epidemiology_ready = stats_active_epidemiology.prepared_hits > 0ull;
-            const bool active_ready = active_atmosphere_ready && (!epidemiology_active || active_epidemiology_ready);
+            bool active_epidemiology_cache_ready = false;
+            if (active_epidemiology_ready && !active_epi_week_label.empty() &&
+                background_generation.load(std::memory_order_acquire) == generation) {
+                active_epidemiology_cache_ready = tlalpowa_preload_startup_exact_epidemiology_for_pies(ui, active_epi_week_label);
+            }
+            const bool active_ready = active_atmosphere_ready && active_epidemiology_ready;
             if (background_generation.load(std::memory_order_acquire) == generation) {
                 last_active_atmosphere_key.store(atmosphere_key, std::memory_order_relaxed);
                 last_active_epi_key.store(epi_key, std::memory_order_relaxed);
@@ -22089,7 +21688,9 @@ void tlalpowa_hint_hotdata_temporal_window(UiState& ui) {
                     ui.startup_first_visible_hotdata_ready = true;
                     ui.startup_first_visible_temporal_key = atmosphere_key;
                     if (ui.status.find("No pude") == std::string::npos && ui.app_uptime < kStartupSplashMaximumSeconds) {
-                        ui.status = "Primera fecha visible lista en IXIPTLAH; vecinos cronologicos siguen en segundo plano";
+                        ui.status = active_epidemiology_cache_ready
+                            ? "Primera fecha visible lista; cache epidemiologico latente actualizado"
+                            : "Primera fecha visible lista en IXIPTLAH, con epidemiologia semanal precargada";
                     }
                 }
             }
@@ -22121,11 +21722,13 @@ void tlalpowa_hint_hotdata_temporal_window(UiState& ui) {
                                                                     &stats_meteorology);
             }
             if (epidemiology_active && epi_key != 0ull && background_generation.load(std::memory_order_acquire) == generation) {
-                (void)tlalpowa_hotdata_prepare_active_temporal_view(TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY,
+                (void)tlalpowa_hotdata_prepare_core_for_anchor_file(TLALPOWA_HOTDATA_CORE_CONTAMINANT,
+                                                                    atmosphere_key,
+                                                                    TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY,
                                                                     epi_key,
                                                                     0u,
                                                                     0u,
-                                                                    12u,
+                                                                    16u,
                                                                     64u * 1024u,
                                                                     epidemiology_hits,
                                                                     &stats_epidemiology);
@@ -23999,6 +23602,150 @@ void publish_epidemiology_shared_cache_to_ui(UiState& ui,
         (anchor_week.empty() ? std::string{} : "; fecha anclada >75% " + anchor_week);
 }
 
+
+bool tlalpowa_epi_preloaded_signature_matches(const std::string& cached_signature,
+                                              const std::string& requested_filter_signature) {
+    if (cached_signature == requested_filter_signature) return true;
+    return requested_filter_signature == "__TLALPOWA_GRAPH_IXIPTLAH__" &&
+           cached_signature == "__TLALPOWA_ALL_EPIDEMIOLOGY__";
+}
+
+bool tlalpowa_epi_preloaded_request_is_graph(const std::string& requested_filter_signature) {
+    return requested_filter_signature == "__TLALPOWA_GRAPH_IXIPTLAH__";
+}
+
+bool tlalpowa_try_publish_preloaded_epidemiology_pies(UiState& ui,
+                                                     const std::set<std::string>& requested_diseases,
+                                                     const std::string& requested_filter_signature,
+                                                     const std::string& requested_anchor_week) {
+    if (!tlalpowa_all_epidemiology_selected(requested_diseases)) return false;
+
+    std::shared_ptr<const EpiRenderDiskCache> cache;
+    std::string cached_signature;
+    std::string cached_anchor_week;
+    {
+        std::lock_guard<std::mutex> lock(ui.mu);
+        if (!ui.startup_epi_pies_cache_ready || !ui.startup_epi_pies_cache || ui.startup_epi_pies_cache->observations.empty()) return false;
+        cached_signature = ui.startup_epi_pies_filter_signature;
+        cached_anchor_week = ui.startup_epi_pies_anchor_week;
+        if (!tlalpowa_epi_preloaded_signature_matches(cached_signature, requested_filter_signature)) return false;
+        if (!tlalpowa_epi_preloaded_request_is_graph(requested_filter_signature) &&
+            !requested_anchor_week.empty() && cached_anchor_week != requested_anchor_week) return false;
+        cache = ui.startup_epi_pies_cache;
+    }
+
+    publish_epidemiology_shared_cache_to_ui(
+        ui, std::move(cache), requested_diseases, requested_filter_signature,
+        "IXIPTLAH: cache epidemiologico latente publicado por casilla activa",
+        true, cached_anchor_week);
+
+    {
+        std::lock_guard<std::mutex> lock(ui.mu);
+        ui.observations_full_loading = false;
+        ui.observations_loading = false;
+        ui.observations_full_attempted = true;
+        ui.observations_full_loaded = ui.observations_ptr && !ui.observations_ptr->empty();
+        if (ui.status.find("No pude") == std::string::npos) {
+            ui.status = "Pasteles epidemiologicos publicados desde RAM; sin relectura IXIPTLAH.";
+        }
+    }
+    return true;
+}
+
+
+std::mutex& epidemiology_observation_load_mutex();
+
+bool tlalpowa_preload_startup_exact_epidemiology_for_pies(UiState& ui,
+                                                          const std::string& anchor_week) {
+    static const std::set<std::string> all_diseases{kTlalpowaAllEpidemiologySelection};
+    bool loaded = false;
+    std::size_t loaded_rows = 0;
+    std::size_t loaded_weeks = 0;
+
+    if (!anchor_week.empty()) {
+        {
+            std::lock_guard<std::mutex> lock(ui.mu);
+            if (ui.startup_epi_pies_cache_ready && ui.startup_epi_pies_cache &&
+                ui.startup_epi_pies_anchor_week == anchor_week && !ui.startup_epi_pies_cache->observations.empty()) {
+                ui.startup_recent_data_loading = false;
+                ui.startup_recent_data_ready = true;
+                return true;
+            }
+        }
+
+        std::unique_lock<std::mutex> load_lock(epidemiology_observation_load_mutex());
+        try {
+            const fs::path root = epidemiology_output_root();
+            const std::vector<std::string> anchor_weeks{anchor_week};
+            TlalpowaEpiIxiptlahLoadPlan plan = tlalpowa_epidemiology_ixiptlah_file_load_plan(root, anchor_weeks, 0, 0);
+
+            auto exact_cache = std::make_shared<EpiRenderDiskCache>();
+            std::vector<fs::path> hot_files;
+            if (plan.hot_count > 0 && plan.hot_count <= plan.files.size()) {
+                hot_files.assign(plan.files.begin(), plan.files.begin() + static_cast<std::ptrdiff_t>(plan.hot_count));
+            }
+
+            if (!hot_files.empty()) {
+                loaded = read_epidemiology_render_cache_filtered_weeks_from_files(
+                    root, all_diseases, anchor_weeks, hot_files, *exact_cache,
+                    "startup-exact-week-hot-pies-latent");
+            }
+            if ((!loaded || exact_cache->observations.empty()) && !plan.files.empty()) {
+                auto fallback_cache = std::make_shared<EpiRenderDiskCache>();
+                loaded = read_epidemiology_render_cache_filtered_weeks_from_files(
+                    root, all_diseases, anchor_weeks, plan.files, *fallback_cache,
+                    "startup-exact-week-all-files-pies-latent");
+                if (loaded) exact_cache = std::move(fallback_cache);
+            }
+
+            if (loaded && exact_cache && !exact_cache->observations.empty()) {
+                loaded_rows = exact_cache->observations.size();
+                loaded_weeks = exact_cache->weeks.size();
+                const std::string all_signature = disease_filter_signature(all_diseases);
+                {
+                    std::lock_guard<std::mutex> lock(ui.mu);
+                    ui.startup_epi_pies_cache = std::move(exact_cache);
+                    ui.startup_epi_pies_filter_signature = all_signature;
+                    ui.startup_epi_pies_anchor_week = anchor_week;
+                    ui.startup_epi_pies_rows = static_cast<std::uint64_t>(loaded_rows);
+                    ui.startup_epi_pies_weeks = static_cast<std::uint64_t>(loaded_weeks);
+                    ui.startup_epi_pies_cache_ready = true;
+                    ui.startup_recent_data_loading = false;
+                    ui.startup_recent_data_ready = true;
+                    ui.observations_loading = false;
+                    ui.observations_full_loading = false;
+                    ui.status = "Cache epidemiologico latente listo antes de bienvenida: " +
+                        std::to_string(loaded_rows) + " registros, " + std::to_string(loaded_weeks) +
+                        " semana(s); casilla apagada.";
+                }
+                return true;
+            }
+        } catch (const std::exception& e) {
+            tlalpowa_log_failure("startup.epidemiologia.pasteles", e.what());
+        } catch (...) {
+            tlalpowa_log_failure("startup.epidemiologia.pasteles", "excepcion desconocida");
+        }
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(ui.mu);
+        ui.startup_epi_pies_cache.reset();
+        ui.startup_epi_pies_filter_signature.clear();
+        ui.startup_epi_pies_anchor_week.clear();
+        ui.startup_epi_pies_rows = 0;
+        ui.startup_epi_pies_weeks = 0;
+        ui.startup_epi_pies_cache_ready = false;
+        ui.startup_recent_data_loading = false;
+        ui.startup_recent_data_ready = true;
+        if (ui.status.find("No pude") == std::string::npos) {
+            ui.status = anchor_week.empty()
+                ? "Bienvenida sin semana epidemiologica exacta precargable"
+                : "Bienvenida sin cache epidemiologico exacto para " + anchor_week;
+        }
+    }
+    return false;
+}
+
 // load_recent_observations_lite abolida: no existe lectura parcial/viva de IXIPTLAH abiertos.
 
 std::mutex& epidemiology_observation_load_mutex() {
@@ -24008,6 +23755,29 @@ std::mutex& epidemiology_observation_load_mutex() {
 
 void load_observations(UiState& ui, bool allow_partial_weeks = false) {
     (void)allow_partial_weeks;
+
+    // Salida ultradirecta para el clic de Datos Epidemiológicos: si la bienvenida
+    // ya dejó la semana activa en RAM, se publica sin tomar el mutex de lectura
+    // IXIPTLAH. La casilla sólo la cambia el gesto del usuario; esta ruta no toca
+    // selected_diseases ni recalcula datos.
+    {
+        std::set<std::string> requested_diseases_fast;
+        std::vector<std::string> requested_anchor_weeks_fast;
+        {
+            std::lock_guard<std::mutex> lock(ui.mu);
+            requested_diseases_fast = ui.selected_diseases;
+            requested_anchor_weeks_fast = tlalpowa_epidemiology_anchor_labels_locked(ui);
+        }
+        if (!requested_diseases_fast.empty()) {
+            const std::string requested_filter_signature_fast = disease_filter_signature(requested_diseases_fast);
+            const std::string preferred_anchor_week_fast = requested_anchor_weeks_fast.empty() ? std::string{} : requested_anchor_weeks_fast.front();
+            if (tlalpowa_try_publish_preloaded_epidemiology_pies(
+                    ui, requested_diseases_fast, requested_filter_signature_fast, preferred_anchor_week_fast)) {
+                return;
+            }
+        }
+    }
+
     std::unique_lock<std::mutex> load_lock(epidemiology_observation_load_mutex(), std::try_to_lock);
     if (!load_lock.owns_lock()) {
         std::lock_guard<std::mutex> lock(ui.mu);
@@ -24060,6 +23830,11 @@ void load_observations(UiState& ui, bool allow_partial_weeks = false) {
         if (ui.status.find("No pude") == std::string::npos) ui.status = ui.observations_loading_phase;
         ui.observations_revision.fetch_add(1, std::memory_order_relaxed);
         ui.map_revision.fetch_add(1, std::memory_order_relaxed);
+        return;
+    }
+
+    if (tlalpowa_try_publish_preloaded_epidemiology_pies(
+            ui, requested_diseases, requested_filter_signature, preferred_anchor_week)) {
         return;
     }
 
@@ -24651,52 +24426,6 @@ void load_observations(UiState& ui, bool allow_partial_weeks = false) {
 
     std::vector<fs::path> candidates;
     candidates.push_back(fast_source);
-#if 0
-
-    std::vector<ObservationCandidateProfile> profiles;
-
-    for (const auto& p : candidates) {
-        std::error_code ec;
-
-        if (!fs::exists(p, ec) || ec) continue;
-
-        profiles.push_back(profile_observation_candidate(p));
-    }
-
-    if (profiles.empty()) return;
-
-    auto best_it = std::max_element(profiles.begin(), profiles.end(), [](const auto& a, const auto& b) { return a.score < b.score; });
-
-    if (allow_partial_weeks) {
-
-
-
-        auto live_it = std::max_element(profiles.begin(), profiles.end(), [](const auto& a, const auto& b) {
-
-
-            const bool al = a.path.parent_path() == epidemiology_output_root();
-
-
-            const bool bl = b.path.parent_path() == epidemiology_output_root();
-
-            if (al != bl) return !al && bl;
-
-            return a.usable_rows < b.usable_rows;
-        });
-
-
-        if (live_it != profiles.end() && live_it->usable_rows > 0 && live_it->path.parent_path() == epidemiology_output_root()) best_it = live_it;
-    }
-
-    if (best_it == profiles.end() || best_it->usable_rows == 0) return;
-
-    const ObservationCandidateProfile profile = *best_it;
-
-
-    const bool protect_against_sparse_weeks = !allow_partial_weeks && profile.reference_disease_count >= 8 && profile.strong_weeks > 0;
-
-    const size_t min_diseases_for_valid_week = profile.reference_disease_count == 0 ? 0 : static_cast<size_t>(std::floor(static_cast<double>(profile.reference_disease_count) * 0.80)) + 1;
-#endif
 
     ObservationCandidateProfile profile;
 
@@ -28556,7 +28285,7 @@ void load_atmospheric_clouds(UiState& ui, bool activate_loaded_keys = false) {
             datos_root() / "nube_atmosferica_ligera.jsonl",
 
 
-            executable_dir() / "Datos" / "Atmosfera" / "nube_atmosferica_ligera.jsonl"
+            executable_dir() / "datos" / "Atmosfera" / "nube_atmosferica_ligera.jsonl"
         });
 
         if (!cloud_path.empty() && fs::exists(cloud_path)) {
@@ -30356,155 +30085,6 @@ std::optional<ExtractionPreview> read_live_preview_json(const fs::path& progress
     cached_value = std::move(latest);
 
     return cached_value;
-#if 0
-    std::ostringstream ss;
-    ss << in.rdbuf();
-
-
-    const auto j = nlohmann::json::parse(ss.str(), nullptr, false);
-
-    if (j.is_discarded() || !j.is_object()) {
-
-        cached_path = p; cached_size = sz; cached_time = mt; cached_value = std::nullopt;
-
-        return std::nullopt;
-    }
-
-    ExtractionPreview pv;
-
-
-    pv.pdf_file = j.value("pdf_file", std::string{});
-
-    pv.page_image = fs::path(widen_utf8(j.value("page_image", std::string{})));
-
-    pv.pdf_index = j.value("pdf_index", 0);
-    pv.pdf_total = j.value("pdf_total", 0);
-    pv.page = j.value("page", 0);
-    pv.page_width = j.value("page_width", 612.0);
-    pv.page_height = j.value("page_height", 792.0);
-    pv.status = j.value("status", std::string{});
-
-    if (auto it = j.find("tokens"); it != j.end() && it->is_array()) {
-
-        pv.tokens.reserve(std::min<size_t>(it->size(), 5000));
-
-        for (const auto& x : *it) {
-
-            if (!x.is_object()) continue;
-            Token t;
-            t.page = x.value("page", pv.page);
-            t.text = x.value("text", std::string{});
-            t.norm = x.value("norm", std::string{});
-
-
-            t.box = rect_from_json_obj(x.value("box", nlohmann::json::object()));
-
-            pv.tokens.push_back(std::move(t));
-        }
-    }
-
-    if (auto it = j.find("rows"); it != j.end() && it->is_array()) {
-
-        for (const auto& x : *it) {
-
-            if (!x.is_object()) continue;
-
-            RowBand r;
-            r.jurisdiction_id = x.value("jurisdiction_id", std::string{});
-            r.jurisdiction = x.value("jurisdiction", std::string{});
-
-
-            r.label_box = rect_from_json_obj(x.value("label_box", nlohmann::json::object()));
-            r.y_mid = x.value("y_mid", 0.0);
-            r.y0 = x.value("y0", 0.0);
-            r.y1 = x.value("y1", 0.0);
-            r.line_index = x.value("line_index", -1);
-
-            pv.rows.push_back(std::move(r));
-        }
-    }
-
-    if (auto it = j.find("columns"); it != j.end() && it->is_array()) {
-
-        for (const auto& x : *it) {
-
-            if (!x.is_object()) continue;
-
-            ColumnBand c;
-            c.index = x.value("index", -1);
-            c.x_mid = x.value("x_mid", 0.0);
-            c.x0 = x.value("x0", 0.0);
-
-            c.x1 = x.value("x1", 0.0);
-            c.period = x.value("period", std::string("unknown"));
-            c.sex = x.value("sex", std::string("total"));
-            c.disease_id = x.value("disease_id", std::string("unknown"));
-            c.disease = x.value("disease", std::string("unknown"));
-            c.cie10 = x.value("cie10", std::string{});
-
-            c.source_year = x.value("source_year", std::string{});
-            c.header_text = x.value("header_text", std::string{});
-            c.role = x.value("role", std::string{});
-
-            c.expected_role = x.value("expected_role", std::string{});
-            c.group_layout_note = x.value("group_layout_note", std::string{});
-            c.group_index = x.value("group_index", -1);
-
-
-            c.header_box = rect_from_json_obj(x.value("header_box", nlohmann::json::object()));
-
-
-            c.disease_box = rect_from_json_obj(x.value("disease_box", nlohmann::json::object()));
-
-
-            c.cie10_box = rect_from_json_obj(x.value("cie10_box", nlohmann::json::object()));
-            c.header_confidence = x.value("header_confidence", 0.0);
-
-            pv.columns.push_back(std::move(c));
-        }
-    }
-
-    if (auto it = j.find("accepted"); it != j.end() && it->is_array()) {
-
-        for (const auto& x : *it) {
-
-            if (!x.is_object()) continue;
-            Observation o;
-            o.jurisdiction = x.value("jurisdiction", std::string{});
-            o.disease_id = x.value("disease_id", std::string{});
-            o.disease = x.value("disease", std::string{});
-
-            o.cie10 = x.value("cie10", std::string{});
-            o.period = x.value("period", std::string{});
-            o.sex = x.value("sex", std::string{});
-            o.value = x.value("value", static_cast<int64_t>(0));
-
-            pv.accepted.push_back(std::move(o));
-        }
-    }
-
-    if (auto it = j.find("quarantine"); it != j.end() && it->is_array()) {
-
-        for (const auto& x : *it) {
-
-            if (!x.is_object()) continue;
-            QuarantineItem q;
-            q.reason = x.value("reason", std::string{});
-            q.detail = x.value("detail", std::string{});
-
-            pv.quarantine.push_back(std::move(q));
-        }
-    }
-
-    cached_path = p;
-
-    cached_size = sz;
-
-    cached_time = mt;
-    cached_value = pv;
-
-    return cached_value;
-#endif
 }
 
 
@@ -30689,91 +30269,6 @@ ProcessedPagePulse read_processed_page_pulse(const fs::path& progress_scope) {
     cached_size = sz;
 
     return cached_pulse;
-#if 0
-
-
-
-    std::ifstream in(p, std::ios::binary);
-
-    if (!in) return cached_pulse;
-
-    if (!reset) in.seekg(static_cast<std::streamoff>(cached_size), std::ios::beg);
-    else {
-
-        cached_pulse = ProcessedPagePulse{};
-
-        pending_tail.clear();
-
-
-        cached_pdf_ids.clear();
-    }
-
-    std::ostringstream ss;
-    ss << in.rdbuf();
-    std::string data = pending_tail + ss.str();
-
-    pending_tail.clear();
-
-    size_t start = 0;
-    std::string last_complete;
-
-    while (start < data.size()) {
-        size_t nl = data.find('\n', start);
-
-        if (nl == std::string::npos) {
-            pending_tail = data.substr(start);
-
-            break;
-        }
-        std::string line = data.substr(start, nl - start);
-
-        if (!line.empty() && line.back() == '\r') line.pop_back();
-        start = nl + 1;
-
-
-        if (line.empty() || line.rfind("pdf_id", 0) == 0) continue;
-
-        ++cached_pulse.rows;
-
-
-        const auto cols_running = split_tsv_fast(line);
-
-        if (!cols_running.empty() && !cols_running[0].empty()) {
-
-
-            cached_pdf_ids.insert(cols_running[0]);
-            cached_pulse.pdf_seen = cached_pdf_ids.size();
-        }
-
-        if (cols_running.size() >= 5) {
-            try { cached_pulse.accepted_total += std::stoll(cols_running[3]); } catch (...) {}
-            try { cached_pulse.quarantine_total += std::stoll(cols_running[4]); } catch (...) {}
-        }
-        last_complete = std::move(line);
-    }
-
-
-    if (!last_complete.empty()) {
-
-
-        const auto cols = split_tsv_fast(last_complete);
-
-        if (cols.size() >= 7) {
-            try { cached_pulse.page = std::stoi(cols[1]); } catch (...) { cached_pulse.page = 0; }
-            cached_pulse.status = cols[2];
-            try { cached_pulse.accepted = std::stoll(cols[3]); } catch (...) { cached_pulse.accepted = 0; }
-            try { cached_pulse.quarantine = std::stoll(cols[4]); } catch (...) { cached_pulse.quarantine = 0; }
-
-
-            try { cached_pulse.pdf_file = path_utf8(fs::path(widen_utf8(cols[6])).filename()); } catch (...) { cached_pulse.pdf_file = cols[6]; }
-        }
-    }
-
-    cached_path = p;
-    cached_size = sz;
-
-    return cached_pulse;
-#endif
 }
 
 
@@ -31847,6 +31342,7 @@ void tlalpowa_draw_canonical_progress_rect(ImDrawList* dl, const ImVec2& a, cons
 void draw_top_bar(UiState& ui) {
     const TlalpowaPhiLayout layout = tlalpowa_phi_layout(ui);
     const float chrome_h = layout.top_h;
+    const MiausoftVisualTheme visual_theme = tlalpowa_visual_theme(ui.light_theme, ui.accent);
     
 
 
@@ -31862,7 +31358,7 @@ void draw_top_bar(UiState& ui) {
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
     
 
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ui.light_theme ? ImVec4(0.953f, 0.965f, 0.976f, 1.0f) : ImVec4(0.040f, 0.050f, 0.062f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, tlalpowa_vec4(visual_theme.topbar_a));
 
     ImGui::Begin(kPanelTop, nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
@@ -31874,8 +31370,8 @@ void draw_top_bar(UiState& ui) {
     const ImVec2 ws = ImGui::GetWindowSize();
 
 
-    const ImU32 toolbar_bg_top = ui.light_theme ? IM_COL32(239, 246, 252, 255) : IM_COL32(14, 20, 27, 255);
-    const ImU32 toolbar_bg_bottom = ui.light_theme ? IM_COL32(248, 251, 254, 255) : IM_COL32(8, 12, 17, 255);
+    const ImU32 toolbar_bg_top = ImGui::ColorConvertFloat4ToU32(tlalpowa_vec4(visual_theme.topbar_a));
+    const ImU32 toolbar_bg_bottom = ImGui::ColorConvertFloat4ToU32(tlalpowa_vec4(visual_theme.topbar_b));
 
     const ImU32 border = ui.light_theme ? IM_COL32(171, 187, 204, 132) : IM_COL32(82, 103, 125, 120);
 
@@ -31914,9 +31410,9 @@ void draw_top_bar(UiState& ui) {
     }
     startup_progress = std::min(startup_time_progress, std::clamp(startup_progress, 0.0f, 1.0f));
     if (ui.app_uptime < kStartupSplashSolidSeconds || !startup_essentials_ready) {
-        const float progress_h = tlalpowa_import_track_visual_thickness();
-        const float progress_y = wp.y + ws.y - progress_h;
-        tlalpowa_draw_canonical_progress_rect(dl, ImVec2(wp.x, progress_y), ImVec2(wp.x + ws.x, wp.y + ws.y),
+        const ImVec2 progress_a(wp.x + layout.progress.x, wp.y + layout.progress.y);
+        const ImVec2 progress_b(progress_a.x + layout.progress.w, progress_a.y + layout.progress.h);
+        tlalpowa_draw_canonical_progress_rect(ImGui::GetForegroundDrawList(), progress_a, progress_b,
                                              startup_progress, ui.accent, ui.light_theme, false, false);
     }
     
@@ -32076,13 +31572,12 @@ void draw_top_bar(UiState& ui) {
             }
         }
         if (main_progress_visible) {
-            const float track_h = tlalpowa_import_track_visual_thickness();
-            const float y0 = wp.y + ws.y - track_h;
-            const ImVec2 a(wp.x, y0);
-            const ImVec2 b(wp.x + ws.x, wp.y + ws.y);
-            tlalpowa_draw_canonical_progress_rect(dl, a, b, main_progress_fraction, ui.accent, ui.light_theme, false,
+            const ImVec2 a(wp.x + layout.progress.x, wp.y + layout.progress.y);
+            const ImVec2 b(a.x + layout.progress.w, a.y + layout.progress.h);
+            tlalpowa_draw_canonical_progress_rect(ImGui::GetForegroundDrawList(), a, b, main_progress_fraction, ui.accent, ui.light_theme, false,
                                                  tlalpowa_import_any_activity_active(ui));
-            if (ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) && ImGui::GetIO().MousePos.y >= y0 - 2.0f) {
+            if (ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) &&
+                ImGui::GetIO().MousePos.y >= a.y - 2.0f && ImGui::GetIO().MousePos.y <= b.y + 2.0f) {
                 ImGui::SetTooltip("%3.0f%% | %s", std::clamp(main_progress_fraction, 0.0f, 1.0f) * 100.0f,
                                   main_progress_label.empty() ? "Proceso activo" : main_progress_label.c_str());
             }
@@ -41028,10 +40523,11 @@ void ensure_import_3d_defaults(UiState& ui) {
         const fs::path blend = first_existing_path({
             workspace_root() / "Descargas" / "Tenochtitlan.blend",
             workspace_root() / "Descargas" / "tenochtitlan.blend",
+            executable_dir() / "descargas" / "Tenochtitlan.blend",
             executable_dir() / "Descargas" / "Tenochtitlan.blend",
             executable_dir() / "Descargas" / "tenochtitlan.blend",
             workspace_root() / "Datos" / "MapasHistoricos" / "Tenochtitlan.blend",
-            executable_dir() / "Datos" / "MapasHistoricos" / "Tenochtitlan.blend"
+            executable_dir() / "datos" / "MapasHistoricos" / "Tenochtitlan.blend"
         });
         if (!blend.empty()) configure_import_3d_paths_for_blend(ui, blend);
     }
@@ -41088,11 +40584,12 @@ std::vector<fs::path> installed_tlalpowa3d_files() {
         const std::string key = lowercase_ascii(path_utf8(fs::weakly_canonical(p, ec)));
         if (seen.insert(key.empty() ? lowercase_ascii(path_utf8(p)) : key).second) files.push_back(p);
     };
-    const std::array<fs::path, 4> flat_roots = {
+    const std::array<fs::path, 5> flat_roots = {
+        workspace_root() / "datos" / "MapasHistoricos",
         workspace_root() / "Datos" / "MapasHistoricos",
-        executable_dir() / "Datos" / "MapasHistoricos",
-        workspace_root() / "Datos",
-        executable_dir() / "Datos"
+        executable_dir() / "datos" / "MapasHistoricos",
+        workspace_root() / "datos",
+        workspace_root() / "Datos"
     };
     for (const auto& root : flat_roots) {
         std::error_code ec;
@@ -42630,10 +42127,12 @@ void apply_window_icon(GLFWwindow* window) {
 
     const fs::path png = first_existing_path({
         datos_root() / "icon" / "tlalpowa.png",
+        workspace_root() / "datos" / "icon" / "tlalpowa.png",
         workspace_root() / "TLALPOWA" / "Datos" / "icon" / "tlalpowa.png",
+        executable_dir() / "tlalpowa" / "Datos" / "icon" / "tlalpowa.png",
         executable_dir() / "TLALPOWA" / "Datos" / "icon" / "tlalpowa.png",
         workspace_root() / "Datos" / "icon" / "tlalpowa.png",
-        executable_dir() / "Datos" / "icon" / "tlalpowa.png"
+        executable_dir() / "datos" / "icon" / "tlalpowa.png"
     });
 
     if (!png.empty()) {
@@ -42685,7 +42184,9 @@ void apply_window_icon(GLFWwindow* window) {
     constexpr int kTlalpowaIconResourceId = 101;
 
     const fs::path ico = first_existing_path({
+        workspace_root() / "tlalpowa" / "Tlalpowa.ico",
         workspace_root() / "TLALPOWA" / "Tlalpowa.ico",
+        executable_dir() / "tlalpowa" / "Tlalpowa.ico",
         executable_dir() / "TLALPOWA" / "Tlalpowa.ico",
         executable_dir() / "Tlalpowa.ico",
         workspace_root() / "Fuente" / "Tlalpowa" / "Tlalpowa.ico",
@@ -42992,7 +42493,9 @@ void draw_settings_window(UiState& ui) {
 
     if (ui.settings_page < 0 || ui.settings_page > 1) ui.settings_page = 0;
 
-    const float index_w = std::clamp(ImGui::GetWindowWidth() * 0.118033988749895f, 106.0f, 148.0f);
+    const float index_w = std::clamp(
+        ImGui::GetWindowWidth() * static_cast<float>(MIAUSOFT_TLALPOWA_SETTINGS_INDEX_RATIO),
+        106.0f, 148.0f);
     ImGui::BeginChild("##settings-index", ImVec2(index_w, 0.0f), false, tlalpowa_flat_child_flags(ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse));
     ImGui::TextUnformatted(tlalpowa_tr("Configuracion"));
     golden_config_line_gap();
@@ -43591,13 +43094,19 @@ void draw_golden_checkbox_visual_template(ImDrawList* dl,
     const float safe_side = std::max(1.0f, side);
     const ImVec2 box_max(box_min.x + safe_side, box_min.y + safe_side);
     const bool visually_selected = active || mixed;
-    const float alpha = disabled
-        ? (light_theme ? 0.16f : 0.20f)
-        : (active ? 0.94f : (mixed ? 0.62f : (hovered ? 0.46f : 0.28f)));
     const float rounding = golden_checkbox_rounding();
+    uint32_t state = 0;
+    if (active) state |= MIAUSOFT_VISUAL_STATE_ACTIVE;
+    if (mixed) state |= MIAUSOFT_VISUAL_STATE_MIXED;
+    if (hovered) state |= MIAUSOFT_VISUAL_STATE_HOT;
+    if (disabled) state |= MIAUSOFT_VISUAL_STATE_DISABLED;
+    const MiausoftVisualTheme theme = tlalpowa_visual_theme(light_theme, color);
+    const MiausoftVisualComponentStyle component = miausoft_visual_component_style(
+        &theme, MIAUSOFT_TLALPOWA_CHECKBOX, state, tlalpowa_rgba(color),
+        static_cast<int>(std::lround(safe_side)));
 
     dl->AddRectFilled(box_min, box_max,
-                      ImGui::ColorConvertFloat4ToU32(ImVec4(color.x, color.y, color.z, alpha)),
+                      ImGui::ColorConvertFloat4ToU32(tlalpowa_vec4(component.fill)),
                       rounding,
                       ImDrawFlags_RoundCornersAll);
 
@@ -45235,10 +44744,13 @@ void draw_side_panel(UiState& ui) {
         }
         visible_territorial_state_ids.push_back(s.id);
     }
-    const bool territorial_all_selected = side_scope_all_selected(visible_territorial_state_ids, ui.selected_territorial_states);
-    const bool territorial_any_selected = ui.territorial_layer_enabled &&
-        (side_scope_any_selected(visible_territorial_state_ids, ui.selected_territorial_states) ||
-         !ui.selected_territorial_municipalities.empty() || !ui.selected_territorial_jurisdictions.empty());
+    const bool territorial_base_all_selected = territorial_selection_is_base_all(ui);
+    const bool territorial_all_selected = territorial_base_all_selected ||
+        side_scope_all_selected(visible_territorial_state_ids, ui.selected_territorial_states);
+    const bool territorial_any_selected = territorial_base_all_selected ||
+        (ui.territorial_layer_enabled &&
+         (side_scope_any_selected(visible_territorial_state_ids, ui.selected_territorial_states) ||
+          !ui.selected_territorial_municipalities.empty() || !ui.selected_territorial_jurisdictions.empty()));
     const bool open_territorial = draw_side_tree_header_checkbox(
         "side-category-territorial", "Ver División Territorial",
         territorial_all_selected, territorial_any_selected, territorial_states.empty(),
@@ -45256,6 +44768,13 @@ void draw_side_panel(UiState& ui) {
         ImGui::Indent(std::max(1.0f, golden_w(kGoldenN11)));
         draw_side_boolean_check("side-territorial-labels", "Etiquetas Territoriales", ui.territorial_show_labels,
                                 group_color_vec("territoriales"), ui.light_theme);
+        ui.territorial_opacity = std::clamp(ui.territorial_opacity, 0.02f, 1.0f);
+        ImGui::TextDisabled("%s", tlalpowa_tr("Opacidad territorial"));
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+        float territorial_opacity_percent = ui.territorial_opacity * 100.0f;
+        if (ImGui::SliderFloat("##side-territorial-opacity", &territorial_opacity_percent, 2.0f, 100.0f, "%.0f%%", ImGuiSliderFlags_AlwaysClamp)) {
+            ui.territorial_opacity = std::clamp(territorial_opacity_percent * 0.01f, 0.02f, 1.0f);
+        }
         ui.territorial_show_external_notice = false;
         ui.territorial_status = "División territorial fija desde compilación; sin importación lateral.";
         ImGui::TextDisabled("%s", tlalpowa_trs(ui.territorial_status).c_str());
@@ -48137,8 +47656,11 @@ std::vector<fs::path> place_glyph_roots() {
     add_root(work / "Datos" / "icon");
     add_root(work / "Datos" / "icons");
     add_root(work / "Datos" / "Iconos");
+    add_root(work / "datos" / "icon");
     add_root(work / "TLALPOWA" / "Datos" / "icon");
+    add_root(work / "datos" / "icons");
     add_root(work / "TLALPOWA" / "Datos" / "icons");
+    add_root(work / "datos" / "Iconos");
     add_root(work / "TLALPOWA" / "Datos" / "Iconos");
     add_root(work / "Fuente" / "Tlalpowa" / "icon");
     return roots;
@@ -49287,13 +48809,19 @@ std::vector<fs::path> historical_asset_roots() {
 
     std::vector<fs::path> roots;
 
+    roots.push_back(workspace_root() / "tlalpowa");
+
     roots.push_back(workspace_root() / "TLALPOWA");
 
     roots.push_back(workspace_root() / "Fuente" / "Tlalpowa");
 
     roots.push_back(executable_dir() / "Fuente" / "Tlalpowa");
 
+    roots.push_back(workspace_root() / "datos" / "MapasHistoricos");
+
     roots.push_back(workspace_root() / "Datos" / "MapasHistoricos");
+
+    roots.push_back(workspace_root() / "datos" / "Mapas historicos");
 
     roots.push_back(workspace_root() / "Datos" / "Mapas historicos");
 
@@ -49634,6 +49162,7 @@ struct TerritorialGpuLines {
     ImVec2 center_offset;
     float world_scale = 1.0f;
     float pitch = 0.0f;
+    float alpha_scale = 0.18f;
     bool failed = false;
 };
 
@@ -49796,6 +49325,7 @@ void draw_territorial_gpu_lines_callback(const ImDrawList*, const ImDrawCmd* com
     gl.uniform_1f(lines->pitch_uniform, lines->pitch);
     gl.uniform_3f(lines->color_uniform, 1.0f, 1.0f, 1.0f);
     gl.bind_vertex_array(lines->vertex_array);
+    const float alpha_scale = std::clamp(lines->alpha_scale, 0.0f, 1.0f);
     const auto draw_rings = [&](std::size_t begin, std::size_t end) {
         if (begin >= end || end > lines->ring_counts.size()) return;
         if (gl.multi_draw_arrays) {
@@ -49812,12 +49342,12 @@ void draw_territorial_gpu_lines_callback(const ImDrawList*, const ImDrawCmd* com
         }
     };
     if (lines->municipality_ring_count > 0) {
-        gl.uniform_1f(lines->alpha_uniform, 0.82f);
+        gl.uniform_1f(lines->alpha_uniform, 0.82f * alpha_scale);
         glLineWidth(kTerritorialMunicipalityLinePx * line_scale);
         draw_rings(0, lines->municipality_ring_count);
     }
     if (lines->ring_counts.size() > lines->municipality_ring_count) {
-        gl.uniform_1f(lines->alpha_uniform, 0.96f);
+        gl.uniform_1f(lines->alpha_uniform, 0.96f * alpha_scale);
         glLineWidth(kTerritorialStateLinePx * line_scale);
         draw_rings(lines->municipality_ring_count, lines->ring_counts.size());
     }
@@ -51356,10 +50886,12 @@ PreviewTexture tlalpowa_startup_icon_texture() {
     attempted = true;
     const fs::path png = first_existing_path({
         datos_root() / "icon" / "tlalpowa.png",
+        workspace_root() / "datos" / "icon" / "tlalpowa.png",
         workspace_root() / "TLALPOWA" / "Datos" / "icon" / "tlalpowa.png",
+        executable_dir() / "tlalpowa" / "Datos" / "icon" / "tlalpowa.png",
         executable_dir() / "TLALPOWA" / "Datos" / "icon" / "tlalpowa.png",
         workspace_root() / "Datos" / "icon" / "tlalpowa.png",
-        executable_dir() / "Datos" / "icon" / "tlalpowa.png"
+        executable_dir() / "datos" / "icon" / "tlalpowa.png"
     });
     if (!png.empty()) tex = load_texture_from_file(png);
     return tex;
@@ -51450,7 +50982,7 @@ void draw_tlalpowa_startup_splash_overlay(UiState& ui, ImDrawList* dl,
     {
         std::lock_guard<std::mutex> lock(ui.mu);
         if (ui.startup_catalogs_loading) loading_lines.push_back("Cargando catalogos esenciales");
-        if (ui.startup_recent_data_loading) loading_lines.push_back("Cargando fechas reales disponibles");
+        if (ui.startup_recent_data_loading) loading_lines.push_back("Precargando epidemiologia exacta sin activar casilla");
         if (ui.startup_hotdata_loading) loading_lines.push_back("Cargando hotdata esencial: ultima semana con >=75% de cobertura");
         if (!ui.startup_hotdata_loading && !ui.startup_hotdata_ready && ui.startup_hotdata_ixiptlah_files == 0ull) loading_lines.push_back("Sin IXIPTLAH local; interfaz lista para importar o jalar datos");
         else if (!ui.startup_hotdata_loading && !ui.startup_hotdata_ready) loading_lines.push_back("Reteniendo bienvenida: falta una semana esencial suficientemente cubierta");
@@ -51489,6 +51021,7 @@ void draw_map(UiState& ui, float dt) {
 
     static std::vector<MapStation> cached_stations;
     static std::vector<MapPlace> cached_places;
+    static std::vector<MapWaterBody> cached_water_bodies;
 
     static std::vector<AtmosphericCloudPoint> cached_atmospheric_clouds;
 
@@ -51544,6 +51077,7 @@ void draw_map(UiState& ui, float dt) {
             cached_buffer_features = ui.buffer_features;
             cached_stations = ui.stations;
             cached_places = ui.places;
+            cached_water_bodies = ui.water_bodies;
             cached_atmospheric_clouds = ui.atmospheric_clouds;
 
             cached_atmospheric_hourly_clouds = ui.atmospheric_hourly_clouds;
@@ -51601,6 +51135,7 @@ void draw_map(UiState& ui, float dt) {
 
     const std::vector<MapStation>& stations = cached_stations;
     const std::vector<MapPlace>& places = cached_places;
+    const std::vector<MapWaterBody>& water_bodies = cached_water_bodies;
     const std::string active_pollutant_signature = pollutant_filter_signature(selected_pollutants) + "|" + atmosphere_network_mask_signature(active_atmosphere_network_mask);
 
     const int64_t active_interval_start_hour = ui.timeline_interval_active ? std::min(ui.timeline_interval_start_hour, ui.timeline_interval_end_hour) : ui.timeline_hour;
@@ -51950,6 +51485,7 @@ void draw_map(UiState& ui, float dt) {
     std::string hovered_station;
     std::string hovered_place;
     std::string hovered_place_detail;
+    std::string hovered_water;
     static std::string pinned_place_card_key;
     static double pinned_place_card_started = -1000.0;
     static MapPlace pinned_place_card_snapshot;
@@ -52172,6 +51708,10 @@ void draw_map(UiState& ui, float dt) {
         ui.map_lod_alpha = 1.0f;
 
         const MapViewport target_view = remap_viewport_zoom(view, ui.map_lod_target);
+        if (!map_interaction_heavy_guard && ui.app_uptime >= 5.0f &&
+            target_view.z >= kMapOverviewTileZoom) {
+            synchronize_openmap_snapshot(ui, target_view);
+        }
 
         const MapViewport mask_view = remap_viewport_zoom(view, kMapStartupTileZoom);
 
@@ -52747,14 +52287,10 @@ void draw_map(UiState& ui, float dt) {
             }
 
             if (!out_of_focus && feature_total > 0 && best_area > 0.0) {
-                const float max_radius_by_area = std::sqrt(static_cast<float>(std::max(1.0, best_area)) / 3.14159265f) * 0.54f;
                 const float containment_cap = std::max(0.0f, best_inside_radius - 4.5f);
-
-                const float population_scale = std::sqrt(static_cast<float>(feature_total) / static_cast<float>(max_total));
-
-                const float target_radius = 7.0f + population_scale * max_radius_by_area;
-                const float desired_radius = std::clamp(target_radius, 4.25f, std::max(4.25f, max_radius_by_area));
-                const float radius = std::min(desired_radius, containment_cap);
+                const float viewport_cap = std::max(24.0f, std::max(size.x, size.y) * 0.36f);
+                const float metric_radius = epidemiology_pie_metric_radius_pixels(view, feature_total, max_total, viewport_cap);
+                const float radius = containment_cap > 3.25f ? std::min(metric_radius, std::max(4.25f, containment_cap)) : metric_radius;
 
                 const auto& pie_values = pie_values_for_geo(f.id);
                 if (radius >= 3.25f && !pie_values.empty()) {
@@ -52765,10 +52301,48 @@ void draw_map(UiState& ui, float dt) {
 
         TerritorialGpuLines& territorial_lines = territorial_gpu_lines();
         update_territorial_gpu_view(territorial_lines, view);
+        territorial_lines.alpha_scale = std::clamp(ui.territorial_opacity, 0.0f, 1.0f);
         if (territorial_lines.program &&
             !territorial_lines.ring_counts.empty()) {
             dl->AddCallback(draw_territorial_gpu_lines_callback, &territorial_lines);
             dl->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
+        }
+
+        if (ui.territorial_show_labels && ui.map_lod_target >= kMapOverviewTileZoom) {
+            std::set<std::pair<int, int>> occupied_labels;
+            const auto draw_boundary_labels = [&](const std::vector<MapFeature>& source, bool states) {
+                const std::size_t cap = states ? 24u : (ui.map_lod_target >= kMapScale30kTileZoom ? 120u : 56u);
+                std::size_t drawn = 0;
+                for (const MapFeature& feature : source) {
+                    if (drawn >= cap || !feature.bounds_valid || feature.name.empty()) continue;
+                    if (!states && !territorial_zmvm_feature_selected(ui, feature)) continue;
+                    if (states && !territorial_state_has_visible_selection(ui, feature.admin1_id)) continue;
+                    if (!bounds_intersect_sandbox(feature.bounds)) continue;
+                    const Point2 center{
+                        (feature.bounds[0] + feature.bounds[2]) * 0.5,
+                        (feature.bounds[1] + feature.bounds[3]) * 0.5
+                    };
+                    const ImVec2 p = project_lonlat(center, view);
+                    if (p.x < origin.x || p.x > origin.x + size.x || p.y < origin.y || p.y > origin.y + size.y) continue;
+                    const std::pair<int, int> cell{
+                        static_cast<int>((p.x - origin.x) / (states ? 170.0f : 112.0f)),
+                        static_cast<int>((p.y - origin.y) / (states ? 58.0f : 38.0f))
+                    };
+                    if (!occupied_labels.insert(cell).second) continue;
+                    const std::string label = compact_label(feature.name, states ? 32 : 26);
+                    const ImVec2 ts = ImGui::CalcTextSize(label.c_str());
+                    const ImVec2 lp(p.x - ts.x * 0.5f, p.y - ts.y * 0.5f);
+                    const ImU32 shadow = ui.light_theme ? IM_COL32(255, 255, 255, 220) : IM_COL32(0, 0, 0, 220);
+                    const ImU32 color = states
+                        ? (ui.light_theme ? IM_COL32(30, 42, 52, 235) : IM_COL32(241, 247, 250, 238))
+                        : (ui.light_theme ? IM_COL32(54, 66, 75, 224) : IM_COL32(218, 230, 236, 226));
+                    dl->AddText(ImVec2(lp.x + 1.0f, lp.y + 1.0f), shadow, label.c_str());
+                    dl->AddText(lp, color, label.c_str());
+                    ++drawn;
+                }
+            };
+            if (ui.map_lod_target <= kMapScale90kTileZoom) draw_boundary_labels(state_features, true);
+            draw_boundary_labels(features, false);
         }
 
         for (const auto& [geo_id, geo_total] : totals) {
@@ -52779,15 +52353,15 @@ void draw_map(UiState& ui, float dt) {
             const auto geo = epidemiology_jurisdiction_point(geo_id, geo_name);
             if (!geo) continue;
             const ImVec2 p = project_lonlat(*geo, view);
-            const float population_scale = std::sqrt(static_cast<float>(geo_total) / static_cast<float>(max_total));
-            const float desired_radius = std::clamp(7.0f + population_scale * 23.0f, 7.0f, 30.0f);
             const float canvas_cap = std::min({
                 p.x - origin.x - 5.0f,
                 origin.x + size.x - p.x - 5.0f,
                 p.y - origin.y - 5.0f,
                 origin.y + size.y - p.y - 5.0f
             });
-            const float radius = std::min(desired_radius, canvas_cap);
+            const float desired_radius = epidemiology_pie_metric_radius_pixels(
+                view, geo_total, max_total, std::max(24.0f, std::max(size.x, size.y) * 0.36f));
+            const float radius = std::min(desired_radius, std::max(4.25f, canvas_cap));
             if (p.x < origin.x || p.x > origin.x + size.x || p.y < origin.y || p.y > origin.y + size.y || radius < 4.0f) continue;
             const auto& pie_values = pie_values_for_geo(geo_id);
             if (!pie_values.empty()) {
@@ -52797,6 +52371,37 @@ void draw_map(UiState& ui, float dt) {
 
 
         
+        if (!water_bodies.empty() && ui.map_lod_target >= kMapScale300kTileZoom) {
+            const GeoBounds water_view = viewport_lonlat_bounds(view);
+            std::set<std::pair<int, int>> occupied;
+            std::size_t drawn = 0;
+            const std::size_t cap = ui.map_lod_target >= kMapScale30kTileZoom ? 120u : 48u;
+            for (const MapWaterBody& water : water_bodies) {
+                if (drawn >= cap) break;
+                if (water.lon < water_view.lon_min || water.lon > water_view.lon_max ||
+                    water.lat < water_view.lat_min || water.lat > water_view.lat_max) continue;
+                const ImVec2 p = project_lonlat(Point2{water.lon, water.lat}, view);
+                if (p.x < origin.x || p.x > origin.x + size.x || p.y < origin.y || p.y > origin.y + size.y) continue;
+                const std::pair<int, int> cell{
+                    static_cast<int>((p.x - origin.x) / 96.0f),
+                    static_cast<int>((p.y - origin.y) / 34.0f)
+                };
+                if (!occupied.insert(cell).second) continue;
+                const std::string label = compact_label(water.name, 34);
+                const ImVec2 ts = ImGui::CalcTextSize(label.c_str());
+                const ImVec2 text_pos(p.x - ts.x * 0.5f, p.y - ts.y * 0.5f);
+                const ImU32 shadow = ui.light_theme ? IM_COL32(248, 252, 255, 210) : IM_COL32(2, 8, 15, 220);
+                const ImU32 color = ui.light_theme ? IM_COL32(20, 96, 150, 224) : IM_COL32(116, 198, 245, 232);
+                dl->AddText(ImVec2(text_pos.x + 1.0f, text_pos.y + 1.0f), shadow, label.c_str());
+                dl->AddText(text_pos, color, label.c_str());
+                if (!map_input_blocked && mouse.x >= text_pos.x - 4.0f && mouse.x <= text_pos.x + ts.x + 4.0f &&
+                    mouse.y >= text_pos.y - 3.0f && mouse.y <= text_pos.y + ts.y + 3.0f) {
+                    hovered_water = water.name + (water.kind.empty() ? std::string{} : " · " + water.kind);
+                }
+                ++drawn;
+            }
+        }
+
         if (!places.empty() && ui.map_lod_target >= kMapOverviewTileZoom) {
             struct VisiblePlacePin {
                 const MapPlace* place = nullptr;
@@ -52859,6 +52464,7 @@ void draw_map(UiState& ui, float dt) {
                 if (ar != br) return ar > br;
                 return a.priority < b.priority;
             });
+            std::set<std::pair<int, int>> occupied_place_labels;
             for (const auto& pin : visible_places) {
                 const MapPlace& place = *pin.place;
                 const std::string place_key = place_card_interaction_key(place);
@@ -52876,6 +52482,23 @@ void draw_map(UiState& ui, float dt) {
                 const float simple_size = std::clamp(pin.radius / 0.09f, 8.5f, 42.0f);
                 const bool allow_glyph_this_pin = place_selected;
                 draw_place_marker_lod(dl, place, pin.screen, simple_size, hot, ui.light_theme, allow_glyph_this_pin);
+                const bool show_name = place_selected || place.rank <= 2 ||
+                    (ui.map_lod_target >= kMapScale90kTileZoom && place.rank <= 3) ||
+                    ui.map_lod_target >= kMapScale30kTileZoom;
+                if (show_name) {
+                    const std::pair<int, int> cell{
+                        static_cast<int>((pin.screen.x - origin.x) / 96.0f),
+                        static_cast<int>((pin.screen.y - origin.y) / 30.0f)
+                    };
+                    if (place_selected || occupied_place_labels.insert(cell).second) {
+                        const std::string label = compact_label(place.name, 28);
+                        const ImVec2 text_pos(pin.screen.x + 6.0f, pin.screen.y - ImGui::GetTextLineHeight() * 0.55f);
+                        const ImU32 shadow = ui.light_theme ? IM_COL32(255, 255, 255, 225) : IM_COL32(0, 0, 0, 225);
+                        const ImU32 color = ui.light_theme ? IM_COL32(42, 48, 54, 238) : IM_COL32(238, 244, 247, 240);
+                        dl->AddText(ImVec2(text_pos.x + 1.0f, text_pos.y + 1.0f), shadow, label.c_str());
+                        dl->AddText(text_pos, color, label.c_str());
+                    }
+                }
             }
             if (place_mouse_in_map && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
                 if (hovered_place_ptr) {
@@ -53283,7 +52906,7 @@ if (map_input_blocked) {
 
 
 
-    const std::string map_hover_name = !hovered_place.empty() ? hovered_place : hovered_name;
+    const std::string map_hover_name = !hovered_place.empty() ? hovered_place : (!hovered_water.empty() ? hovered_water : hovered_name);
     if (map_canvas_hovered && !attribution_hovered && !map_hover_name.empty()) {
         const std::string label = compact_label(map_hover_name, 38);
         const ImVec2 ts = ImGui::CalcTextSize(label.c_str());
@@ -53374,7 +52997,12 @@ if (map_input_blocked) {
             if (place_card_should_raise_this_frame) {
                 ImGui::SetWindowFocus();
             }
-            draw_place_card_contents(*place_card_to_draw, ui.light_theme);
+            MapPlace enriched_place = *place_card_to_draw;
+            if (enriched_place.elevation_m <= 0) {
+                enriched_place.elevation_m = loaded_terrain_elevation_for_lonlat(
+                    enriched_place.lon, enriched_place.lat, ui.map_lod_current);
+            }
+            draw_place_card_contents(enriched_place, ui.light_theme);
         }
         if (place_card_new_generation) pinned_place_card_focus_epoch = pinned_place_card_epoch;
         if (pinned_place_card_raise_frames_remaining > 0) --pinned_place_card_raise_frames_remaining;
@@ -61857,7 +61485,7 @@ void tlac_precarga_spec(UiState& ui, const GraphSpec& spec) {
 }
 
 fs::path graph_export_directory() {
-    return executable_dir() / "Datos" / "Exportaciones" / "Graficas";
+    return executable_dir() / "datos" / "Exportaciones" / "Graficas";
 }
 
 bool graph_spec_uses_epidemiology_ixiptlah(const GraphSpec& spec);
@@ -62456,7 +62084,7 @@ void draw_chart_external_table(const GraphSpec& spec,
 
     const float table_h = ozone_mode && corr.rows.size() >= 2 ? 132.0f : 112.0f;
     if (ozone_mode && corr.rows.size() >= 2) {
-        if (ImGui::BeginTable("chart-corr-detail-table", 6, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders, ImVec2(width, table_h))) {
+        if (ImGui::BeginTable("chart-corr-detail-table", 6, ImGuiTableFlags_RowBg, ImVec2(width, table_h))) {
             ImGui::TableSetupColumn(tlalpowa_tr("Semana"));
             ImGui::TableSetupColumn(tlalpowa_tr("Alcaldia"));
             ImGui::TableSetupColumn(tlalpowa_tr("Enfermedad"));
@@ -62479,7 +62107,7 @@ void draw_chart_external_table(const GraphSpec& spec,
             ImGui::EndTable();
         }
     } else {
-        if (ImGui::BeginTable("chart-point-detail-table", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders, ImVec2(width, table_h))) {
+        if (ImGui::BeginTable("chart-point-detail-table", 3, ImGuiTableFlags_RowBg, ImVec2(width, table_h))) {
             ImGui::TableSetupColumn(tlalpowa_tr("Categoria/tiempo"));
             ImGui::TableSetupColumn(tlalpowa_tr("Valor"));
             ImGui::TableSetupColumn(tlalpowa_tr("Proporcion"));
@@ -62832,6 +62460,33 @@ void graph_sync_pending_from_spec_if_config_targets(UiState& ui, int tab_index, 
 void ensure_graph_ixiptlah_epidemiology_loaded(UiState& ui) {
     static const std::set<std::string> all_diseases{kTlalpowaAllEpidemiologySelection};
     const std::string all_diseases_signature = disease_filter_signature(all_diseases);
+
+    // Ruta cero-disco: si la bienvenida ya dejó epidemiología exacta en RAM,
+    // las gráficas toman ese bloque sin encender la casilla lateral ni releer IXIPTLAH.
+    {
+        bool needs_rows = false;
+        {
+            std::lock_guard<std::mutex> lock(ui.mu);
+            bool graph_requests_unfiltered_rows = false;
+            bool graph_requests_selected_rows = false;
+            for (int tab = 1; tab <= 2; ++tab) {
+                const int count = std::clamp(ui.graph_counts[static_cast<size_t>(tab)], 0, 8);
+                for (int i = 0; i < count; ++i) {
+                    const GraphSpec& spec = ui.graph_specs[static_cast<size_t>(tab)][static_cast<size_t>(i)];
+                    if (!spec.graph_confirmed || spec.graph_dirty || !graph_spec_uses_epidemiology_ixiptlah(spec)) continue;
+                    if (spec.use_selected_data) graph_requests_selected_rows = true;
+                    else graph_requests_unfiltered_rows = true;
+                }
+            }
+            needs_rows = !graph_epidemiology_rows_compatible(
+                ui, graph_requests_unfiltered_rows, graph_requests_selected_rows, all_diseases_signature);
+        }
+        if (needs_rows && tlalpowa_try_publish_preloaded_epidemiology_pies(
+                ui, all_diseases, graph_ixiptlah_signature(), {})) {
+            return;
+        }
+    }
+
     bool launch = false;
     int attempt = 0;
     {
@@ -63364,16 +63019,19 @@ void request_data_loads_for_active_layer_checkboxes(UiState& ui) {
     bool can_start_epi = false;
     bool can_start_atmosphere = false;
     bool can_start_mobility = false;
+    std::set<std::string> requested_diseases_snapshot;
     std::string requested_disease_signature;
     std::string loaded_disease_signature;
     std::string requested_anchor_week;
     std::string loaded_anchor_week;
+    bool publish_preloaded_epi = false;
     const auto request_now = std::chrono::steady_clock::now();
 
     {
         std::lock_guard<std::mutex> lock(ui.mu);
-        need_epi = !ui.selected_diseases.empty();
-        requested_disease_signature = disease_filter_signature(ui.selected_diseases);
+        requested_diseases_snapshot = ui.selected_diseases;
+        need_epi = !requested_diseases_snapshot.empty();
+        requested_disease_signature = disease_filter_signature(requested_diseases_snapshot);
         loaded_disease_signature = ui.observations_loaded_filter_signature;
         loaded_anchor_week = ui.observations_loaded_anchor_week;
         const std::vector<std::string> epi_anchor_labels = tlalpowa_epidemiology_anchor_labels_locked(ui);
@@ -63406,7 +63064,13 @@ void request_data_loads_for_active_layer_checkboxes(UiState& ui) {
             last_epi_reload_request_key.clear();
             last_epi_reload_request_changed_at = {};
         }
-        can_start_epi = epi_filter_stale && epi_request_stable && !ui.observations_full_loading &&
+        const bool preloaded_epi_matches = epi_filter_stale &&
+            tlalpowa_all_epidemiology_selected(requested_diseases_snapshot) &&
+            ui.startup_epi_pies_cache_ready && ui.startup_epi_pies_cache &&
+            ui.startup_epi_pies_filter_signature == requested_disease_signature &&
+            (requested_anchor_week.empty() || ui.startup_epi_pies_anchor_week == requested_anchor_week);
+        publish_preloaded_epi = preloaded_epi_matches;
+        can_start_epi = epi_filter_stale && !publish_preloaded_epi && epi_request_stable && !ui.observations_full_loading &&
                         !ui.observations_loading &&
                         !ui.running.load(std::memory_order_relaxed) && !ui.observations_full_thread.joinable();
         can_start_atmosphere = need_atmosphere && !ui.atmospheric_clouds_loaded && !ui.atmospheric_clouds_loading &&
@@ -63449,6 +63113,11 @@ void request_data_loads_for_active_layer_checkboxes(UiState& ui) {
             ui.mobility_status = "Cargando movilidad integrada por casilla activa";
             ui.status = ui.mobility_status;
         }
+    }
+
+    if (publish_preloaded_epi) {
+        (void)tlalpowa_try_publish_preloaded_epidemiology_pies(
+            ui, requested_diseases_snapshot, requested_disease_signature, requested_anchor_week);
     }
 
     if (can_start_epi) {
@@ -63670,8 +63339,8 @@ int run_tlalpowa_app() {
     apply_minimal_theme(ui.light_theme, ui.accent);
     auto startup_first_frame_presented = std::make_shared<std::atomic_bool>(false);
     ui.startup_catalogs_loading = true;
-    ui.startup_recent_data_loading = false;
-    ui.startup_recent_data_ready = true;
+    ui.startup_recent_data_loading = true;
+    ui.startup_recent_data_ready = false;
     ui.startup_hotdata_loading = true;
     tlalpowa_present_boot_clear_frame(window, ui);
     startup_first_frame_presented->store(true, std::memory_order_release);
@@ -63714,10 +63383,9 @@ int run_tlalpowa_app() {
         }).detach();
 #endif
         TlalpowaHotDataConfig cfg = tlalpowa_hotdata_default_config();
-        // REGLA FIJA DE BIENVENIDA: se precalienta solo lo esencial activo al abrir:
-        // meteorologia y contaminantes de la ultima semana real. Epidemiologia
-        // queda en disco hasta que una casilla o grafica la solicite. Mapa, movilidad,
-        // teselas y reconstrucciones quedan fuera del candado y siguen despues.
+        // REGLA FIJA DE BIENVENIDA: se precalienta lo esencial activo al abrir:
+        // meteorologia, contaminantes y epidemiologia de la semana real elegida.
+        // Mapa, movilidad, teselas y reconstrucciones quedan fuera del candado.
         cfg.max_total_touch_bytes = static_cast<std::uint64_t>(env_int_clamped_app(
             "TLALPOWA_HOTDATA_STARTUP_TOUCH_MB", 24, 24, 128)) * 1024ull * 1024ull;
         cfg.max_payload_bytes_per_record = static_cast<std::uint32_t>(env_int_clamped_app(
@@ -63738,10 +63406,7 @@ int run_tlalpowa_app() {
             "TLALPOWA_HOTDATA_STARTUP_GATE_KB", 48, 16, 256)) * 1024u;
         cfg.startup_gate_category_limit = static_cast<std::uint32_t>(env_int_clamped_app(
             "TLALPOWA_HOTDATA_STARTUP_CATEGORY_LIMIT", 128, 16, 256));
-        cfg.startup_gate_core_mask = TLALPOWA_HOTDATA_STARTUP_CORE_ATMOSPHERE;
-        if (download_env_flag_enabled_local("TLALPOWA_HOTDATA_STARTUP_INCLUDE_EPI", false)) {
-            cfg.startup_gate_core_mask |= TLALPOWA_HOTDATA_STARTUP_CORE_EPIDEMIOLOGY;
-        }
+        cfg.startup_gate_core_mask = TLALPOWA_HOTDATA_STARTUP_CORE_ATMOSPHERE | TLALPOWA_HOTDATA_STARTUP_CORE_EPIDEMIOLOGY;
         cfg.keep_runtime_index = 1u;
         TlalpowaHotDataStats st{};
         const int ok = tlalpowa_hotdata_prewarm_root(hotdata_root_utf8.c_str(), &cfg, &st);
@@ -63768,8 +63433,10 @@ int run_tlalpowa_app() {
         if (hotdata_ready_now) {
             TlalpowaHotDataStats first_con{};
             TlalpowaHotDataStats first_met{};
+            TlalpowaHotDataStats first_epi{};
             TlalpowaHotDataHit first_con_hits[16]{};
             TlalpowaHotDataHit first_met_hits[12]{};
+            TlalpowaHotDataHit first_epi_hits[24]{};
             const std::uint64_t con_key = first_visible_key != 0ull ? first_visible_key : st.latest_contaminant_key;
             const std::uint64_t met_key = first_visible_key != 0ull ? first_visible_key : st.latest_meteorology_key;
             if (con_key != 0ull) {
@@ -63782,8 +63449,25 @@ int run_tlalpowa_app() {
                                                                     met_key, 8u, 192u * 1024u,
                                                                     0u, 0u, first_met_hits, &first_met);
             }
+            {
+                const std::uint64_t anchor_key = con_key != 0ull ? con_key : met_key;
+                const std::uint32_t anchor_core = con_key != 0ull ? TLALPOWA_HOTDATA_CORE_CONTAMINANT : TLALPOWA_HOTDATA_CORE_METEOROLOGY;
+                const std::uint64_t fallback_epi_key = gate_week_parsed
+                    ? tlalpowa_epi_temporal_key_from_week_label(format_timeline_week_label(gate_week_hour))
+                    : st.latest_epidemiology_key;
+                if (anchor_key != 0ull || fallback_epi_key != 0ull) {
+                    (void)tlalpowa_hotdata_prepare_core_for_anchor_file(anchor_core,
+                                                                        anchor_key,
+                                                                        TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY,
+                                                                        fallback_epi_key,
+                                                                        12u, 192u * 1024u,
+                                                                        12u, 64u * 1024u,
+                                                                        first_epi_hits, &first_epi);
+                }
+            }
             const bool atmosphere_ready = (first_con.prepared_hits + first_met.prepared_hits) > 0ull;
-            first_visible_ready_now = atmosphere_ready;
+            const bool epidemiology_ready = first_epi.prepared_hits > 0ull;
+            first_visible_ready_now = atmosphere_ready && epidemiology_ready;
             if (first_visible_key != 0ull) {
                 first_visible_key_parsed =
                     tlalpowa_timeline_from_atmospheric_temporal_key(first_visible_key, first_visible_hour, first_visible_minute);
@@ -63794,6 +63478,13 @@ int run_tlalpowa_app() {
                 first_visible_key_parsed = true;
             }
         }
+
+        std::string first_visible_epi_week_label;
+        if (gate_week_parsed) first_visible_epi_week_label = format_timeline_week_label(gate_week_hour);
+        else if (first_visible_key_parsed) first_visible_epi_week_label = format_timeline_week_label(first_visible_hour);
+        const bool startup_epi_pies_ready = hotdata_ready_now && first_visible_ready_now
+            ? tlalpowa_preload_startup_exact_epidemiology_for_pies(ui, first_visible_epi_week_label)
+            : tlalpowa_preload_startup_exact_epidemiology_for_pies(ui, {});
 
         {
             std::lock_guard<std::mutex> lock(ui.mu);
@@ -63847,8 +63538,10 @@ int run_tlalpowa_app() {
                     " / " + std::to_string(st.startup_gate_expected_hits) +
                     " categorias, " + std::to_string(st.startup_gate_bytes / 1024ull) + " KiB; " +
                     (first_visible_ready_now
-                        ? std::string("primera fecha visible atmosferica lista y epidemiologia esperara casilla activa")
-                        : std::string("reteniendo bienvenida: falta preparar atmosfera en la primera fecha"));
+                        ? (startup_epi_pies_ready
+                            ? std::string("primera fecha visible lista con cache epidemiologico latente")
+                            : std::string("primera fecha visible lista; pasteles epidemiologicos sin shard exacto"))
+                        : std::string("reteniendo bienvenida: falta preparar atmosfera o epidemiologia en la primera fecha"));
                 if (ui.status.find("No pude") == std::string::npos) ui.status = ui.startup_hotdata_status;
             } else {
                 std::ostringstream failure;
@@ -63895,11 +63588,12 @@ int run_tlalpowa_app() {
             const std::uint64_t con_key = st.latest_contaminant_key;
             const std::uint64_t met_key = st.latest_meteorology_key;
             const std::uint64_t any_key = st.latest_temporal_key;
+            const std::uint64_t epi_key = st.latest_epidemiology_key;
             const std::uint32_t bg_neighbors = static_cast<std::uint32_t>(env_int_clamped_app(
                 "TLALPOWA_HOTDATA_BACKGROUND_NEIGHBORS", 2, 0, 16));
             const std::uint32_t bg_kb = static_cast<std::uint32_t>(env_int_clamped_app(
                 "TLALPOWA_HOTDATA_BACKGROUND_NEIGHBOR_KB", 32, 8, 96));
-            std::thread([con_key, met_key, any_key, bg_neighbors, bg_kb]() {
+            std::thread([con_key, met_key, epi_key, any_key, bg_neighbors, bg_kb]() {
 #ifdef _WIN32
                 SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
                 Sleep(450);
@@ -63909,9 +63603,11 @@ int run_tlalpowa_app() {
                 const std::uint32_t bytes = bg_kb * 1024u;
                 TlalpowaHotDataStats st_con{};
                 TlalpowaHotDataStats st_met{};
+                TlalpowaHotDataStats st_epi{};
                 TlalpowaHotDataStats st_any{};
                 if (con_key != 0ull) (void)tlalpowa_hotdata_prefetch_temporal(TLALPOWA_HOTDATA_CORE_CONTAMINANT, con_key, bg_neighbors, bytes, &st_con);
                 if (met_key != 0ull) (void)tlalpowa_hotdata_prefetch_temporal(TLALPOWA_HOTDATA_CORE_METEOROLOGY, met_key, bg_neighbors, bytes, &st_met);
+                if (epi_key != 0ull) (void)tlalpowa_hotdata_prefetch_temporal(TLALPOWA_HOTDATA_CORE_EPIDEMIOLOGY, epi_key, bg_neighbors, bytes, &st_epi);
                 if (any_key != 0ull) (void)tlalpowa_hotdata_prefetch_temporal(TLALPOWA_HOTDATA_CORE_ANY, any_key, bg_neighbors / 2u, bytes, &st_any);
 #ifdef _WIN32
                 SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_END);
@@ -63968,12 +63664,10 @@ int run_tlalpowa_app() {
                         if (!key.empty()) ui.selected_pollutants.insert(key);
                     }
                 }
-                ui.observations_full_loaded = false;
+                if (!ui.observations_ptr || ui.observations_ptr->empty()) ui.observations_full_loaded = false;
                 ui.observations_loading = false;
-                ui.startup_recent_data_loading = false;
-                ui.startup_recent_data_ready = true;
-                if (ui.status.find("No pude") == std::string::npos) {
-                    ui.status = "Catalogo lateral listo; epidemiologia apagada hasta seleccionar una casilla.";
+                if (ui.status.find("No pude") == std::string::npos && !ui.startup_recent_data_loading) {
+                    ui.status = "Catalogo lateral listo; epidemiologia exacta de bienvenida resuelta.";
                 }
             }
         } catch (const std::exception& e) {
@@ -64180,25 +63874,21 @@ int run_tlalpowa_app() {
             prune_map_tile_cache_if_needed();
 
             const fs::path geo_root = ui_config_root();
-            (void)tlalpowa_materialize_embedded_territorial_resources();
-
-            const fs::path regional_geometry = territorial_installed_geometry_path();
-            auto features = load_territorial_geometry(territorial_installed_binary_path(), regional_geometry);
-            if (features.empty()) features = load_geojson(geo_root / "zmvm.geojson");
-            if (features.empty()) {
-                throw std::runtime_error("No hay delimitaciones territoriales utilizables");
-            }
-            auto state_features = load_territorial_geometry(
-                territorial_installed_states_binary_path(), territorial_installed_states_path());
+            // Respaldo mínimo: OSM llena la geometría viva y analítica. Sólo se
+            // abre el GeoJSON compacto ZMVM si la red todavía no entregó límites.
+            auto features = load_geojson(geo_root / "zmvm.geojson");
+            std::vector<MapFeature> state_features;
 
             auto buffer_features = load_geojson(first_existing_path({geo_root / "zmvm_buffer_50km.geojson", geo_root / "zmvm_buffer_20km.geojson", geo_root / "zmvm_buffer_10km.geojson"}));
-            auto places = load_map_places(existing_place_catalog_paths(geo_root), features, buffer_features);
+            auto places = openmap_places(tlalpowa::openmap::Snapshot{});
             load_stations(ui);
             {
 
                 std::lock_guard<std::mutex> lock(ui.mu);
                 ui.features_ptr = std::make_shared<const std::vector<MapFeature>>(std::move(features));
                 ui.state_features_ptr = std::make_shared<const std::vector<MapFeature>>(std::move(state_features));
+                ui.fallback_features_ptr = ui.features_ptr;
+                ui.fallback_state_features_ptr = ui.state_features_ptr;
                 ui.buffer_features = std::move(buffer_features);
                 ui.places = std::move(places);
                 if (download_env_flag_enabled_local("TLALPOWA_DIAGNOSTIC_SELECT_ALL_TERRITORY", false)) {
@@ -64217,9 +63907,9 @@ int run_tlalpowa_app() {
 
                 ui.startup_tiles_ready = true;
                 ui.startup_tile_coverage = 1.0f;
-                ui.status = fs::exists(regional_geometry)
-                    ? "Mapa regional INEGI 2025, poblados y estaciones esenciales cargados"
-                    : "Mapa ZMVM, poblados y estaciones esenciales cargados sobre Z5/Z10/Z19 embebidos";
+                ui.status = !ui.features_ptr || ui.features_ptr->empty()
+                    ? "Mapa satelital listo; esperando límites OpenStreetMap"
+                    : "Mapa satelital listo; límites locales conservados sólo como respaldo de OpenStreetMap";
             }
 
 

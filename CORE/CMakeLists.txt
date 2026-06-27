@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.24)
 project(MiausoftSuite LANGUAGES C CXX)
 
 option(MIAUSOFT_BUILD_TLALPOWA "Build Tlalpowa" OFF)
-option(MIAUSOFT_BUILD_APPS "Build Ilnamiki, Biblioteca and Miausoft tools" ON)
+option(MIAUSOFT_BUILD_APPS "Build surviving Miausoft applications" ON)
+set(MIAUSOFT_SELECTED_TARGET "Todo" CACHE STRING "Destino logico solicitado por Compilar.ps1")
 
 get_filename_component(MIAUSOFT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
 
@@ -20,11 +21,35 @@ if(MSVC)
     add_compile_options(/utf-8)
 endif()
 
-add_library(miausoft_core STATIC
-    miausoft_core.c
-    tlalpowa_common_runtime.c
-)
+set(MIAUSOFT_CORE_SOURCES
+    MiausoftVisual.c)
+if(WIN32)
+    list(APPEND MIAUSOFT_CORE_SOURCES MiausoftVisualWin32.c)
+endif()
+add_library(miausoft_core STATIC ${MIAUSOFT_CORE_SOURCES})
 target_include_directories(miausoft_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+target_compile_definitions(miausoft_core PUBLIC MIAUSOFT_TLALPOWA_VISUAL_CORE=1)
+if(WIN32)
+    target_link_libraries(miausoft_core PUBLIC msimg32)
+endif()
+
+include(CTest)
+if(BUILD_TESTING)
+    add_executable(miausoft_visual_contract_test tests/MiausoftVisualContractTest.c)
+    target_link_libraries(miausoft_visual_contract_test PRIVATE miausoft_core)
+    target_include_directories(miausoft_visual_contract_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    set_property(TARGET miausoft_visual_contract_test PROPERTY MIAUSOFT_CORE_ATTACHED TRUE)
+    add_test(NAME MiausoftVisualContract COMMAND miausoft_visual_contract_test)
+endif()
+
+function(miausoft_output_to_root target)
+    set_target_properties("${target}" PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${MIAUSOFT_ROOT}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${MIAUSOFT_ROOT}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${MIAUSOFT_ROOT}"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${MIAUSOFT_ROOT}"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${MIAUSOFT_ROOT}")
+endfunction()
 
 function(miausoft_require_core target)
     if(NOT TARGET "${target}")
@@ -33,74 +58,121 @@ function(miausoft_require_core target)
     target_include_directories("${target}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
     target_link_libraries("${target}" PRIVATE miausoft_core)
     set_property(TARGET "${target}" PROPERTY MIAUSOFT_CORE_ATTACHED TRUE)
+    miausoft_output_to_root("${target}")
+endfunction()
+
+function(miausoft_string_lower out value)
+    string(TOLOWER "${value}" lowered)
+    set(${out} "${lowered}" PARENT_SCOPE)
+endfunction()
+
+function(miausoft_first_existing out)
+    foreach(candidate IN LISTS ARGN)
+        if(candidate AND EXISTS "${candidate}")
+            set(${out} "${candidate}" PARENT_SCOPE)
+            return()
+        endif()
+    endforeach()
+    set(${out} "" PARENT_SCOPE)
+endfunction()
+
+function(miausoft_icon_candidates_for_folder out folder)
+    get_filename_component(folder_abs "${folder}" ABSOLUTE)
+    get_filename_component(folder_name "${folder_abs}" NAME)
+    miausoft_string_lower(folder_lower "${folder_name}")
+    set(items
+        "${folder_abs}/${folder_name}.ico"
+        "${folder_abs}/${folder_lower}.ico")
+    if(folder_lower STREQUAL "miausoftools")
+        list(APPEND items
+            "${folder_abs}/Miausoft.ico"
+            "${folder_abs}/miausoft.ico"
+            "${CMAKE_CURRENT_SOURCE_DIR}/Miausoft.ico")
+    endif()
+    set(${out} ${items} PARENT_SCOPE)
+endfunction()
+
+function(miausoft_folder_icon out app_dir)
+    get_filename_component(app_abs_raw "${app_dir}" ABSOLUTE)
+    file(TO_CMAKE_PATH "${app_abs_raw}" app_abs)
+    file(TO_CMAKE_PATH "${MIAUSOFT_ROOT}" root_norm)
+    set(candidates)
+    set(cursor "${app_abs}")
+    while(TRUE)
+        miausoft_icon_candidates_for_folder(folder_candidates "${cursor}")
+        list(APPEND candidates ${folder_candidates})
+        if(cursor STREQUAL "${root_norm}")
+            break()
+        endif()
+        get_filename_component(parent "${cursor}" DIRECTORY)
+        if(parent STREQUAL cursor OR parent STREQUAL "")
+            break()
+        endif()
+        set(cursor "${parent}")
+    endwhile()
+    miausoft_first_existing(found ${candidates})
+    set(${out} "${found}" PARENT_SCOPE)
+endfunction()
+
+function(miausoft_icon_rc out target app_dir icon_id)
+    miausoft_folder_icon(icon_path "${app_dir}")
+    if(NOT icon_path)
+        set(${out} "" PARENT_SCOPE)
+        return()
+    endif()
+    file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/MiausoftIconos")
+    set(rc_path "${CMAKE_BINARY_DIR}/MiausoftIconos/${target}_icon.rc")
+    file(TO_CMAKE_PATH "${icon_path}" icon_rc_path)
+    file(WRITE "${rc_path}" "#include <windows.h>\n${icon_id} ICON \"${icon_rc_path}\"\n")
+    set(${out} "${rc_path}" PARENT_SCOPE)
+endfunction()
+
+function(miausoft_add_windows_app target output_name directory source icon_id)
+    set(app_dir "${MIAUSOFT_ROOT}/${directory}")
+    set(app_sources "${app_dir}/${source}")
+    if(WIN32)
+        miausoft_icon_rc(icon_rc "${target}" "${app_dir}" "${icon_id}")
+        if(icon_rc)
+            list(APPEND app_sources "${icon_rc}")
+        endif()
+    endif()
+    add_executable(${target} WIN32 ${app_sources})
+    set_target_properties(${target} PROPERTIES OUTPUT_NAME "${output_name}")
+    target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${app_dir}")
+    target_compile_definitions(${target} PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+    target_link_libraries(${target} PRIVATE user32 gdi32 gdiplus comdlg32 shell32 ole32 oleaut32 advapi32 shlwapi comctl32 bcrypt dwmapi uxtheme uuid urlmon wininet)
+    if(MSVC)
+        target_compile_options(${target} PRIVATE /bigobj)
+    endif()
+    miausoft_require_core(${target})
 endfunction()
 
 if(MIAUSOFT_BUILD_TLALPOWA)
-    add_subdirectory("${MIAUSOFT_ROOT}/TLALPOWA" "${CMAKE_BINARY_DIR}/Tlalpowa")
+    add_subdirectory("${MIAUSOFT_ROOT}/tlalpowa" "${CMAKE_BINARY_DIR}/Tlalpowa")
     miausoft_require_core(Tlalpowa)
 endif()
 
+function(miausoft_selected out key)
+    set(selected FALSE)
+    if(MIAUSOFT_SELECTED_TARGET STREQUAL "Todo")
+        set(selected TRUE)
+    elseif(MIAUSOFT_SELECTED_TARGET STREQUAL "${key}")
+        set(selected TRUE)
+    endif()
+    set(${out} ${selected} PARENT_SCOPE)
+endfunction()
+
 if(MIAUSOFT_BUILD_APPS)
-    function(miausoft_add_windows_app target output_name directory source resource)
-        add_executable(${target} WIN32
-            "${MIAUSOFT_ROOT}/${directory}/${source}"
-            "${MIAUSOFT_ROOT}/${directory}/${resource}"
-        )
-        set_target_properties(${target} PROPERTIES OUTPUT_NAME "${output_name}")
-        target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-        target_compile_definitions(${target} PRIVATE
-            UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
-        target_link_libraries(${target} PRIVATE
-            user32 gdi32 gdiplus comdlg32 shell32 ole32 oleaut32
-            advapi32 shlwapi comctl32 bcrypt dwmapi uxtheme uuid
-            urlmon wininet
-        )
-        if(MSVC)
-            target_compile_options(${target} PRIVATE /bigobj)
-        endif()
-        miausoft_require_core(${target})
-    endfunction()
+    miausoft_selected(build_ilnamiki Ilnamiki)
+    if(build_ilnamiki)
+        miausoft_add_windows_app(Ilnamiki Ilnamiki "ilnamiki" Ilnamiki.c 101)
+        target_link_libraries(Ilnamiki PRIVATE shell32 user32 comctl32 shlwapi dwmapi comdlg32 ole32 oleaut32)
+    endif()
 
-    add_executable(Ilnamiki WIN32
-        "${MIAUSOFT_ROOT}/ILNAMIKI/Ilnamiki.cpp"
-        "${MIAUSOFT_ROOT}/ILNAMIKI/Ilnamiki.rc"
-    )
-    target_include_directories(Ilnamiki PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_compile_definitions(Ilnamiki PRIVATE
-        UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
-    target_link_libraries(Ilnamiki PRIVATE shell32 user32)
-    miausoft_require_core(Ilnamiki)
-
-    miausoft_add_windows_app(
-        Biblioteca Biblioteca "MIAUSOFTOOLS/Biblioteca" Biblioteca.cpp Biblioteca.rc)
-    target_sources(Biblioteca PRIVATE
-        "${MIAUSOFT_ROOT}/MIAUSOFTOOLS/Biblioteca/nucleo_documentos.c")
-    miausoft_add_windows_app(
-        Convertidor_Completo Miausoft_Convertidor_Completo
-        "MIAUSOFTOOLS/Convertidor_Completo" Convertidor_Completo.cpp Convertidor_Completo.rc)
-    miausoft_add_windows_app(
-        Convertidor_Por_Capitulos Miausoft_Convertidor_Por_Capitulos
-        "MIAUSOFTOOLS/Convertidor_Por_Capitulos" Convertidor_Por_Capitulos.cpp Convertidor_Por_Capitulos.rc)
-    miausoft_add_windows_app(
-        Fusionador_Divisor Miausoft_Fusionador_Divisor
-        "MIAUSOFTOOLS/Fusionador_Divisor" Fusionador_Divisor.cpp Fusionador_Divisor.rc)
-    miausoft_add_windows_app(
-        Organizador Organizador
-        "MIAUSOFTOOLS/Organizador_Biblioteca" Organizador_Biblioteca.cpp Organizador_Biblioteca.rc)
-    miausoft_add_windows_app(
-        Reemplazador_Caracteres Miausoft_Reemplazador_Caracteres
-        "MIAUSOFTOOLS/Reemplazador_Caracteres" Reemplazador_Caracteres.cpp Reemplazador_Caracteres.rc)
-    miausoft_add_windows_app(
-        MiausoftSuite_Installer MiausoftSuite_Installer
-        "MIAUSOFTOOLS/Installer" MiausoftSuite_Installer.cpp MiausoftSuite_Installer.rc)
-
-    add_dependencies(MiausoftSuite_Installer
-        Ilnamiki Biblioteca Convertidor_Completo Convertidor_Por_Capitulos
-        Fusionador_Divisor Organizador Reemplazador_Caracteres)
-
-    add_custom_target(MiausoftTools DEPENDS
-        Convertidor_Completo Convertidor_Por_Capitulos Fusionador_Divisor
-        Organizador Reemplazador_Caracteres MiausoftSuite_Installer)
+    miausoft_selected(build_organizador Organizador)
+    if(build_organizador)
+        miausoft_add_windows_app(Organizador Organizador "miausoftools/Organizador_Biblioteca" Organizador_Biblioteca.cpp 101)
+    endif()
 endif()
 
 get_property(MIAUSOFT_ALL_TARGETS DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
@@ -109,8 +181,7 @@ foreach(target IN LISTS MIAUSOFT_ALL_TARGETS)
     if(target_type STREQUAL "EXECUTABLE")
         get_target_property(core_attached "${target}" MIAUSOFT_CORE_ATTACHED)
         if(NOT core_attached)
-            message(FATAL_ERROR
-                "El ejecutable ${target} no esta conectado al CORE compartido.")
+            message(FATAL_ERROR "El ejecutable ${target} no esta conectado al CORE compartido.")
         endif()
     endif()
 endforeach()
